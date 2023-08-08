@@ -1,7 +1,7 @@
 # mem_dbg
-A trait +  derive to recursively compute / print the memory usage of a data structure.  
+A trait + derive to recursively compute / print the memory usage of a data structure.  
 
-This is not a new idea, but many creates re-implement them in their own way.
+This is not a new idea, but many crates re-implement them in their own way.
 This crate is an attempt to unify them with an easy derive.
 
 Examples:
