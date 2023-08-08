@@ -90,7 +90,7 @@ impl CommonDeriveInput {
 }
 
 #[proc_macro_derive(MemSize)]
-pub fn epserde_mem_size(input: TokenStream) -> TokenStream {
+pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let CommonDeriveInput {
         name,
@@ -100,7 +100,7 @@ pub fn epserde_mem_size(input: TokenStream) -> TokenStream {
         ..
     } = CommonDeriveInput::new(
         input.clone(),
-        vec![syn::parse_quote!(epserde::MemSize)],
+        vec![syn::parse_quote!(mem_dbg::MemSize)],
         vec![],
     );
 
@@ -114,7 +114,7 @@ pub fn epserde_mem_size(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl<#generics> epserde::MemSize for #name<#generics_names> #where_clause{
+                impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
                     fn mem_size(&self) -> usize {
                         let mut bytes = 0;
                         #(bytes += self.#fields.mem_size();)*
@@ -129,7 +129,7 @@ pub fn epserde_mem_size(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_derive(MemDbg)]
-pub fn epserde_mem_dbg(input: TokenStream) -> TokenStream {
+pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let CommonDeriveInput {
         name,
@@ -139,7 +139,7 @@ pub fn epserde_mem_dbg(input: TokenStream) -> TokenStream {
         ..
     } = CommonDeriveInput::new(
         input.clone(),
-        vec![syn::parse_quote!(epserde::MemDbg)],
+        vec![syn::parse_quote!(mem_dbg::MemDbg)],
         vec![],
     );
 
@@ -153,7 +153,7 @@ pub fn epserde_mem_dbg(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl<#generics> epserde::MemDbg for #name<#generics_names> #where_clause{
+                impl<#generics> mem_dbg::MemDbg for #name<#generics_names> #where_clause{
                     fn _mem_dbg_rec_on(
                         &self,
                         writer: &mut impl core::fmt::Write,
