@@ -23,12 +23,30 @@ mod impl_mem_dbg;
 mod impl_mem_size;
 pub(crate) mod utils;
 
-/// A trait to compute recursiely the *overall* size of a structure, as opposed to the
-/// *superficial* size returned by [`core::mem::size_of()`].
+/// A trait to compute recursively the overall size and capacity of a structure, as opposed to the
+/// heap size returned by [`core::mem::size_of()`].
+///
+/// The trait provides two functions, [`MemSize::mem_size`] and [`MemSize::mem_capacity`], which
+/// return the memory used, and the memory allocated, respectively.
 pub trait MemSize {
     /// Return the (recursively computed) overall
     /// memory size of the structure in bytes.
+    ///
+    /// Size does not include memory allocated but not
+    /// used: for example, in the case of a vector this function
+    /// uses [`Vec::len`] rather than [`Vec::capacity`].
     fn mem_size(&self) -> usize;
+
+    /// Return the (recursively computed) overall
+    /// memory capacity of the structure in bytes.
+    ///
+    /// Capacity includes also memory allocated but not
+    /// used, as in the case of [`Vec::len`] vs. [`Vec::capacity`].
+    ///
+    /// The default trait implementation returns the same value as [`MemSize::mem_size`].
+    fn mem_capacity(&self) -> usize {
+        self.mem_size()
+    }
 }
 
 /// A trait providing methods to display recursively the content
