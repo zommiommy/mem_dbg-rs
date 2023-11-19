@@ -109,7 +109,12 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             let fields = s
                 .fields
                 .iter()
-                .map(|field| field.ident.to_owned().unwrap())
+                .enumerate()
+                .map(|(field_idx, field)| 
+                    field.ident.to_owned()
+                    .map(|t| t.to_token_stream())
+                    .unwrap_or_else(|| field_idx.to_token_stream())
+                )
                 .collect::<Vec<_>>();
 
             quote! {
@@ -148,7 +153,23 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             let fields = s
                 .fields
                 .iter()
-                .map(|field| field.ident.to_owned().unwrap())
+                .enumerate()
+                .map(|(field_idx, field)| 
+                    field.ident.to_owned()
+                    .map(|t| t.to_token_stream())
+                    .unwrap_or_else(|| field_idx.to_token_stream())
+                )
+                .collect::<Vec<_>>();
+
+            let fields_str = s
+                .fields
+                .iter()
+                .enumerate()
+                .map(|(field_idx, field)| 
+                    field.ident.to_owned()
+                    .map(|t| t.to_string().to_token_stream())
+                    .unwrap_or_else(|| field_idx.to_string().to_token_stream())
+                )
                 .collect::<Vec<_>>();
 
             quote! {
@@ -162,7 +183,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         type_name: bool,
                         humanize: bool,
                     ) -> core::fmt::Result {
-                        #(self.#fields.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(stringify!(#fields)), type_name, humanize)?;)*
+                        #(self.#fields.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(#fields_str), type_name, humanize)?;)*
                         Ok(())
                     }
                 }
