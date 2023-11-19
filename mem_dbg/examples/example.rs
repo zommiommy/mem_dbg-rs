@@ -7,6 +7,9 @@
 use mem_dbg::*;
 
 #[derive(MemSize, MemDbg)]
+struct TestTuple(usize, u8);
+
+#[derive(MemSize, MemDbg)]
 struct PersonVec<A, B> {
     a: A,
     b: B,
