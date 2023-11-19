@@ -53,6 +53,11 @@ impl<T: MemSize> MemSize for Vec<T> {
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size()).sum::<usize>()
     }
+    fn mem_capacity(&self) -> usize {
+        core::mem::size_of::<Self>()
+            + self.iter().map(|x| x.mem_size()).sum::<usize>()
+            + (self.capacity() - self.len()) * core::mem::size_of::<T>()
+    }
 }
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
