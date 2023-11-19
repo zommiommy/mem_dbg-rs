@@ -125,9 +125,17 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         #(bytes += self.#fields.mem_size();)*
                         bytes
                     }
+
+                    fn mem_capacity(&self) -> usize {
+                        let mut bytes = 0;
+                        #(bytes += self.#fields.mem_capacity();)*
+                        bytes
+                    }
+
                 }
             }
         }
+
         _ => todo!(),
     };
     out.into()
