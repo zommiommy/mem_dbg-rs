@@ -113,7 +113,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 .map(|(field_idx, field)| 
                     field.ident.to_owned()
                     .map(|t| t.to_token_stream())
-                    .unwrap_or_else(|| field_idx.to_token_stream())
+                    .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
                 )
                 .collect::<Vec<_>>();
 
@@ -165,7 +165,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 .map(|(field_idx, field)| 
                     field.ident.to_owned()
                     .map(|t| t.to_token_stream())
-                    .unwrap_or_else(|| field_idx.to_token_stream())
+                    .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
                 )
                 .collect::<Vec<_>>();
 
