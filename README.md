@@ -1,8 +1,7 @@
 # mem_dbg
-A trait + derive to recursively compute / print the memory usage of a data structure.  
 
-This is **not** a new idea, but many crates and re-implement them.
-This crate is an attempt to unify them with an easy derive.
+Traits and associated procedural macros to recursively compute the memory usage of a data structure or print its layout.
 
-Examples:
-- [bsuccint-rs](https://github.com/beling/bsuccinct-rs/blob/0d7adc7062c0fac6673f8af9def50a799349cfd8/dyn_size_of/src/lib.rs#L7)
+The standard library function [`std::mem::size_of`] returns the stack size of a type in bytes, but
+it does not take into consideration heap memory. This crate provides a trait [`MemSize`] and an associated procedural macro
+to that purpose. Moreover, the trait [`MemDbg`] can be used to display the recursive layout of a data structure.

@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
+use core::marker::PhantomData;
+
 use crate::MemSize;
 
 macro_rules! impl_memory_size {
@@ -72,6 +74,13 @@ impl<T: MemSize> MemSize for Box<[T]> {
     #[inline(always)]
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size()).sum::<usize>()
+    }
+}
+
+impl<T: ?Sized> MemSize for PhantomData<T> {
+    #[inline(always)]
+    fn mem_size(&self) -> usize {
+        0
     }
 }
 

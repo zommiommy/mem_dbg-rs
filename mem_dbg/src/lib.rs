@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
+
 #![doc = include_str!("../../README.md")]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -24,7 +25,7 @@ mod impl_mem_size;
 pub(crate) mod utils;
 
 /// A trait to compute recursively the overall size and capacity of a structure, as opposed to the
-/// heap size returned by [`core::mem::size_of()`].
+/// stack size returned by [`core::mem::size_of()`].
 ///
 /// The trait provides two functions, [`MemSize::mem_size`] and [`MemSize::mem_capacity`], which
 /// return the memory used, and the memory allocated, respectively.
@@ -34,14 +35,15 @@ pub trait MemSize {
     ///
     /// Size does not include memory allocated but not
     /// used: for example, in the case of a vector this function
-    /// uses [`Vec::len`] rather than [`Vec::capacity`].
+    /// calls [`Vec::len`] rather than [`Vec::capacity`].
     fn mem_size(&self) -> usize;
 
     /// Return the (recursively computed) overall
     /// memory capacity of the structure in bytes.
     ///
     /// Capacity includes also memory allocated but not
-    /// used, as in the case of [`Vec::len`] vs. [`Vec::capacity`].
+    /// used: for example, in the case of a vector this function
+    /// calls [`Vec::capacity`] rather than [`Vec::len`].
     ///
     /// The default trait implementation returns the same value as [`MemSize::mem_size`].
     fn mem_capacity(&self) -> usize {
