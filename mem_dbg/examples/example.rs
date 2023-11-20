@@ -6,6 +6,21 @@
 
 use mem_dbg::*;
 
+#[derive(MemSize)]
+enum TestEnum {
+    Unit,
+    Unit2(),
+    Unit3{},
+    Unamed(usize, u8),
+    Named{
+        first: usize,
+        second: u8,
+    }
+}
+
+#[derive(MemSize, MemDbg)]
+struct TestMarker;
+
 #[derive(MemSize, MemDbg)]
 struct TestTuple(usize, u8);
 

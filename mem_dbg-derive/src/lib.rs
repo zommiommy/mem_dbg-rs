@@ -8,7 +8,7 @@
 //!
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{parse_macro_input, Data, DeriveInput};
 
 struct CommonDeriveInput {
@@ -103,8 +103,85 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         vec![syn::parse_quote!(mem_dbg::MemSize)],
         vec![],
     );
-
     let out = match input.data {
+        Data::Enum(e) => {
+            let mut variants = Vec::new();
+            let mut variant_sizes = Vec::new();
+            let mut variant_capacities = Vec::new();
+            e.variants.iter().for_each(|variant| {
+                let mut res = variant.ident.to_owned().to_token_stream();
+                let mut var_args_size = quote!{core::mem::size_of::<Self>()};
+                let mut var_args_cap = quote!{core::mem::size_of::<Self>()};
+                match &variant.fields {
+                    syn::Fields::Unit => {},
+                    syn::Fields::Named(fields) => {
+                        let mut args = proc_macro2::TokenStream::new();
+                        fields.named.iter().map(|named| 
+                            (
+                                named.ident.as_ref().unwrap(),
+                                named.ty.to_token_stream(),
+                            )
+                            ).for_each(|(ident, ty)| {
+                            var_args_size.extend([quote!{
+                                + #ident.mem_size() - core::mem::size_of::<#ty>()
+                            }]);
+                            var_args_cap.extend([quote!{
+                                + #ident.mem_capacity() - core::mem::size_of::<#ty>()
+                            }]);
+                            args.extend([ident.to_token_stream()]);
+                            args.extend([quote!{,}]);
+                        });
+                        // extend res with the args sourrounded by curly braces
+                        res.extend(quote!{
+                            { #args }
+                        });
+                    }
+                    syn::Fields::Unnamed(fields) => {
+                        let mut args = proc_macro2::TokenStream::new();
+                        fields.unnamed.iter().enumerate().for_each(|(idx, value)| {
+                            let ident = syn::Ident::new(&format!("v{}", idx), proc_macro2::Span::call_site()).to_token_stream();
+                            let ty = value.ty.to_token_stream();
+                            var_args_size.extend([quote!{
+                                + #ident.mem_size() - core::mem::size_of::<#ty>()
+                            }]);
+                            var_args_cap.extend([quote!{
+                                + #ident.mem_capacity() - core::mem::size_of::<#ty>()
+                            }]);
+                            args.extend([ident]);
+                            args.extend([quote!{,}]);
+                        });
+                        // extend res with the args sourrounded by curly braces
+                        res.extend(quote!{
+                            ( #args )
+                        });
+                    },
+                }
+                variants.push(res);
+                variant_sizes.push(var_args_size);
+                variant_capacities.push(var_args_cap);
+            });
+
+            quote! {
+                #[automatically_derived]
+                impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
+                    fn mem_size(&self) -> usize {
+                        match self {
+                            #(
+                               #name::#variants => #variant_sizes,
+                            )*
+                        }
+                    }
+
+                    fn mem_capacity(&self) -> usize {
+                        match self {
+                            #(
+                               #name::#variants => #variant_capacities,
+                            )*
+                        }
+                    }
+                }
+            }
+        },
         Data::Struct(s) => {
             let fields = s
                 .fields
@@ -131,7 +208,6 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         #(bytes += self.#fields.mem_capacity();)*
                         bytes
                     }
-
                 }
             }
         }
