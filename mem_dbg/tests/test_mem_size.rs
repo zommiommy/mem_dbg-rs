@@ -15,7 +15,7 @@ fn test_vec_capacity() {
 #[test]
 fn test_empty_struct() {
     #[derive(MemSize)]
-    struct Data {};
+    struct Data {}
     let v = Data {};
     assert_eq!(0, v.mem_size());
     assert_eq!(0, v.mem_capacity());
@@ -56,4 +56,17 @@ fn test_tuple_struct() {
     v.1.push(2);
     assert_eq!(8 + v.1.mem_size(), v.mem_size());
     assert_eq!(8 + v.1.mem_capacity(), v.mem_capacity());
+}
+
+#[test]
+fn test_option() {
+    let v = Some(1_usize);
+    assert_eq!(v.mem_size(), 2 * core::mem::size_of::<usize>());
+    assert_eq!(v.mem_size(), v.mem_capacity());
+    let v = Some(Some(1_usize));
+    assert_eq!(v.mem_size(), 2 * core::mem::size_of::<usize>());
+    assert_eq!(v.mem_size(), v.mem_capacity());
+    let v = Some(Some(Some(1_usize)));
+    assert_eq!(v.mem_size(), 2 * core::mem::size_of::<usize>());
+    assert_eq!(v.mem_size(), v.mem_capacity());
 }

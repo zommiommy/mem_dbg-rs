@@ -10,12 +10,9 @@ use mem_dbg::*;
 enum TestEnum {
     Unit,
     Unit2(),
-    Unit3{},
+    Unit3 {},
     Unamed(usize, u8),
-    Named{
-        first: usize,
-        second: u8,
-    }
+    Named { first: usize, second: u8 },
 }
 
 #[derive(MemSize, MemDbg)]
