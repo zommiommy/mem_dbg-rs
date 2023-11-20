@@ -25,14 +25,14 @@ impl_memory_size! {
    i8, i16, i32, i64, i128, isize
 }
 
-impl MemSize for &'_ str {
+impl<T> MemSize for &'_ T {
     #[inline(always)]
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>()
     }
 }
 
-impl<T: MemSize> MemSize for &'_ [T] {
+impl<T> MemSize for &'_ mut T {
     #[inline(always)]
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>()
@@ -42,13 +42,13 @@ impl<T: MemSize> MemSize for &'_ [T] {
 impl<T: MemSize> MemSize for Option<T> {
     #[inline(always)]
     fn mem_size(&self) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + self.as_ref().map_or(0, |x| x.mem_size())
+        core::mem::size_of::<Self>() 
+            + self.as_ref().map_or(0, |x| x.mem_size() - core::mem::size_of::<T>())
     }
 
     fn mem_capacity(&self) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + self.as_ref().map_or(0, |x| x.mem_capacity())
+        core::mem::size_of::<Self>()
+            + self.as_ref().map_or(0, |x| x.mem_capacity() - core::mem::size_of::<T>())
     }
 }
 

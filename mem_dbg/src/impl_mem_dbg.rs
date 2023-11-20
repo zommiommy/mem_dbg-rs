@@ -15,11 +15,10 @@ macro_rules! impl_mem_dbg {
 impl_mem_dbg! {
     (), bool, char, f32, f64,
     u8, u16, u32, u64, u128, usize,
-    i8, i16, i32, i64, i128, isize,
-    &'_ str
+    i8, i16, i32, i64, i128, isize
 }
 
-impl<T: MemDbg> MemDbg for &'_ [T] {}
+impl<T: MemDbg> MemDbg for &'_ T {}
 
 impl<T: MemDbg> MemDbg for Option<T> {}
 
