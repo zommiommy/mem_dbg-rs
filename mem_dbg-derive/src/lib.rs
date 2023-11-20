@@ -183,29 +183,32 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             }
         },
         Data::Struct(s) => {
-            let fields = s
+            let mut fields_ident = vec![];
+            let mut fields_ty = vec![];
+            s
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(field_idx, field)| 
-                    field.ident.to_owned()
-                    .map(|t| t.to_token_stream())
-                    .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
-                )
-                .collect::<Vec<_>>();
+                .for_each(|(field_idx, field)| { 
+                    fields_ident.push(field.ident.to_owned()
+                        .map(|t| t.to_token_stream())
+                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
+                    );
+                    fields_ty.push(field.ty.to_token_stream());
+                });
 
             quote! {
                 #[automatically_derived]
                 impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
                     fn mem_size(&self) -> usize {
-                        let mut bytes = 0;
-                        #(bytes += self.#fields.mem_size();)*
+                        let mut bytes = core::mem::size_of::<Self>();
+                        #(bytes += self.#fields_ident.mem_size() - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
 
                     fn mem_capacity(&self) -> usize {
-                        let mut bytes = 0;
-                        #(bytes += self.#fields.mem_capacity();)*
+                        let mut bytes = core::mem::size_of::<Self>();
+                        #(bytes += self.#fields_ident.mem_capacity() - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
