@@ -27,7 +27,7 @@ fn test_struct() {
     struct Data {
         a: u64,
         b: Vec<usize>,
-    };
+    }
     let mut v = Data {
         a: 10,
         b: Vec::with_capacity(10),
@@ -93,8 +93,14 @@ fn test_enum() {
     let len = d.len();
     let capacity = d.capacity();
     let v = Data::C(1000, d);
-    assert_eq!(enum_size + core::mem::size_of::<usize>() * len, v.mem_size());
-    assert_eq!(enum_size + core::mem::size_of::<usize>() * capacity, v.mem_capacity());
+    assert_eq!(
+        enum_size + core::mem::size_of::<usize>() * len,
+        v.mem_size()
+    );
+    assert_eq!(
+        enum_size + core::mem::size_of::<usize>() * capacity,
+        v.mem_capacity()
+    );
 }
 
 #[test]
@@ -104,7 +110,10 @@ fn test_exotic() {
     // None variant
     let v: Option<&u8> = None;
     assert_eq!(core::mem::size_of::<usize>(), core::mem::size_of::<&u8>());
-    assert_eq!(core::mem::size_of::<usize>(), core::mem::size_of::<Option<&u8>>());
+    assert_eq!(
+        core::mem::size_of::<usize>(),
+        core::mem::size_of::<Option<&u8>>()
+    );
     assert_eq!(core::mem::size_of::<usize>(), v.mem_size());
     assert_eq!(core::mem::size_of::<usize>(), v.mem_capacity());
 
@@ -120,10 +129,7 @@ fn test_exotic() {
     }
 
     // nested enums can be flattened IFF they don't have a repr attribute
-    assert_eq!(
-        core::mem::size_of::<Data1>(),
-        core::mem::size_of::<Data2>(),
-    );
+    assert_eq!(core::mem::size_of::<Data1>(), core::mem::size_of::<Data2>(),);
 
     let enum_size = core::mem::size_of::<Data1>();
     let v = Data1::A;

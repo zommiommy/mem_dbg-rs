@@ -55,7 +55,7 @@ pub trait MemSize {
 /// and size of a structure.
 ///
 /// You can derive this trait with `#[derive(MemDbg)]` if all the fields of your structure
-/// implement [`MemDbg`]. Note that you will also need to derive [`MemSize`] and [`TypeName`].
+/// implement [`MemDbg`]. Note that you will also need to derive [`MemSize`].
 
 pub trait MemDbg: MemSize {
     /// Print debug infos about the structure memory usage, expanding

@@ -8,15 +8,13 @@
 //!
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DeriveInput};
 
 struct CommonDeriveInput {
     name: syn::Ident,
     generics: proc_macro2::TokenStream,
     generics_names: proc_macro2::TokenStream,
-    generics_names_raw: Vec<String>,
-    consts_names_raw: Vec<String>,
     where_clause: proc_macro2::TokenStream,
 }
 
@@ -28,22 +26,18 @@ impl CommonDeriveInput {
     ) -> Self {
         let name = input.ident;
         let mut generics = quote!();
-        let mut generics_names_raw = vec![];
-        let mut consts_names_raw = vec![];
         let mut generics_names = quote!();
         if !input.generics.params.is_empty() {
             input.generics.params.iter().for_each(|x| {
                 match x {
                     syn::GenericParam::Type(t) => {
                         generics_names.extend(t.ident.to_token_stream());
-                        generics_names_raw.push(t.ident.to_string());
                     }
                     syn::GenericParam::Lifetime(l) => {
                         generics_names.extend(l.lifetime.to_token_stream());
                     }
                     syn::GenericParam::Const(c) => {
                         generics_names.extend(c.ident.to_token_stream());
-                        consts_names_raw.push(c.ident.to_string());
                     }
                 };
                 generics_names.extend(quote!(,))
@@ -83,8 +77,6 @@ impl CommonDeriveInput {
             generics,
             generics_names,
             where_clause,
-            generics_names_raw,
-            consts_names_raw,
         }
     }
 }
@@ -110,51 +102,56 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             let mut variant_capacities = Vec::new();
             e.variants.iter().for_each(|variant| {
                 let mut res = variant.ident.to_owned().to_token_stream();
-                let mut var_args_size = quote!{core::mem::size_of::<Self>()};
-                let mut var_args_cap = quote!{core::mem::size_of::<Self>()};
+                let mut var_args_size = quote! {core::mem::size_of::<Self>()};
+                let mut var_args_cap = quote! {core::mem::size_of::<Self>()};
                 match &variant.fields {
-                    syn::Fields::Unit => {},
+                    syn::Fields::Unit => {}
                     syn::Fields::Named(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
-                        fields.named.iter().map(|named| 
-                            (
-                                named.ident.as_ref().unwrap(),
-                                named.ty.to_token_stream(),
-                            )
-                            ).for_each(|(ident, ty)| {
-                            var_args_size.extend([quote!{
-                                + #ident.mem_size() - core::mem::size_of::<#ty>()
-                            }]);
-                            var_args_cap.extend([quote!{
-                                + #ident.mem_capacity() - core::mem::size_of::<#ty>()
-                            }]);
-                            args.extend([ident.to_token_stream()]);
-                            args.extend([quote!{,}]);
-                        });
+                        fields
+                            .named
+                            .iter()
+                            .map(|named| {
+                                (named.ident.as_ref().unwrap(), named.ty.to_token_stream())
+                            })
+                            .for_each(|(ident, ty)| {
+                                var_args_size.extend([quote! {
+                                    + #ident.mem_size() - core::mem::size_of::<#ty>()
+                                }]);
+                                var_args_cap.extend([quote! {
+                                    + #ident.mem_capacity() - core::mem::size_of::<#ty>()
+                                }]);
+                                args.extend([ident.to_token_stream()]);
+                                args.extend([quote! {,}]);
+                            });
                         // extend res with the args sourrounded by curly braces
-                        res.extend(quote!{
+                        res.extend(quote! {
                             { #args }
                         });
                     }
                     syn::Fields::Unnamed(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
                         fields.unnamed.iter().enumerate().for_each(|(idx, value)| {
-                            let ident = syn::Ident::new(&format!("v{}", idx), proc_macro2::Span::call_site()).to_token_stream();
+                            let ident = syn::Ident::new(
+                                &format!("v{}", idx),
+                                proc_macro2::Span::call_site(),
+                            )
+                            .to_token_stream();
                             let ty = value.ty.to_token_stream();
-                            var_args_size.extend([quote!{
+                            var_args_size.extend([quote! {
                                 + #ident.mem_size() - core::mem::size_of::<#ty>()
                             }]);
-                            var_args_cap.extend([quote!{
+                            var_args_cap.extend([quote! {
                                 + #ident.mem_capacity() - core::mem::size_of::<#ty>()
                             }]);
                             args.extend([ident]);
-                            args.extend([quote!{,}]);
+                            args.extend([quote! {,}]);
                         });
                         // extend res with the args sourrounded by curly braces
-                        res.extend(quote!{
+                        res.extend(quote! {
                             ( #args )
                         });
-                    },
+                    }
                 }
                 variants.push(res);
                 variant_sizes.push(var_args_size);
@@ -181,21 +178,20 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                 }
             }
-        },
+        }
         Data::Struct(s) => {
             let mut fields_ident = vec![];
             let mut fields_ty = vec![];
-            s
-                .fields
-                .iter()
-                .enumerate()
-                .for_each(|(field_idx, field)| { 
-                    fields_ident.push(field.ident.to_owned()
+            s.fields.iter().enumerate().for_each(|(field_idx, field)| {
+                fields_ident.push(
+                    field
+                        .ident
+                        .to_owned()
                         .map(|t| t.to_token_stream())
-                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
-                    );
-                    fields_ty.push(field.ty.to_token_stream());
-                });
+                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream()),
+                );
+                fields_ty.push(field.ty.to_token_stream());
+            });
 
             quote! {
                 #[automatically_derived]
@@ -241,22 +237,26 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(field_idx, field)| 
-                    field.ident.to_owned()
-                    .map(|t| t.to_token_stream())
-                    .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
-                )
+                .map(|(field_idx, field)| {
+                    field
+                        .ident
+                        .to_owned()
+                        .map(|t| t.to_token_stream())
+                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
+                })
                 .collect::<Vec<_>>();
 
             let fields_str = s
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(field_idx, field)| 
-                    field.ident.to_owned()
-                    .map(|t| t.to_string().to_token_stream())
-                    .unwrap_or_else(|| field_idx.to_string().to_token_stream())
-                )
+                .map(|(field_idx, field)| {
+                    field
+                        .ident
+                        .to_owned()
+                        .map(|t| t.to_string().to_token_stream())
+                        .unwrap_or_else(|| field_idx.to_string().to_token_stream())
+                })
                 .collect::<Vec<_>>();
 
             quote! {
