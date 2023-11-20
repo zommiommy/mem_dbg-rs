@@ -42,13 +42,17 @@ impl<T> MemSize for &'_ mut T {
 impl<T: MemSize> MemSize for Option<T> {
     #[inline(always)]
     fn mem_size(&self) -> usize {
-        core::mem::size_of::<Self>() 
-            + self.as_ref().map_or(0, |x| x.mem_size() - core::mem::size_of::<T>())
+        core::mem::size_of::<Self>()
+            + self
+                .as_ref()
+                .map_or(0, |x| x.mem_size() - core::mem::size_of::<T>())
     }
 
     fn mem_capacity(&self) -> usize {
         core::mem::size_of::<Self>()
-            + self.as_ref().map_or(0, |x| x.mem_capacity() - core::mem::size_of::<T>())
+            + self
+                .as_ref()
+                .map_or(0, |x| x.mem_capacity() - core::mem::size_of::<T>())
     }
 }
 
