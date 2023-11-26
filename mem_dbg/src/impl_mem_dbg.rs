@@ -32,7 +32,7 @@ impl<T: MemDbgImpl> MemDbgImpl for Vec<T> {}
 #[cfg(feature = "alloc")]
 impl<T: MemDbgImpl> MemDbgImpl for Box<[T]> {}
 
-impl<T: MemDbgImpl> MemDbgImpl for PhantomData<T> {}
+impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::Mmap {}
