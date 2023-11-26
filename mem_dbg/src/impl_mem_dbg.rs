@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
+use core::marker::PhantomData;
+
 use crate::MemDbgImpl;
 
 macro_rules! impl_mem_dbg {
@@ -27,6 +29,8 @@ impl<T: MemDbgImpl> MemDbgImpl for Vec<T> {}
 
 #[cfg(feature = "alloc")]
 impl<T: MemDbgImpl> MemDbgImpl for Box<[T]> {}
+
+impl<T: MemDbgImpl> MemDbgImpl for PhantomData<T> {}
 
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::Mmap {}
