@@ -327,7 +327,6 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     }
                 }
                 variants.push(res);
-                
                 let variant_name = format!("Variant: {}\n", variant.ident);
                 let print_variant = quote! {
                     writer.write_str(&" ".repeat(9))?;
