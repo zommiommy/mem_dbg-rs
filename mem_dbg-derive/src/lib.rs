@@ -227,41 +227,39 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
         ..
     } = CommonDeriveInput::new(
         input.clone(),
-        vec![syn::parse_quote!(mem_dbg::MemDbg)],
+        vec![syn::parse_quote!(mem_dbg::MemDbgImpl)],
         vec![],
     );
 
     let out = match input.data {
         Data::Struct(s) => {
-            let fields = s
+            let code = s
                 .fields
                 .iter()
                 .enumerate()
                 .map(|(field_idx, field)| {
-                    field
+                    let field_ident = field
                         .ident
                         .to_owned()
                         .map(|t| t.to_token_stream())
-                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream())
-                })
-                .collect::<Vec<_>>();
+                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream());
 
-            let fields_str = s
-                .fields
-                .iter()
-                .enumerate()
-                .map(|(field_idx, field)| {
-                    field
+                    let fields_str = field
                         .ident
                         .to_owned()
                         .map(|t| t.to_string().to_token_stream())
-                        .unwrap_or_else(|| field_idx.to_string().to_token_stream())
+                        .unwrap_or_else(|| field_idx.to_string().to_token_stream());
+
+                    let is_last = field_idx == s.fields.len().saturating_sub(1);
+
+                    quote!{self.#field_ident.mem_dbg_depth_on(writer, depth, max_depth, Some(#fields_str), type_name, humanize, #is_last)?;}
                 })
                 .collect::<Vec<_>>();
 
             quote! {
                 #[automatically_derived]
-                impl<#generics> mem_dbg::MemDbg for #name<#generics_names> #where_clause{
+                impl<#generics> mem_dbg::MemDbgImpl for #name<#generics_names> #where_clause{
+                    #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
                         writer: &mut impl core::fmt::Write,
@@ -269,8 +267,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         max_depth: usize,
                         type_name: bool,
                         humanize: bool,
+                        is_last: bool,
                     ) -> core::fmt::Result {
-                        #(self.#fields.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(#fields_str), type_name, humanize)?;)*
+                        #(#code)*
                         Ok(())
                     }
                 }
@@ -289,13 +288,13 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         fields
                             .named
                             .iter()
-                            .map(|named| {
-                                named.ident.as_ref().unwrap()
-                            })
-                            .for_each(|ident| {
+                            .enumerate()
+                            .for_each(|(idx, named)| {
+                                let ident = named.ident.as_ref().unwrap();
                                 let field_name = format!("{}", ident);
+                                let is_last = idx == fields.named.len().saturating_sub(1);
                                 variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(#field_name), type_name, humanize)?;
+                                    #ident.mem_dbg_depth_on(writer, depth, max_depth, Some(#field_name), type_name, humanize, #is_last)?;
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -314,8 +313,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             )
                             .to_token_stream();
                             let field_name = format!("{}", idx);
+                            let is_last = idx == fields.unnamed.len().saturating_sub(1);
                             variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(#field_name), type_name, humanize)?;
+                                #ident.mem_dbg_depth_on(writer, depth, max_depth, Some(#field_name), type_name, humanize, #is_last)?;
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -330,8 +330,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 
                 let variant_name = format!("Variant: {}\n", variant.ident);
                 let print_variant = quote! {
-                    let indent = "  ".repeat(depth + 1);
+                    writer.write_str(&" ".repeat(9))?;
+                    let indent = "│".repeat(depth.saturating_sub(1));
                     writer.write_str(&indent)?;
+                    writer.write_char(if is_last { '╰' } else { '├' })?;
+                    writer.write_char('╴')?;
                     writer.write_str(#variant_name)?;
                 };
                 variants_code.push(quote!{{
@@ -342,7 +345,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl<#generics> mem_dbg::MemDbg for #name<#generics_names> #where_clause{
+                impl<#generics> mem_dbg::MemDbgImpl  for #name<#generics_names> #where_clause{
+                    #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
                         writer: &mut impl core::fmt::Write,
@@ -350,6 +354,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         max_depth: usize,
                         type_name: bool,
                         humanize: bool,
+                        is_last: bool,
                     ) -> core::fmt::Result {
                         match self {
                             #(

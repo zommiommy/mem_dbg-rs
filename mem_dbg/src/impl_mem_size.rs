@@ -48,6 +48,7 @@ impl<T: MemSize> MemSize for Option<T> {
                 .map_or(0, |x| x.mem_size() - core::mem::size_of::<T>())
     }
 
+    #[inline(always)]
     fn mem_capacity(&self) -> usize {
         core::mem::size_of::<Self>()
             + self
@@ -64,6 +65,7 @@ impl<T: MemSize> MemSize for Vec<T> {
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size()).sum::<usize>()
     }
+    #[inline(always)]
     fn mem_capacity(&self) -> usize {
         core::mem::size_of::<Self>()
             + self.iter().map(|x| x.mem_capacity()).sum::<usize>()

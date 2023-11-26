@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2023 Inria
+ * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
@@ -7,11 +8,11 @@
 /// Given a float, return it in a human readable format using SI suffixes.
 pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
     const UOM: &[&str] = &[
-        "qB", "rB", "yB", "zB", "aB", "fB", "pB", "nB", "μB", "mB", "B", "KB", "MB", "GB", "TB",
+        "qB", "rB", "yB", "zB", "aB", "fB", "pB", "nB", "μB", "mB", " B", "KB", "MB", "GB", "TB",
         "PB", "EB", "ZB", "YB", "RB", "QB",
     ];
     let mut uom_idx = 10;
-    debug_assert_eq!(UOM[uom_idx], "");
+    debug_assert_eq!(UOM[uom_idx], " B");
 
     if x.abs() > 1.0 {
         while x.abs() > 1000.0 {

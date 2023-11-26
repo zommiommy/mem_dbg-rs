@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-use crate::MemDbg;
+use crate::MemDbgImpl;
 
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
- impl MemDbg for $ty {}
+ impl MemDbgImpl for $ty {}
      )*};
  }
 
@@ -18,18 +18,18 @@ impl_mem_dbg! {
     i8, i16, i32, i64, i128, isize
 }
 
-impl<T: MemDbg> MemDbg for &'_ T {}
+impl<T: MemDbgImpl> MemDbgImpl for &'_ T {}
 
-impl<T: MemDbg> MemDbg for Option<T> {}
-
-#[cfg(feature = "alloc")]
-impl<T: MemDbg> MemDbg for Vec<T> {}
+impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
 #[cfg(feature = "alloc")]
-impl<T: MemDbg> MemDbg for Box<[T]> {}
+impl<T: MemDbgImpl> MemDbgImpl for Vec<T> {}
+
+#[cfg(feature = "alloc")]
+impl<T: MemDbgImpl> MemDbgImpl for Box<[T]> {}
 
 #[cfg(feature = "mmap_rs")]
-impl MemDbg for mmap_rs::Mmap {}
+impl MemDbgImpl for mmap_rs::Mmap {}
 
 #[cfg(feature = "mmap_rs")]
-impl MemDbg for mmap_rs::MmapMut {}
+impl MemDbgImpl for mmap_rs::MmapMut {}

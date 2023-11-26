@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2023 Inria
+ * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
@@ -37,10 +38,10 @@ struct Data<A> {
 fn main() {
     // create a new value to serialize
     let person = PersonVec {
-        a: vec![0x89; 600],
+        a: TestEnum::Unamed(0, 16),
         b: Data {
-            a: vec![0x42; 700],
-            b: vec![0xbadf00d; 2],
+            a: vec![0x42_u8; 700],
+            b: vec![0xbadf00d; 1000],
         },
         test: -0xbadf00d,
     };
