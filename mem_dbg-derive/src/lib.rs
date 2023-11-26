@@ -276,6 +276,91 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }
             }
         }
+        Data::Enum(e) => {
+            let mut variants = Vec::new();
+            let mut variants_code = Vec::new();
+            e.variants.iter().for_each(|variant| {
+                let mut res = variant.ident.to_owned().to_token_stream();
+                let mut variant_code = quote! {};
+                match &variant.fields {
+                    syn::Fields::Unit => {},
+                    syn::Fields::Named(fields) => {
+                        let mut args = proc_macro2::TokenStream::new();
+                        fields
+                            .named
+                            .iter()
+                            .map(|named| {
+                                named.ident.as_ref().unwrap()
+                            })
+                            .for_each(|ident| {
+                                let field_name = format!("{}", ident);
+                                variant_code.extend([quote! {
+                                    #ident.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(#field_name), type_name, humanize)?;
+                                }]);
+                                args.extend([ident.to_token_stream()]);
+                                args.extend([quote! {,}]);
+                            });
+                        // extend res with the args sourrounded by curly braces
+                        res.extend(quote! {
+                            { #args }
+                        });
+                    }
+                    syn::Fields::Unnamed(fields) => {
+                        let mut args = proc_macro2::TokenStream::new();
+                        fields.unnamed.iter().enumerate().for_each(|(idx, _value)| {
+                            let ident = syn::Ident::new(
+                                &format!("v{}", idx),
+                                proc_macro2::Span::call_site(),
+                            )
+                            .to_token_stream();
+                            let field_name = format!("{}", idx);
+                            variant_code.extend([quote! {
+                                #ident.mem_dbg_depth_on(writer, depth + 1, max_depth, Some(#field_name), type_name, humanize)?;
+                            }]);
+                            args.extend([ident]);
+                            args.extend([quote! {,}]);
+                        });
+                        // extend res with the args sourrounded by curly braces
+                        res.extend(quote! {
+                            ( #args )
+                        });
+                    }
+                }
+                variants.push(res);
+                
+                let variant_name = format!("Variant: {}\n", variant.ident);
+                let print_variant = quote! {
+                    let indent = "  ".repeat(depth + 1);
+                    writer.write_str(&indent)?;
+                    writer.write_str(#variant_name)?;
+                };
+                variants_code.push(quote!{{
+                    #print_variant
+                    #variant_code
+                }});
+            });
+
+            quote! {
+                #[automatically_derived]
+                impl<#generics> mem_dbg::MemDbg for #name<#generics_names> #where_clause{
+                    fn _mem_dbg_rec_on(
+                        &self,
+                        writer: &mut impl core::fmt::Write,
+                        depth: usize,
+                        max_depth: usize,
+                        type_name: bool,
+                        humanize: bool,
+                    ) -> core::fmt::Result {
+                        match self {
+                            #(
+                               #name::#variants => #variants_code,
+                            )*
+                        }
+                        Ok(())
+                   }
+                }
+            }
+        }
         _ => todo!(),
     };
     out.into()
