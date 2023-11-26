@@ -60,9 +60,11 @@ impl<T: MemSize> MemSize for Option<T> {
 impl<T: MemSize, const N: usize> MemSize for [T; N] {
     #[inline(always)]
     fn mem_size(&self) -> usize {
-        core::mem::size_of::<Self>() + self.iter().map(|x| 
-            x.mem_size() - core::mem::size_of::<T>()
-        ).sum::<usize>()
+        core::mem::size_of::<Self>()
+            + self
+                .iter()
+                .map(|x| x.mem_size() - core::mem::size_of::<T>())
+                .sum::<usize>()
     }
 }
 

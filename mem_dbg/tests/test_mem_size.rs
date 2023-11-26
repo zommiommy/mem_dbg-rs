@@ -12,7 +12,7 @@ enum TestEnum {
 
 #[derive(MemSize, MemDbg)]
 struct TestConst<const N: usize = 10> {
-    a: [u8; N]
+    a: [u8; N],
 }
 
 #[derive(MemSize, MemDbg)]

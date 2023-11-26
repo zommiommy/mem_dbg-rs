@@ -111,10 +111,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         generics_names,
         where_clause,
         ..
-    } = CommonDeriveInput::new(
-        input.clone(),
-        vec![syn::parse_quote!(mem_dbg::MemSize)],
-    );
+    } = CommonDeriveInput::new(input.clone(), vec![syn::parse_quote!(mem_dbg::MemSize)]);
     let out = match input.data {
         Data::Enum(e) => {
             let mut variants = Vec::new();
@@ -245,10 +242,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
         generics_names,
         where_clause,
         ..
-    } = CommonDeriveInput::new(
-        input.clone(),
-        vec![syn::parse_quote!(mem_dbg::MemDbgImpl)]
-    );
+    } = CommonDeriveInput::new(input.clone(), vec![syn::parse_quote!(mem_dbg::MemDbgImpl)]);
 
     let out = match input.data {
         Data::Struct(s) => {
