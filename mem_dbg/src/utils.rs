@@ -14,13 +14,17 @@ pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
     let mut uom_idx = 10;
     debug_assert_eq!(UOM[uom_idx], " B");
 
+    if x == 0.0 {
+        return (0.0, UOM[uom_idx]);
+    }
+
     if x.abs() > 1.0 {
-        while x.abs() > 1000.0 {
+        while x.abs() > 1000.0 && uom_idx < UOM.len() - 1 {
             uom_idx += 1;
             x /= 1000.0;
         }
     } else {
-        while x.abs() < 0.001 {
+        while x.abs() < 0.001 && uom_idx > 0 {
             uom_idx -= 1;
             x *= 1000.0;
         }
