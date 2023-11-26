@@ -164,7 +164,7 @@ pub trait MemDbg: MemDbgImpl {
         }
 
         if type_name {
-            writer.write_str(" ")?;
+            writer.write_str(" : ")?;
             writer.write_fmt(format_args!("{:}", core::any::type_name::<Self>()))?;
         }
 
