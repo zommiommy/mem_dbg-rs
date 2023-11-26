@@ -11,61 +11,79 @@ use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DeriveInput};
 
+/// Pre-parsed information for the derive macros.
+#[allow(dead_code)]
 struct CommonDeriveInput {
+    /// The identifier of the struct.
     name: syn::Ident,
+    /// The token stream to be used after `impl` in angle brackets. It contains
+    /// the generics, lifetimes, and consts, with their trait bounds.
     generics: proc_macro2::TokenStream,
+    /// A vector containing the identifiers of the generics.
+    generics_name_vec: Vec<proc_macro2::TokenStream>,
+    /// Same as `generics_name_vec`, but names are concatenated
+    /// and separated by commans.
     generics_names: proc_macro2::TokenStream,
+    /// A vector containing the name of generics types, represented as strings.
+    generics_names_raw: Vec<String>,
+    /// A vector containing the identifier of the constants, represented as strings.
+    /// Used to include the const values into the type hash.
+    //consts_names_raw: Vec<String>,
+    /// The where clause.
     where_clause: proc_macro2::TokenStream,
 }
 
 impl CommonDeriveInput {
-    fn new(
-        input: DeriveInput,
-        traits_to_add: Vec<syn::Path>,
-        lifetimes_to_add: Vec<syn::Lifetime>,
-    ) -> Self {
+    /// Create a new `CommonDeriveInput` from a `DeriveInput`.
+    /// Additionally, one can specify traits and lifetimes to
+    /// be added to the generic types.
+    fn new(input: DeriveInput, traits_to_add: Vec<syn::Path>) -> Self {
         let name = input.ident;
         let mut generics = quote!();
+        let mut generics_names_raw = vec![];
+        //let mut consts_names_raw = vec![];
+        let mut generics_name_vec = vec![];
         let mut generics_names = quote!();
         if !input.generics.params.is_empty() {
-            input.generics.params.iter().for_each(|x| {
+            input.generics.params.into_iter().for_each(|x| {
                 match x {
-                    syn::GenericParam::Type(t) => {
+                    syn::GenericParam::Type(mut t) => {
                         generics_names.extend(t.ident.to_token_stream());
+                        generics_names_raw.push(t.ident.to_string());
+
+                        t.default = None;
+                        for trait_to_add in traits_to_add.iter() {
+                            t.bounds.push(syn::TypeParamBound::Trait(syn::TraitBound {
+                                paren_token: None,
+                                modifier: syn::TraitBoundModifier::None,
+                                lifetimes: None,
+                                path: trait_to_add.clone(),
+                            }));
+                        }
+                        generics.extend(quote!(#t,));
+                        generics_name_vec.push(t.ident.to_token_stream());
                     }
                     syn::GenericParam::Lifetime(l) => {
                         generics_names.extend(l.lifetime.to_token_stream());
+
+                        generics.extend(quote!(#l,));
+                        generics_name_vec.push(l.lifetime.to_token_stream());
                     }
-                    syn::GenericParam::Const(c) => {
+                    syn::GenericParam::Const(mut c) => {
                         generics_names.extend(c.ident.to_token_stream());
+                        //consts_names_raw.push(c.ident.to_string());
+
+                        c.default = None; // remove the defaults from the const generics
+                                          // otherwise we can't use them in the impl generics
+                        generics.extend(quote!(#c,));
+                        generics_name_vec.push(c.ident.to_token_stream());
                     }
                 };
                 generics_names.extend(quote!(,))
             });
-            input.generics.params.into_iter().for_each(|x| match x {
-                syn::GenericParam::Type(t) => {
-                    let mut t = t;
-                    for trait_to_add in traits_to_add.iter() {
-                        t.bounds.push(syn::TypeParamBound::Trait(syn::TraitBound {
-                            paren_token: None,
-                            modifier: syn::TraitBoundModifier::None,
-                            lifetimes: None,
-                            path: trait_to_add.clone(),
-                        }));
-                    }
-                    for lifetime_to_add in lifetimes_to_add.iter() {
-                        t.bounds
-                            .push(syn::TypeParamBound::Lifetime(lifetime_to_add.clone()));
-                    }
-                    generics.extend(quote!(#t,));
-                }
-                x => {
-                    generics.extend(x.to_token_stream());
-                    generics.extend(quote!(,))
-                }
-            });
         }
 
+        // We add a where keyword in case we need to add clauses
         let where_clause = input
             .generics
             .where_clause
@@ -77,6 +95,9 @@ impl CommonDeriveInput {
             generics,
             generics_names,
             where_clause,
+            generics_names_raw,
+            //consts_names_raw,
+            generics_name_vec,
         }
     }
 }
@@ -93,7 +114,6 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     } = CommonDeriveInput::new(
         input.clone(),
         vec![syn::parse_quote!(mem_dbg::MemSize)],
-        vec![],
     );
     let out = match input.data {
         Data::Enum(e) => {
@@ -227,8 +247,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
         ..
     } = CommonDeriveInput::new(
         input.clone(),
-        vec![syn::parse_quote!(mem_dbg::MemDbgImpl)],
-        vec![],
+        vec![syn::parse_quote!(mem_dbg::MemDbgImpl)]
     );
 
     let out = match input.data {

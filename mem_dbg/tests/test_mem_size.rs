@@ -1,4 +1,38 @@
-use mem_dbg::MemSize;
+use mem_dbg::*;
+
+#[allow(dead_code)]
+#[derive(MemSize, MemDbg)]
+enum TestEnum {
+    Unit,
+    Unit2(),
+    Unit3 {},
+    Unamed(usize, u8),
+    Named { first: usize, second: u8 },
+}
+
+#[derive(MemSize, MemDbg)]
+struct TestConst<const N: usize = 10> {
+    a: [u8; N]
+}
+
+#[derive(MemSize, MemDbg)]
+struct TestMarker;
+
+#[derive(MemSize, MemDbg)]
+struct TestTuple(usize, u8);
+
+#[derive(MemSize, MemDbg)]
+struct PersonVec<A, B = ()> {
+    a: A,
+    b: B,
+    test: isize,
+}
+
+#[derive(MemSize, MemDbg)]
+struct Data<A = usize> {
+    a: A,
+    b: Vec<i32>,
+}
 
 #[test]
 fn test_vec_capacity() {

@@ -24,6 +24,8 @@ impl<T: MemDbgImpl> MemDbgImpl for &'_ T {}
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
+impl<T: MemDbgImpl, const N: usize> MemDbgImpl for [T; N] {}
+
 #[cfg(feature = "alloc")]
 impl<T: MemDbgImpl> MemDbgImpl for Vec<T> {}
 

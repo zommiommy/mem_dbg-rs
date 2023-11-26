@@ -33,7 +33,6 @@ enum TestEnum {
     Named { first: usize, second: u8 },
 }
 
-// create a new value to serialize
 let person = PersonVec {
     a: TestEnum::Unamed(0, 16),
     b: Data {
@@ -52,7 +51,7 @@ person.mem_dbg().unwrap();
 ```
 
 It prints:
-```
+```ignore
 mem_size: 4772
 
 4.772 KB $ROOT example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>

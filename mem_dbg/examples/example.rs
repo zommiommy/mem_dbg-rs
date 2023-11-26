@@ -36,7 +36,6 @@ struct Data<A> {
 }
 
 fn main() {
-    // create a new value to serialize
     let person = PersonVec {
         a: TestEnum::Unamed(0, 16),
         b: Data {
