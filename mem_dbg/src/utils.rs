@@ -7,8 +7,8 @@
 /// Given a float, return it in a human readable format using SI suffixes.
 pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
     const UOM: &[&str] = &[
-        "q", "r", "y", "z", "a", "f", "p", "n", "μ", "m", "", "K", "M", "G", "T", "P", "E", "Z",
-        "Y", "R", "Q",
+        "qB", "rB", "yB", "zB", "aB", "fB", "pB", "nB", "μB", "mB", "B", "KB", "MB", "GB", "TB",
+        "PB", "EB", "ZB", "YB", "RB", "QB",
     ];
     let mut uom_idx = 10;
     debug_assert_eq!(UOM[uom_idx], "");

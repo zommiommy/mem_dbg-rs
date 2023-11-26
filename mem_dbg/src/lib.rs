@@ -120,7 +120,7 @@ pub trait MemDbg: MemSize {
             let (value, uom) = crate::utils::humanize_float(self.mem_size() as f64);
             writer.write_fmt(format_args!("{:>7.3}{}", value, uom,))?;
         } else {
-            writer.write_fmt(format_args!("{}", self.mem_size()))?;
+            writer.write_fmt(format_args!("{} bytes", self.mem_size()))?;
         }
         writer.write_char('\n')?;
 

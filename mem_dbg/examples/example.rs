@@ -3,10 +3,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
-
+#![allow(dead_code)]
 use mem_dbg::*;
 
-#[derive(MemSize)]
+#[derive(MemSize, MemDbg)]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -51,4 +51,10 @@ fn main() {
 
     // print the tree of fields and their memory size
     person.mem_dbg().unwrap();
+
+    let test = TestEnum::Named {
+        first: 0x89,
+        second: 0x42,
+    };
+    test.mem_dbg().unwrap();
 }
