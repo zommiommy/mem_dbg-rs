@@ -32,12 +32,12 @@ enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
-    Unamed(usize, u8),
+    Unnamed(usize, u8),
     Named { first: usize, second: u8 },
 }
 
 let person = PersonVec {
-    a: TestEnum::Unamed(0, 16),
+    a: TestEnum::Unnamed(0, 16),
     b: Data {
         a: vec![0x42_u8; 700],
         b: vec![0xbadf00d; 1000],
@@ -58,7 +58,7 @@ size: 4772
 
 4_772 B ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B ├╴a : example::TestEnum
-        │├╴Variant: Unamed
+        │├╴Variant: Unnamed
     8 B │├╴0 : usize
     1 B │╰╴1 : u8
 4_748 B ├╴b : example::Data<alloc::vec::Vec<u8>>
@@ -72,7 +72,7 @@ size: 4772
 
 4.772 KB ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B  ├╴a example::TestEnum
-         │├╴Variant: Unamed
+         │├╴Variant: Unnamed
     8 B  │├╴0 usize
     1 B  │╰╴1 u8
 4.748 KB ├╴b example::Data<alloc::vec::Vec<u8>>
@@ -86,7 +86,7 @@ size: 4772
 
 100.00% ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
   0.34% ├╴a : example::TestEnum
-        │├╴Variant: Unamed
+        │├╴Variant: Unnamed
   0.17% │├╴0 : usize
   0.02% │╰╴1 : u8
  99.50% ├╴b : example::Data<alloc::vec::Vec<u8>>

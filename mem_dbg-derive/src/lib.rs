@@ -143,7 +143,6 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     } else {
         quote! {}
     };
-    dbg!(&name, &copy_static);
 
     let out = match input.data {
         Data::Enum(e) => {
