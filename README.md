@@ -51,7 +51,7 @@ person.mem_dbg(DbgFlags::default()).unwrap();
 ```
 
 it prints:
-```
+```text
 4_772 B ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B ├╴a : example::TestEnum
         │├╴Variant: Unamed
@@ -63,7 +63,7 @@ it prints:
     8 B ╰╴test : isize
 ```
 using the flag `DbgFlags::HUMANIZE` it prints:
-```
+```text
 4.772 KB ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B  ├╴a example::TestEnum
          │├╴Variant: Unamed
@@ -75,7 +75,7 @@ using the flag `DbgFlags::HUMANIZE` it prints:
     8 B  ╰╴test isize
 ```
 using the flag `DbgFlags::PERCENTAGE` it prints:
-```
+```text
 100.00% ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
   0.34% ├╴a : example::TestEnum
         │├╴Variant: Unamed
