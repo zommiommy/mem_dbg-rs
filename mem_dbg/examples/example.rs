@@ -7,7 +7,8 @@
 #![allow(dead_code)]
 use mem_dbg::*;
 
-#[derive(MemSize, MemDbg)]
+#[derive(Clone, Copy, MemSize, MemDbg)]
+#[copy_type]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -16,10 +17,10 @@ enum TestEnum {
     Named { first: usize, second: u8 },
 }
 
-#[derive(MemSize, MemDbg)]
+#[derive(Clone, Copy, MemSize, MemDbg)]
 struct TestMarker;
 
-#[derive(MemSize, MemDbg)]
+#[derive(Clone, Copy, MemSize, MemDbg)]
 struct TestTuple(usize, u8);
 
 #[derive(MemSize, MemDbg)]

@@ -194,14 +194,17 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             if is_copy_type {
                 res.extend(quote!{
                     #[automatically_derived]
-                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
+                        Self: Copy + 'static 
+                    {
                         type Copy = True;
                     }
                 });
             } else {
                 res.extend(quote!{
                     #[automatically_derived]
-                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
+                    {
                         type Copy = False;
                     }
                 });
@@ -234,14 +237,17 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             if is_copy_type {
                 res.extend(quote!{
                     #[automatically_derived]
-                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
+                        Self: Copy + 'static 
+                    {
                         type Copy = True;
                     }
                 });
             } else {
                 res.extend(quote!{
                     #[automatically_derived]
-                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
+                    {
                         type Copy = False;
                     }
                 });
