@@ -9,7 +9,10 @@ enum TestEnum {
     Unit2(),
     Unit3 {},
     Unamed(usize, u8),
-    Named { first: usize, second: PhantomData<u8> },
+    Named {
+        first: usize,
+        second: PhantomData<u8>,
+    },
 }
 
 #[derive(MemSize, MemDbg)]

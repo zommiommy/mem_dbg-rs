@@ -52,6 +52,28 @@ pub trait MemSize {
     }
 }
 
+bitflags::bitflags! {
+    /// Flags for [`MemDbg`].
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct Flags: u32 {
+        /// Follow references.
+        const FOLLOW_REFS = 1 << 0;
+        /// Print memory usage in human readable format.
+        const HUMANIZE = 1 << 1;
+        /// Print memory usage as a percentage.
+        const PERCENTAGE = 1 << 2;
+        /// Print the type name.
+        const TYPE_NAME = 1 << 3;
+    }
+}
+
+impl Default for Flags {
+    #[inline(always)]
+    fn default() -> Self {
+        Flags::TYPE_NAME
+    }
+}
+
 /// A trait providing methods to display recursively the content
 /// and size of a structure.
 ///
@@ -62,15 +84,15 @@ pub trait MemDbg: MemDbgImpl {
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     #[inline(always)]
-    fn mem_dbg(&self) -> core::fmt::Result {
-        self.mem_dbg_depth(0, usize::MAX, true, true, false)
+    fn mem_dbg(&self, flags: Flags) -> core::fmt::Result {
+        self.mem_dbg_depth(0, usize::MAX, false, flags)
     }
 
     /// Print debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[inline(always)]
-    fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write) -> core::fmt::Result {
-        self.mem_dbg_depth_on(writer, 0, usize::MAX, Some("$ROOT"), true, true, false)
+    fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: Flags) -> core::fmt::Result {
+        self.mem_dbg_depth_on(writer, 0, usize::MAX, Some("$ROOT"), false, flags)
     }
 
     /// Write to stdout debug infos about the structure memory usage, but expanding only
@@ -81,9 +103,8 @@ pub trait MemDbg: MemDbgImpl {
         &self,
         depth: usize,
         max_depth: usize,
-        type_name: bool,
-        humanize: bool,
         is_last: bool,
+        flags: Flags,
     ) -> core::fmt::Result {
         struct Wrapper(std::io::Stdout);
         impl core::fmt::Write for Wrapper {
@@ -101,10 +122,9 @@ pub trait MemDbg: MemDbgImpl {
             &mut Wrapper(std::io::stdout()),
             depth,
             max_depth,
-            Some("$ROOT"),
-            type_name,
-            humanize,
+            Some("⏺"),
             is_last,
+            flags,
         )
     }
 
@@ -118,15 +138,14 @@ pub trait MemDbg: MemDbgImpl {
         depth: usize,
         max_depth: usize,
         field_name: Option<&str>,
-        type_name: bool,
-        humanize: bool,
         is_last: bool,
+        flags: Flags,
     ) -> core::fmt::Result {
         if depth > max_depth {
             return Ok(());
         }
         let real_size = self.mem_size();
-        if humanize {
+        if flags.contains(Flags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
                 writer.write_fmt(format_args!("{:>5} B ", real_size))?;
@@ -163,14 +182,14 @@ pub trait MemDbg: MemDbgImpl {
             writer.write_fmt(format_args!("{:}", field_name))?;
         }
 
-        if type_name {
+        if flags.contains(Flags::TYPE_NAME) {
             writer.write_str(" : ")?;
             writer.write_fmt(format_args!("{:}", core::any::type_name::<Self>()))?;
         }
 
         writer.write_char('\n')?;
 
-        self._mem_dbg_rec_on(writer, depth + 1, max_depth, type_name, humanize, false)
+        self._mem_dbg_rec_on(writer, depth + 1, max_depth, false, flags)
     }
 }
 
@@ -190,9 +209,8 @@ pub trait MemDbgImpl: MemSize {
         _writer: &mut impl core::fmt::Write,
         _depth: usize,
         _max_depth: usize,
-        _type_name: bool,
-        _humanize: bool,
         _is_last: bool,
+        _flags: Flags,
     ) -> core::fmt::Result {
         Ok(())
     }
