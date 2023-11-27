@@ -116,6 +116,9 @@ macro_rules! impl_mem_dbg_tuples {
                 is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
+                $(
+                    self.$idx._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)?;
+                )*
                 Ok(())
             }
         }
