@@ -12,7 +12,7 @@ macro_rules! impl_memory_size {
     ($($ty:ty),*) => {$(
 impl MemSize for $ty {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -27,14 +27,14 @@ impl_memory_size! {
 
 impl<T: ?Sized> MemSize for &'_ T {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
     }
 }
 
 impl<T: ?Sized> MemSize for &'_ mut T {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -98,14 +98,14 @@ impl<T: MemSize> MemSize for [T] {
 
 impl<T: ?Sized> MemSize for PhantomData<T> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
         0
     }
 }
 
 impl MemSize for str {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
         core::mem::size_of::<usize>() + self.len()
     }
 }

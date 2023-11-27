@@ -24,13 +24,14 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
+        total_size: usize,
         depth: usize,
         max_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
+            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)
         } else {
             Ok(())
         }
@@ -41,13 +42,14 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
+        total_size: usize,
         depth: usize,
         max_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
+            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)
         } else {
             Ok(())
         }
@@ -68,13 +70,14 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
+        total_size: usize,
         depth: usize,
         max_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         self.as_ref()
-            ._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)
     }
 }
 

@@ -116,11 +116,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         Data::Enum(e) => {
             let mut variants = Vec::new();
             let mut variant_sizes = Vec::new();
-            let mut variant_capacities = Vec::new();
             e.variants.iter().for_each(|variant| {
                 let mut res = variant.ident.to_owned().to_token_stream();
                 let mut var_args_size = quote! {core::mem::size_of::<Self>()};
-                let mut var_args_cap = quote! {core::mem::size_of::<Self>()};
                 match &variant.fields {
                     syn::Fields::Unit => {}
                     syn::Fields::Named(fields) => {
@@ -133,10 +131,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             })
                             .for_each(|(ident, ty)| {
                                 var_args_size.extend([quote! {
-                                    + #ident.mem_size() - core::mem::size_of::<#ty>()
-                                }]);
-                                var_args_cap.extend([quote! {
-                                    + #ident.mem_cap() - core::mem::size_of::<#ty>()
+                                    + #ident.mem_size(_memsize_flags) - core::mem::size_of::<#ty>()
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -156,10 +151,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let ty = value.ty.to_token_stream();
                             var_args_size.extend([quote! {
-                                + #ident.mem_size() - core::mem::size_of::<#ty>()
-                            }]);
-                            var_args_cap.extend([quote! {
-                                + #ident.mem_cap() - core::mem::size_of::<#ty>()
+                                + #ident.mem_size(_memsize_flags) - core::mem::size_of::<#ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -172,24 +164,15 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
                 variants.push(res);
                 variant_sizes.push(var_args_size);
-                variant_capacities.push(var_args_cap);
             });
 
             quote! {
                 #[automatically_derived]
                 impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
-                    fn mem_size(&self) -> usize {
+                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         match self {
                             #(
                                #name::#variants => #variant_sizes,
-                            )*
-                        }
-                    }
-
-                    fn mem_cap(&self) -> usize {
-                        match self {
-                            #(
-                               #name::#variants => #variant_capacities,
                             )*
                         }
                     }
@@ -213,15 +196,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             quote! {
                 #[automatically_derived]
                 impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
-                    fn mem_size(&self) -> usize {
+                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += self.#fields_ident.mem_size() - core::mem::size_of::<#fields_ty>();)*
-                        bytes
-                    }
-
-                    fn mem_cap(&self) -> usize {
-                        let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += self.#fields_ident.mem_cap() - core::mem::size_of::<#fields_ty>();)*
+                        #(bytes += self.#fields_ident.mem_size(_memsize_flags) - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
@@ -265,7 +242,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                     let is_last = field_idx == s.fields.len().saturating_sub(1);
 
-                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_depth, _memdbg_max_depth, Some(#fields_str), #is_last, _memdbg_flags)?;}
+                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#fields_str), #is_last, _memdbg_flags)?;}
                 })
                 .collect::<Vec<_>>();
 
@@ -276,10 +253,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     fn _mem_dbg_rec_on(
                         &self,
                         _memdbg_writer: &mut impl core::fmt::Write,
+                        _memdbg_total_size: usize,
                         _memdbg_depth: usize,
                         _memdbg_max_depth: usize,
                         _memdbg_is_last: bool,
-                        _memdbg_flags: mem_dbg::Flags,
+                        _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
                         #(#code)*
                         Ok(())
@@ -306,7 +284,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 let field_name = format!("{}", ident);
                                 let is_last = idx == fields.named.len().saturating_sub(1);
                                 variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
+                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -327,7 +305,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_name = format!("{}", idx);
                             let is_last = idx == fields.unnamed.len().saturating_sub(1);
                             variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
+                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -353,13 +331,29 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     fn _mem_dbg_rec_on(
                         &self,
                         _memdbg_writer: &mut impl core::fmt::Write,
+                        _memdbg_total_size: usize,
                         _memdbg_depth: usize,
                         _memdbg_max_depth: usize,
                         _memdbg_is_last: bool,
-                        _memdbg_flags: mem_dbg::Flags,
+                        _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
-                        _memdbg_writer.write_str(&" ".repeat(9))?;
-                        _memdbg_writer.write_str(&"│".repeat(_memdbg_depth.saturating_sub(1)))?;
+                        let mut _memdbg_digits_number = mem_dbg::utils::n_of_digits(_memdbg_total_size);
+                        if _memdbg_flags.contains(DbgFlags::SEPARATOR) {
+                            _memdbg_digits_number += _memdbg_digits_number / 3;
+                        }
+                        if _memdbg_flags.contains(DbgFlags::HUMANIZE) {
+                            _memdbg_digits_number = 6;
+                        }
+                        if _memdbg_flags.contains(DbgFlags::PERCENTAGE) {
+                            _memdbg_digits_number = 6;
+                        }
+
+                        for _ in 0.._memdbg_digits_number + 3 {
+                            _memdbg_writer.write_char(' ')?;
+                        }
+                        for _ in 0.._memdbg_depth.saturating_sub(1) {
+                            _memdbg_writer.write_char('│')?;
+                        }
                         _memdbg_writer.write_char(if _memdbg_is_last { '╰' } else { '├' })?;
                         _memdbg_writer.write_char('╴')?;
                         match self {

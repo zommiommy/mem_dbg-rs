@@ -23,7 +23,7 @@ pub use mem_dbg_derive::{MemDbg, MemSize};
 
 mod impl_mem_dbg;
 mod impl_mem_size;
-pub(crate) mod utils;
+pub mod utils;
 
 bitflags::bitflags! {
     /// Flags for [`MemDbg`].
@@ -77,6 +77,8 @@ bitflags::bitflags! {
         const TYPE_NAME = 1 << 3;
         /// Display capacity instead of size.
         const CAPACITY = 1 << 4;
+        /// Add an _ every 3 digits.
+        const SEPARATOR = 1 << 5;
     }
 }
 
@@ -97,7 +99,7 @@ impl Default for DbgFlags {
     /// The default set of flags contains [`DbgFlags::TYPE_NAME`].
     #[inline(always)]
     fn default() -> Self {
-        DbgFlags::TYPE_NAME
+        Self::TYPE_NAME | Self::SEPARATOR
     }
 }
 
@@ -112,14 +114,28 @@ pub trait MemDbg: MemDbgImpl {
     #[cfg(feature = "std")]
     #[inline(always)]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
-        self.mem_dbg_depth(0, usize::MAX, false, flags)
+        self.mem_dbg_depth(
+            self.mem_size(flags.to_size_flags()),
+            0,
+            usize::MAX,
+            false,
+            flags,
+        )
     }
 
     /// Print debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
-        self.mem_dbg_depth_on(writer, 0, usize::MAX, Some("$ROOT"), false, flags)
+        self.mem_dbg_depth_on(
+            writer,
+            self.mem_size(flags.to_size_flags()),
+            0,
+            usize::MAX,
+            Some("⏺"),
+            false,
+            flags,
+        )
     }
 
     /// Write to stdout debug infos about the structure memory usage, but expanding only
@@ -128,6 +144,7 @@ pub trait MemDbg: MemDbgImpl {
     #[inline(always)]
     fn mem_dbg_depth(
         &self,
+        total_size: usize,
         depth: usize,
         max_depth: usize,
         is_last: bool,
@@ -147,6 +164,7 @@ pub trait MemDbg: MemDbgImpl {
         }
         self.mem_dbg_depth_on(
             &mut Wrapper(std::io::stdout()),
+            total_size,
             depth,
             max_depth,
             Some("⏺"),
@@ -162,6 +180,7 @@ pub trait MemDbg: MemDbgImpl {
     fn mem_dbg_depth_on(
         &self,
         writer: &mut impl core::fmt::Write,
+        total_size: usize,
         depth: usize,
         max_depth: usize,
         field_name: Option<&str>,
@@ -171,11 +190,16 @@ pub trait MemDbg: MemDbgImpl {
         if depth > max_depth {
             return Ok(());
         }
-        let real_size = self.mem_size(flags.to_size_flags());
-        if flags.contains(DbgFlags::HUMANIZE) {
+        let mut real_size = self.mem_size(flags.to_size_flags());
+        if flags.contains(DbgFlags::PERCENTAGE) {
+            writer.write_fmt(format_args!(
+                "{:>6.2}% ",
+                100.0 * real_size as f64 / total_size as f64
+            ))?;
+        } else if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
-                writer.write_fmt(format_args!("{:>5} B ", real_size))?;
+                writer.write_fmt(format_args!("{:>6} B ", real_size))?;
             } else {
                 let mut precision = 4;
                 let a = value.abs();
@@ -188,11 +212,37 @@ pub trait MemDbg: MemDbgImpl {
                 }
                 writer.write_fmt(format_args!("{0:>4.1$} {2}", value, precision, uom))?;
             }
-        } else {
-            writer.write_fmt(format_args!("{:>5} B ", real_size))?;
-        }
+        } else if flags.contains(DbgFlags::SEPARATOR) {
+            let mut align = crate::utils::n_of_digits(total_size);
+            align += align / 3;
+            let mut digits = crate::utils::n_of_digits(real_size);
+            let digit_align = digits + digits / 3;
+            for _ in digit_align..align {
+                writer.write_char(' ')?;
+            }
 
-        writer.write_char(' ')?;
+            let first_digits = digits % 3;
+            let mut multiplier = 10_usize.pow((digits - first_digits) as u32);
+            if first_digits != 0 {
+                writer.write_fmt(format_args!("{}", real_size / multiplier))?;
+            } else {
+                multiplier /= 1000;
+                digits -= 3;
+                writer.write_fmt(format_args!(" {}", real_size / multiplier))?;
+            }
+
+            while digits >= 3 {
+                real_size %= multiplier;
+                multiplier = 1000;
+                writer.write_fmt(format_args!("_{:03}", real_size / multiplier))?;
+                digits -= 3;
+            }
+
+            writer.write_str(" B ")?;
+        } else {
+            let align = crate::utils::n_of_digits(total_size);
+            writer.write_fmt(format_args!("{:>align$} B ", real_size, align = align))?;
+        }
 
         let indent = "│".repeat(depth.saturating_sub(1));
         writer.write_str(&indent)?;
@@ -216,7 +266,7 @@ pub trait MemDbg: MemDbgImpl {
 
         writer.write_char('\n')?;
 
-        self._mem_dbg_rec_on(writer, depth + 1, max_depth, false, flags)
+        self._mem_dbg_rec_on(writer, total_size, depth + 1, max_depth, false, flags)
     }
 }
 
@@ -237,6 +287,7 @@ pub trait MemDbgImpl: MemSize {
     fn _mem_dbg_rec_on(
         &self,
         _writer: &mut impl core::fmt::Write,
+        _total_size: usize,
         _depth: usize,
         _max_depth: usize,
         _is_last: bool,

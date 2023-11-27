@@ -47,7 +47,8 @@ fn main() {
 
     // get the type name of the value
     // print the size in bytes of the value
-    println!("mem_size: {}", person.mem_size());
+    println!("mem_size: {}", person.mem_size(SizeFlags::default()));
+    println!("mem_size: {}", person.mem_size(SizeFlags::CAPACITY));
 
     // print the tree of fields and their memory size
     person.mem_dbg(DbgFlags::default()).unwrap();
