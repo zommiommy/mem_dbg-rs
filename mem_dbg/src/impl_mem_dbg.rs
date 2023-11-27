@@ -68,6 +68,10 @@ impl<T: MemDbgImpl> MemDbgImpl for Box<[T]> {}
 
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
+impl MemDbgImpl for str {}
+
+impl MemDbgImpl for String {}
+
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::Mmap {}
 

@@ -136,7 +136,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                     + #ident.mem_size() - core::mem::size_of::<#ty>()
                                 }]);
                                 var_args_cap.extend([quote! {
-                                    + #ident.mem_capacity() - core::mem::size_of::<#ty>()
+                                    + #ident.mem_cap() - core::mem::size_of::<#ty>()
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -159,7 +159,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 + #ident.mem_size() - core::mem::size_of::<#ty>()
                             }]);
                             var_args_cap.extend([quote! {
-                                + #ident.mem_capacity() - core::mem::size_of::<#ty>()
+                                + #ident.mem_cap() - core::mem::size_of::<#ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -186,7 +186,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         }
                     }
 
-                    fn mem_capacity(&self) -> usize {
+                    fn mem_cap(&self) -> usize {
                         match self {
                             #(
                                #name::#variants => #variant_capacities,
@@ -219,9 +219,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         bytes
                     }
 
-                    fn mem_capacity(&self) -> usize {
+                    fn mem_cap(&self) -> usize {
                         let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += self.#fields_ident.mem_capacity() - core::mem::size_of::<#fields_ty>();)*
+                        #(bytes += self.#fields_ident.mem_cap() - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }

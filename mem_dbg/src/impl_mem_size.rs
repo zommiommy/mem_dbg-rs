@@ -49,11 +49,11 @@ impl<T: MemSize> MemSize for Option<T> {
     }
 
     #[inline(always)]
-    fn mem_capacity(&self) -> usize {
+    fn mem_cap(&self) -> usize {
         core::mem::size_of::<Self>()
             + self
                 .as_ref()
-                .map_or(0, |x| x.mem_capacity() - core::mem::size_of::<T>())
+                .map_or(0, |x| x.mem_cap() - core::mem::size_of::<T>())
     }
 }
 
@@ -77,9 +77,9 @@ impl<T: MemSize> MemSize for Vec<T> {
         core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size()).sum::<usize>()
     }
     #[inline(always)]
-    fn mem_capacity(&self) -> usize {
+    fn mem_cap(&self) -> usize {
         core::mem::size_of::<Self>()
-            + self.iter().map(|x| x.mem_capacity()).sum::<usize>()
+            + self.iter().map(|x| x.mem_cap()).sum::<usize>()
             + (self.capacity() - self.len()) * core::mem::size_of::<T>()
     }
 }
@@ -108,6 +108,24 @@ impl<T: ?Sized> MemSize for PhantomData<T> {
     #[inline(always)]
     fn mem_size(&self) -> usize {
         0
+    }
+}
+
+impl MemSize for str {
+    #[inline(always)]
+    fn mem_size(&self) -> usize {
+        core::mem::size_of::<usize>() + self.len()
+    }
+}
+
+impl MemSize for String {
+    #[inline(always)]
+    fn mem_size(&self) -> usize {
+        core::mem::size_of::<Self>() + self.len()
+    }
+
+    fn mem_cap(&self) -> usize {
+        core::mem::size_of::<Self>() + self.capacity()
     }
 }
 

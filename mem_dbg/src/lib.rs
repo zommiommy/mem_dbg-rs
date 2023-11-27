@@ -47,7 +47,7 @@ pub trait MemSize {
     /// calls [`Vec::capacity`] rather than [`Vec::len`].
     ///
     /// The default trait implementation returns the same value as [`MemSize::mem_size`].
-    fn mem_capacity(&self) -> usize {
+    fn mem_cap(&self) -> usize {
         self.mem_size()
     }
 }
