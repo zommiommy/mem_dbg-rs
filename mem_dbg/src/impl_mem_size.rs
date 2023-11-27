@@ -25,14 +25,14 @@ impl_memory_size! {
    i8, i16, i32, i64, i128, isize
 }
 
-impl<T> MemSize for &'_ T {
+impl<T: ?Sized> MemSize for &'_ T {
     #[inline(always)]
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>()
     }
 }
 
-impl<T> MemSize for &'_ mut T {
+impl<T: ?Sized> MemSize for &'_ mut T {
     #[inline(always)]
     fn mem_size(&self) -> usize {
         core::mem::size_of::<Self>()
@@ -87,10 +87,10 @@ impl<T: MemSize> MemSize for Vec<T> {
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::boxed::Box;
 #[cfg(feature = "alloc")]
-impl<T: MemSize> MemSize for Box<[T]> {
+impl<T: ?Sized + MemSize> MemSize for Box<T> {
     #[inline(always)]
     fn mem_size(&self) -> usize {
-        core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size()).sum::<usize>()
+        core::mem::size_of::<Self>() + self.as_ref().mem_size()
     }
 }
 

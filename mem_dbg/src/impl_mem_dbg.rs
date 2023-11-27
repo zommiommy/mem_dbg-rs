@@ -64,7 +64,19 @@ impl<T: MemDbgImpl, const N: usize> MemDbgImpl for [T; N] {}
 impl<T: MemDbgImpl> MemDbgImpl for Vec<T> {}
 
 #[cfg(feature = "alloc")]
-impl<T: MemDbgImpl> MemDbgImpl for Box<[T]> {}
+impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        depth: usize,
+        max_depth: usize,
+        is_last: bool,
+        flags: Flags,
+    ) -> core::fmt::Result {
+        self.as_ref()
+            ._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
+    }
+}
 
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
