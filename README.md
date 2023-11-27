@@ -47,7 +47,7 @@ let person = PersonVec {
 println!("mem_size: {}\n", person.mem_size());
 
 // print the tree of fields and their memory size
-person.mem_dbg().unwrap();
+person.mem_dbg(Flags::default()).unwrap();
 ```
 
 It prints:

@@ -94,6 +94,16 @@ impl<T: MemSize> MemSize for Box<[T]> {
     }
 }
 
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
+impl<T: MemSize> MemSize for [T] {
+    #[inline(always)]
+    fn mem_size(&self) -> usize {
+        core::mem::size_of::<usize>() + self.iter().map(|x| x.mem_size()).sum::<usize>()
+    }
+}
+
 impl<T: ?Sized> MemSize for PhantomData<T> {
     #[inline(always)]
     fn mem_size(&self) -> usize {

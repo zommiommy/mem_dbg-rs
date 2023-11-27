@@ -54,6 +54,8 @@ impl<T: MemDbgImpl> MemDbgImpl for &'_ mut T {
     }
 }
 
+impl<T: MemDbgImpl> MemDbgImpl for [T] {}
+
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
 impl<T: MemDbgImpl, const N: usize> MemDbgImpl for [T; N] {}
