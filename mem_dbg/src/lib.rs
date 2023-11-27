@@ -19,8 +19,6 @@ extern crate alloc;
 #[cfg(feature = "derive")]
 extern crate mem_dbg_derive;
 
-use core::sync::atomic::*;
-
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
 

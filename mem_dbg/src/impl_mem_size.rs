@@ -156,7 +156,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "alloc")]
 impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
-    fn _mem_size(&self, flags: SizeFlags) -> usize {
+    fn _mem_size(&self, _flags: SizeFlags) -> usize {
         core::mem::size_of::<usize>() + self.len() * core::mem::size_of::<T>()
     }
 }

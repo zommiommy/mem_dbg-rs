@@ -102,16 +102,29 @@ impl CommonDeriveInput {
     }
 }
 
-#[proc_macro_derive(MemSize)]
+#[proc_macro_derive(MemSize, attributes(copy_type))]
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+
+    let is_copy_type = input
+        .attrs
+        .iter()
+        .any(|x| x.meta.path().is_ident("copy_type"));
+
     let CommonDeriveInput {
         name,
-        generics,
+        generics: generics_memsize,
         generics_names,
-        where_clause,
+        where_clause: where_clause_memsize,
         ..
     } = CommonDeriveInput::new(input.clone(), vec![syn::parse_quote!(mem_dbg::MemSize)]);
+
+    let CommonDeriveInput {
+        generics,
+        where_clause,
+        ..
+    } = CommonDeriveInput::new(input.clone(), vec![]);
+
     let out = match input.data {
         Data::Enum(e) => {
             let mut variants = Vec::new();
@@ -166,9 +179,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 variant_sizes.push(var_args_size);
             });
 
-            quote! {
+            let mut res = quote! {
                 #[automatically_derived]
-                impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
+                impl<#generics_memsize> mem_dbg::MemSize for #name<#generics_names> #where_clause_memsize{
                     fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         match self {
                             #(
@@ -177,7 +190,23 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         }
                     }
                 }
+            };
+            if is_copy_type {
+                res.extend(quote!{
+                    #[automatically_derived]
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                        type Copy = True;
+                    }
+                });
+            } else {
+                res.extend(quote!{
+                    #[automatically_derived]
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                        type Copy = False;
+                    }
+                });
             }
+            res
         }
         Data::Struct(s) => {
             let mut fields_ident = vec![];
@@ -192,17 +221,32 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 );
                 fields_ty.push(field.ty.to_token_stream());
             });
-
-            quote! {
+            let mut res = quote! {
                 #[automatically_derived]
-                impl<#generics> mem_dbg::MemSize for #name<#generics_names> #where_clause{
+                impl<#generics_memsize> mem_dbg::MemSize for #name<#generics_names> #where_clause_memsize{
                     fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         let mut bytes = core::mem::size_of::<Self>();
                         #(bytes += self.#fields_ident.mem_size(_memsize_flags) - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
+            };
+            if is_copy_type {
+                res.extend(quote!{
+                    #[automatically_derived]
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                        type Copy = True;
+                    }
+                });
+            } else {
+                res.extend(quote!{
+                    #[automatically_derived]
+                    impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause{
+                        type Copy = False;
+                    }
+                });
             }
+            res
         }
 
         _ => todo!(),
@@ -217,10 +261,10 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
         name,
         generics,
         generics_names,
-        where_clause,
+        where_clause: where_clause_memdbgimpl,
         ..
     } = CommonDeriveInput::new(input.clone(), vec![syn::parse_quote!(mem_dbg::MemDbgImpl)]);
-
+    
     let out = match input.data {
         Data::Struct(s) => {
             let code = s
@@ -248,7 +292,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl<#generics> mem_dbg::MemDbgImpl for #name<#generics_names> #where_clause{
+                impl<#generics> mem_dbg::MemDbgImpl for #name<#generics_names> #where_clause_memdbgimpl{
                     #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
@@ -326,7 +370,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl<#generics> mem_dbg::MemDbgImpl  for #name<#generics_names> #where_clause{
+                impl<#generics> mem_dbg::MemDbgImpl  for #name<#generics_names> #where_clause_memdbgimpl{
                     #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
