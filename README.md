@@ -97,6 +97,8 @@ size: 4772
 
 ## Caveats
 
+* We support most basic types, and tuples of parameterless types up to size ten.
+
 * Computation of the size of arrays, slices and vectors will be performed by iterating over their elements
   unless the type is a copy type that does not contain references and it is declared as such using
   the attribute `#[copy_type]`. See [`CopyType`] for more details.
