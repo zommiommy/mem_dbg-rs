@@ -20,7 +20,7 @@ impl_mem_dbg! {
     i8, i16, i32, i64, i128, isize
 }
 
-impl<T: MemDbgImpl> MemDbgImpl for &'_ T {
+impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
@@ -37,7 +37,7 @@ impl<T: MemDbgImpl> MemDbgImpl for &'_ T {
     }
 }
 
-impl<T: MemDbgImpl> MemDbgImpl for &'_ mut T {
+impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
