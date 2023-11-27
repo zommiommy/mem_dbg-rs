@@ -50,11 +50,21 @@ println!("mem_size: {}\n", person.mem_size(SizeFlags::default()));
 person.mem_dbg(DbgFlags::default()).unwrap();
 ```
 
-It prints:
-```text
-mem_size: 4772
-
-4.772 KB $ROOT example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+it prints:
+```
+4_772 B ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+   16 B ├╴a : example::TestEnum
+        │├╴Variant: Unamed
+    8 B │├╴0 : usize
+    1 B │╰╴1 : u8
+4_748 B ├╴b : example::Data<alloc::vec::Vec<u8>>
+  724 B │├╴a : alloc::vec::Vec<u8>
+4_024 B │╰╴b : alloc::vec::Vec<i32>
+    8 B ╰╴test : isize
+```
+using the flag `DbgFlags::HUMANIZE` it prints:
+```
+4.772 KB ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B  ├╴a example::TestEnum
          │├╴Variant: Unamed
     8 B  │├╴0 usize
@@ -64,7 +74,18 @@ mem_size: 4772
 4.024 KB │╰╴b alloc::vec::Vec<i32>
     8 B  ╰╴test isize
 ```
-
+using the flag `DbgFlags::PERCENTAGE` it prints:
+```
+100.00% ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+  0.34% ├╴a : example::TestEnum
+        │├╴Variant: Unamed
+  0.17% │├╴0 : usize
+  0.02% │╰╴1 : u8
+ 99.50% ├╴b : example::Data<alloc::vec::Vec<u8>>
+ 15.17% │├╴a : alloc::vec::Vec<u8>
+ 84.33% │╰╴b : alloc::vec::Vec<i32>
+  0.17% ╰╴test : isize
+```
 
 ## Caveats
 * The data of vectors and slices are not expanded recursively as it might print too much

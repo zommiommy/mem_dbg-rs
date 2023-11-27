@@ -233,7 +233,7 @@ pub trait MemDbg: MemDbgImpl {
 
             while digits >= 3 {
                 real_size %= multiplier;
-                multiplier = 1000;
+                multiplier /= 1000;
                 writer.write_fmt(format_args!("_{:03}", real_size / multiplier))?;
                 digits -= 3;
             }

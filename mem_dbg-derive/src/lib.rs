@@ -345,7 +345,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             _memdbg_digits_number = 6;
                         }
                         if _memdbg_flags.contains(DbgFlags::PERCENTAGE) {
-                            _memdbg_digits_number = 6;
+                            _memdbg_digits_number = 5;
                         }
 
                         for _ in 0.._memdbg_digits_number + 3 {
