@@ -27,15 +27,19 @@ impl_memory_size! {
 
 impl<T: ?Sized> MemSize for &'_ T {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>()
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        if flags.contains(SizeFlags::FOLLOW_REFS) {
+            core::mem::size_of::<Self>() + (*self).mem_size(flags)
+        } else {
+            core::mem::size_of::<Self>()
+        }
     }
 }
 
 impl<T: ?Sized> MemSize for &'_ mut T {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>()
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <&'_ T as MemSize>::mem_size(&&**self, flags)
     }
 }
 
