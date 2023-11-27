@@ -254,7 +254,6 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                 }
             };
-            eprintln!("{}", res);
             if is_copy_type {
                 res.extend(quote! {
                     #[automatically_derived]
