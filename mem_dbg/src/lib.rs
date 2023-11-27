@@ -25,6 +25,24 @@ mod impl_mem_dbg;
 mod impl_mem_size;
 pub(crate) mod utils;
 
+bitflags::bitflags! {
+    /// Flags for [`MemDbg`].
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct SizeFlags: u32 {
+        /// Follow references.
+        const FOLLOW_REFS = 1 << 0;
+        /// Return capacity instead of size.
+        const CAPACITY = 1 << 1;
+    }
+}
+
+impl Default for SizeFlags {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
 /// A trait to compute recursively the overall size and capacity of a structure, as opposed to the
 /// stack size returned by [`core::mem::size_of()`].
 ///
@@ -37,25 +55,17 @@ pub trait MemSize {
     /// Size does not include memory allocated but not
     /// used: for example, in the case of a vector this function
     /// calls [`Vec::len`] rather than [`Vec::capacity`].
-    fn mem_size(&self) -> usize;
-
-    /// Return the (recursively computed) overall
-    /// memory capacity of the structure in bytes.
-    ///
     /// Capacity includes also memory allocated but not
     /// used: for example, in the case of a vector this function
     /// calls [`Vec::capacity`] rather than [`Vec::len`].
     ///
-    /// The default trait implementation returns the same value as [`MemSize::mem_size`].
-    fn mem_cap(&self) -> usize {
-        self.mem_size()
-    }
+    fn mem_size(&self, flags: SizeFlags) -> usize;
 }
 
 bitflags::bitflags! {
     /// Flags for [`MemDbg`].
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct Flags: u32 {
+    pub struct DbgFlags: u32 {
         /// Follow references.
         const FOLLOW_REFS = 1 << 0;
         /// Print memory usage in human readable format.
@@ -64,13 +74,28 @@ bitflags::bitflags! {
         const PERCENTAGE = 1 << 2;
         /// Print the type name.
         const TYPE_NAME = 1 << 3;
+        /// Display capacity instead of size.
+        const CAPACITY = 1 << 4;
     }
 }
 
-impl Default for Flags {
+impl DbgFlags {
+    pub fn to_size_flags(&self) -> SizeFlags {
+        let mut flags = SizeFlags::empty();
+        if self.contains(Self::all()) {
+            flags |= SizeFlags::FOLLOW_REFS;
+        }
+        if self.contains(Self::all()) {
+            flags |= SizeFlags::CAPACITY;
+        }
+        flags
+    }
+}
+
+impl Default for DbgFlags {
     #[inline(always)]
     fn default() -> Self {
-        Flags::TYPE_NAME
+        DbgFlags::TYPE_NAME
     }
 }
 
@@ -84,14 +109,14 @@ pub trait MemDbg: MemDbgImpl {
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     #[inline(always)]
-    fn mem_dbg(&self, flags: Flags) -> core::fmt::Result {
+    fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         self.mem_dbg_depth(0, usize::MAX, false, flags)
     }
 
     /// Print debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[inline(always)]
-    fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: Flags) -> core::fmt::Result {
+    fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         self.mem_dbg_depth_on(writer, 0, usize::MAX, Some("$ROOT"), false, flags)
     }
 
@@ -104,7 +129,7 @@ pub trait MemDbg: MemDbgImpl {
         depth: usize,
         max_depth: usize,
         is_last: bool,
-        flags: Flags,
+        flags: DbgFlags,
     ) -> core::fmt::Result {
         struct Wrapper(std::io::Stdout);
         impl core::fmt::Write for Wrapper {
@@ -139,13 +164,13 @@ pub trait MemDbg: MemDbgImpl {
         max_depth: usize,
         field_name: Option<&str>,
         is_last: bool,
-        flags: Flags,
+        flags: DbgFlags,
     ) -> core::fmt::Result {
         if depth > max_depth {
             return Ok(());
         }
-        let real_size = self.mem_size();
-        if flags.contains(Flags::HUMANIZE) {
+        let real_size = self.mem_size(flags.to_size_flags());
+        if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
                 writer.write_fmt(format_args!("{:>5} B ", real_size))?;
@@ -182,7 +207,7 @@ pub trait MemDbg: MemDbgImpl {
             writer.write_fmt(format_args!("{:}", field_name))?;
         }
 
-        if flags.contains(Flags::TYPE_NAME) {
+        if flags.contains(DbgFlags::TYPE_NAME) {
             writer.write_str(" : ")?;
             writer.write_fmt(format_args!("{:}", core::any::type_name::<Self>()))?;
         }
@@ -213,7 +238,7 @@ pub trait MemDbgImpl: MemSize {
         _depth: usize,
         _max_depth: usize,
         _is_last: bool,
-        _flags: Flags,
+        _flags: DbgFlags,
     ) -> core::fmt::Result {
         Ok(())
     }

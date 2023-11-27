@@ -6,7 +6,7 @@
 
 use core::marker::PhantomData;
 
-use crate::{Flags, MemDbgImpl};
+use crate::{DbgFlags, MemDbgImpl};
 
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
@@ -27,9 +27,9 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
         depth: usize,
         max_depth: usize,
         is_last: bool,
-        flags: Flags,
+        flags: DbgFlags,
     ) -> core::fmt::Result {
-        if flags.contains(Flags::FOLLOW_REFS) {
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
             (**self)._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
         } else {
             Ok(())
@@ -44,9 +44,9 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
         depth: usize,
         max_depth: usize,
         is_last: bool,
-        flags: Flags,
+        flags: DbgFlags,
     ) -> core::fmt::Result {
-        if flags.contains(Flags::FOLLOW_REFS) {
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
             (**self)._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
         } else {
             Ok(())
@@ -71,7 +71,7 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         depth: usize,
         max_depth: usize,
         is_last: bool,
-        flags: Flags,
+        flags: DbgFlags,
     ) -> core::fmt::Result {
         self.as_ref()
             ._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
