@@ -104,9 +104,24 @@ impl MemDbgImpl for mmap_rs::Mmap {}
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::MmapMut {}
 
-macro_rules! impl_mem_dbg_tuples {
-    ($(($idx:tt => $ty:ident),)*) => {
-        impl<$($ty: crate::MemSize + MemDbgImpl,)*> MemDbgImpl for ($($ty,)*)  {
+macro_rules! impl_tuples_muncher {
+    () => {};
+
+    (($idx:tt => $ty:ident), $(($i:tt => $t:ident),)*) => {
+        // Pass to list reversal
+        impl_tuples_muncher!([($idx => $ty);] $(($i => $t),)*);
+        // Recurse on tail
+        impl_tuples_muncher!($(($i => $t),)*);
+    };
+
+    // List reversal
+    ([$(($accIdx: tt => $accTyp: ident);)+]  ($idx:tt => $typ:ident), $( ($nidx:tt => $ntyp:ident), )*) => {
+      impl_tuples_muncher!([($idx => $typ); $(($accIdx => $accTyp); )*] $( ($nidx => $ntyp), ) *);
+    };
+
+    // Implement on reversed list
+    ([($idx:tt => $ty:ident); $( ($nidx:tt => $nty:ident); )*]) => {
+        impl<$ty: crate::MemSize + MemDbgImpl, $($nty: crate::MemSize + MemDbgImpl,)*> MemDbgImpl for ($ty, $($nty,)*)  {
             fn _mem_dbg_rec_on(
                 &self,
                 writer: &mut impl core::fmt::Write,
@@ -116,24 +131,14 @@ macro_rules! impl_mem_dbg_tuples {
                 is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
+                self.$idx._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)?;
                 $(
-                    self.$idx._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)?;
+                    self.$nidx._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)?;
                 )*
                 Ok(())
             }
         }
-    }
-}
-
-macro_rules! impl_tuples_muncher {
-    (($idx:tt => $ty:ident), $(($i:tt => $t:ident),)*) => {
-        impl_mem_dbg_tuples!(($idx => $ty), $(($i => $t),)*);
-        impl_tuples_muncher!($(($i => $t),)*);
     };
-    (($idx:tt => $ty:ident)) => {
-        impl_mem_size_tuples!(($idx => $ty));
-    };
-    () => {};
 }
 
 impl_tuples_muncher!(
