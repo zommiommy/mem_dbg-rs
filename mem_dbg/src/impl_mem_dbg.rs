@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-use core::marker::PhantomData;
+use core::{marker::PhantomData, sync::atomic::*};
 
 use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
 
@@ -19,7 +19,10 @@ macro_rules! impl_mem_dbg {
 impl_mem_dbg! {
     (), bool, char, f32, f64,
     u8, u16, u32, u64, u128, usize,
-    i8, i16, i32, i64, i128, isize
+    i8, i16, i32, i64, i128, isize,
+    AtomicBool,
+    AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize,
+    AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize
 }
 
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {

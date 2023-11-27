@@ -7,6 +7,7 @@
  */
 
 use core::marker::PhantomData;
+use std::sync::atomic::AtomicU64;
 
 use mem_dbg::*;
 
@@ -295,4 +296,14 @@ fn test_exotic() {
 fn test_tuple() {
     assert_eq!((8, 4).mem_size(SizeFlags::default()), 8);
     assert_eq!((8, 4).mem_size(SizeFlags::CAPACITY), 8);
+}
+
+#[test]
+fn test_atomic() {
+    assert_eq!(AtomicU64::new(0).mem_size(SizeFlags::default()), 8);
+}
+
+#[test]
+fn test_unit() {
+    assert_eq!(().mem_size(SizeFlags::default()), 0);
 }
