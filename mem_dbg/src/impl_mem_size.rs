@@ -1,5 +1,7 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  * SPDX-FileCopyrightText: 2023 Inria
+ * SPDX-FileCopyrightText: 2023 Sebastiano Vigna
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
@@ -88,13 +90,13 @@ where
 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(&self, flags)
+        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(self, flags)
     }
 }
 
 impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
     #[inline(always)]
-    fn _mem_size(&self, flags: SizeFlags) -> usize {
+    fn _mem_size(&self, _flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
     }
 }
@@ -124,7 +126,7 @@ where
 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(&self, flags)
+        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(self, flags)
     }
 }
 
@@ -164,7 +166,7 @@ where
 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(&self, flags)
+        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(self, flags)
     }
 }
 
@@ -174,7 +176,7 @@ use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
     fn _mem_size(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + self.len() * core::mem::size_of::<T>()
+        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
     }
 }
 

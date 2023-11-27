@@ -1,6 +1,7 @@
 /*
- * SPDX-FileCopyrightText: 2023 Inria
  * SPDX-FileCopyrightText: 2023 Tommaso Fontana
+ * SPDX-FileCopyrightText: 2023 Inria
+ * SPDX-FileCopyrightText: 2023 Sebastiano Vigna
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
@@ -54,19 +55,19 @@ The trait is made necessary by the impossibility of checking that a type
 implements [`Copy`] from a procedural macro.
 
 Since we cannot use negative trait bounds, every type that is used as a parameter of
-an array, vector, or slice must implement either `CopyType<Copy=True>` and
+an array, vector, or slice must implement either `CopyType<Copy=True>` or
 `CopyType<Copy=False>`.  If you do not implement either of these traits,
 you will not be able to compute the size arrays, vectors, and slices but error
 messages will be very unhelpful due to the contrived way we have to implement
 mutually exclusive types [working around the bug that prevents the compiler
-from understanding that implementations for the two flavors of `CopySelector` are mutually
+from understanding that implementations for the two flavors of `CopyType` are mutually
 exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983)
 
 If you use the provided derive macros all this logic will be hidden from you. You'll
 just have to add `#[copy_type]` to your structures if they are [`Copy`] types and
 they do not contain references.
 
-Note that this approach forces us to compute the size of structures that contain
+Note that this approach forces us to compute the size of [`Copy`] types that contain
 references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
 
 */
@@ -87,11 +88,12 @@ bitflags::bitflags! {
         /// Return capacity instead of size.
         ///
         /// Size does not include memory allocated but not
-        /// used: for example, in the case of a vector this option
-        /// makes [`MemSize::mem_size`] call [`Vec::len`] rather than [`Vec::capacity`].
+        /// used: for example, in the case of a vector
+        /// [`MemSize::mem_size`] calls [`Vec::len`] rather than [`Vec::capacity`].
         ///
-        /// Capacity includes also memory allocated but not
-        /// used: for example, in the case of a vector this function
+        /// However, when this flag is specified [`MemSize::mem_size`]
+        /// will return the size of all memory allocated, even if it is not
+        /// used: for example, in the case of a vector this option
         /// makes [`MemSize::mem_size`] call [`Vec::capacity`] rather than [`Vec::len`].
         const CAPACITY = 1 << 1;
     }
@@ -117,7 +119,7 @@ bitflags::bitflags! {
     /// Flags for [`MemDbg`].
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct DbgFlags: u32 {
-        /// Follow references.
+        /// Follow references. See [`SizeFlags::FOLLOW_REFS`].
         const FOLLOW_REFS = 1 << 0;
         /// Print memory usage in human readable format.
         const HUMANIZE = 1 << 1;
@@ -125,7 +127,7 @@ bitflags::bitflags! {
         const PERCENTAGE = 1 << 2;
         /// Print the type name.
         const TYPE_NAME = 1 << 3;
-        /// Display capacity instead of size.
+        /// Display capacity instead of size. See [`SizeFlags::CAPACITY`].
         const CAPACITY = 1 << 4;
         /// Add an _ every 3 digits.
         const SEPARATOR = 1 << 5;

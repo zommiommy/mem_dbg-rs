@@ -92,10 +92,11 @@ If we use the flag `DbgFlags::PERCENTAGE` it prints:
 
 ## Caveats
 
-* Computation of the size of arrays, slices and vectors will be performed by iterating over the elements,
+* Computation of the size of arrays, slices and vectors will be performed by iterating over their elements
   unless the type is a copy type that does not contain references and it is declared as such using
   the attribute `#[copy_type]`. See [`CopyType`] for more details.
 
 * The data of vectors and slices are not expanded recursively as it might print too much.
 
-* `HashMaps`, `HashSet`, `BTreeMap`, `BTreeSet`, are not currently supported as we still have to figure out a way to precisely measure their memory usage
+* `HashMaps`, `HashSet`, `BTreeMap`, and `BTreeSet`,  are not currently supported as we still 
+  have to figure out a way to precisely measure their memory size and capacity.

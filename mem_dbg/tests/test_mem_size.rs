@@ -1,3 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2023 Tommaso Fontana
+ * SPDX-FileCopyrightText: 2023 Inria
+ * SPDX-FileCopyrightText: 2023 Sebastiano Vigna
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
+ */
+
 use core::marker::PhantomData;
 
 use mem_dbg::*;
@@ -198,6 +206,18 @@ fn test_option() {
 
 #[test]
 fn test_enum() {
+    #[derive(MemSize)]
+    #[copy_type]
+    struct Dummy<'a> {
+        p: &'a usize,
+    }
+
+    let v = Dummy { p: &1 };
+    assert_eq!(
+        core::mem::size_of::<usize>(),
+        v.mem_size(SizeFlags::default())
+    );
+
     #[derive(MemSize)]
     #[repr(u8)]
     enum Data {

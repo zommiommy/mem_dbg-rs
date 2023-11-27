@@ -1,11 +1,12 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  * SPDX-FileCopyrightText: 2023 Inria
+ * SPDX-FileCopyrightText: 2023 Sebastiano Vigna
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
-//!
+
 //! Derive procedural macros for the [`mem_dbg`](https://crates.io/crates/mem_dbg) crate.
-//!
 
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
@@ -102,6 +103,18 @@ impl CommonDeriveInput {
     }
 }
 
+/**
+
+Generate a `mem_dbg::MemSize` implementation for custom types.
+
+Presently we do not support unions.
+
+The attribute `copy_type` can be used on [`Copy`] types that do not contain references
+to make [`MemSize::mem_size`] faster on arrays, vectors and slices.
+
+See `mem_dbg::CopyType` for more details.
+
+ */
 #[proc_macro_derive(MemSize, attributes(copy_type))]
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -192,7 +205,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
             };
             if is_copy_type {
-                res.extend(quote!{
+                res.extend(quote! {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                         Self: Copy + 'static 
@@ -201,7 +214,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                 });
             } else {
-                res.extend(quote!{
+                res.extend(quote! {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                     {
@@ -235,7 +248,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
             };
             if is_copy_type {
-                res.extend(quote!{
+                res.extend(quote! {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                         Self: Copy + 'static 
@@ -244,7 +257,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                 });
             } else {
-                res.extend(quote!{
+                res.extend(quote! {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                     {
@@ -260,6 +273,13 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     out.into()
 }
 
+/**
+
+Generate a [`MemDbg`] implementation for custom types.
+
+Presently we do not support unions.
+
+ */
 #[proc_macro_derive(MemDbg)]
 pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -270,7 +290,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
         where_clause: where_clause_memdbgimpl,
         ..
     } = CommonDeriveInput::new(input.clone(), vec![syn::parse_quote!(mem_dbg::MemDbgImpl)]);
-    
+
     let out = match input.data {
         Data::Struct(s) => {
             let code = s
