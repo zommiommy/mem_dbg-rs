@@ -6,7 +6,7 @@
 
 use core::marker::PhantomData;
 
-use crate::{DbgFlags, MemDbgImpl};
+use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
 
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
@@ -56,14 +56,17 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
     }
 }
 
-impl<T: MemDbgImpl> MemDbgImpl for [T] {}
+impl<T: CopyType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as CopyType>::Copy> {}
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
 impl<T: MemDbgImpl, const N: usize> MemDbgImpl for [T; N] {}
 
 #[cfg(feature = "alloc")]
-impl<T: MemDbgImpl> MemDbgImpl for Vec<T> {}
+impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where
+    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>
+{
+}
 
 #[cfg(feature = "alloc")]
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
