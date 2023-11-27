@@ -60,7 +60,10 @@ impl<T: CopyType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
-impl<T: MemDbgImpl, const N: usize> MemDbgImpl for [T; N] {}
+impl<T: CopyType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
+    [T; N]: MemSizeHelper<<T as CopyType>::Copy>
+{
+}
 
 #[cfg(feature = "alloc")]
 impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where

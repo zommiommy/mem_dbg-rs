@@ -26,77 +26,48 @@ mod impl_mem_dbg;
 mod impl_mem_size;
 pub mod utils;
 
-/// Internal trait used to implement [`MemSize`] depending
-/// on the type being a copy type or not.
-///
-/// It has only two implementations, [`Zero`] and [`Deep`].
-///
-/// In the first case, the type can be serialized
-/// from memory and deserialized to memory as a sequence of bytes;
-/// in the second case, one has to deserialize the type field
-/// by field.
+/**
+
+Internal trait used by [`CopyType`] to implement [`MemSize`] depending
+on whether a type is [`Copy`] or not.
+
+It has only two implementations, [`True`] and [`False`].
+
+*/
 pub trait Boolean {}
-/// An implementation of a [`CopySelector`] specifying that a type is zero-copy.
 pub struct True {}
-
 impl Boolean for True {}
-
-/// An implementation of a [`CopySelector`] specifying that a type is deep-copy.
-#[derive(Hash)]
 pub struct False {}
-
 impl Boolean for False {}
 
 /**
 
-Marker trait for data specifying whether it is zero-copy or deep-copy.
+Marker trait for copy types.
 
-The trait comes in two flavors: `CopySelector<Type=Zero>` and
-`CopySelector<Type=Deep>`. To each of these flavors corresponds two
-dependent traits, [`ZeroCopy`] (which requires implementing [`MaxSizeOf`])
-and [`DeepCopy`], which are automatically
-implemented.
-```rust
-use epserde::traits::*;
+The trait comes in two flavors: `CopyType<Copy=True>` and
+`CopyType<Copy=False>`. In the first case, [`MemSize::mem_size`] can be computed on
+arrays, vectors, and slices by multiplying the length or capacity
+by the size of the element type; in the second case, it
+is necessary to iterate on each element.
 
-struct MyType {}
-
-impl CopyType for MyType {
-    type Copy = Deep;
-}
-// Now MyType implements DeepCopy
-```
-You should not implement this trait manually, but rather use the provided [derive macro](epserde_derive::Epserde).
-
-We use this trait to implement a different behavior for [`ZeroCopy`] and [`DeepCopy`] types,
-in particular on arrays, vectors, and boxed slices,
-[working around the bug that prevents the compiler from understanding that implementations
-for the two flavors of `CopySelector` are mutually
-exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
-
-For an array of elements of type `T` to be zero-copy serializable and
-deserializable, `T` must implement `CopySelector<Type=Zero>`. The conditions for this marker trait are that
-`T` is a copy type, that it has a fixed memory layout, and that it does not contain any reference.
-If this happen vectors of `T` or boxed slices of `T` can be ε-copy deserialized
-using a reference to a slice of `T`.
-
-You can make zero-copy your own types, but you must ensure that they do not
-contain references and that they have a fixed memory layout; for structures, this requires
-`repr(C)`. ε-serde will track these conditions at compile time and check them at
-runtime: in case of failure, serialization will panic.
+The trait is made necessary by the impossibility of checking that a type
+implements [`Copy`] from a procedural macro.
 
 Since we cannot use negative trait bounds, every type that is used as a parameter of
-an array, vector or boxed slice must implement either `CopySelector<Type=Zero>`
-or `CopySelector<Type=Deep>`. In the latter
-case, slices will be deserialized element by element, and the result will be a fully
-deserialized vector or boxed
-slice. If you do not implement either of these traits, the type will not be serializable inside
-vectors or boxed slices but error messages will be very unhelpful due to the
-contrived way we have to implement mutually exclusive types.
+an array, vector, or slice must implement either `CopyType<Copy=True>` and
+`CopyType<Copy=False>`.  If you do not implement either of these traits,
+you will not be able to compute the size arrays, vectors, and slices but error
+messages will be very unhelpful due to the contrived way we have to implement
+mutually exclusive types [working around the bug that prevents the compiler
+from understanding that implementations for the two flavors of `CopySelector` are mutually
+exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983)
 
 If you use the provided derive macros all this logic will be hidden from you. You'll
-just have to add `#[zero_copy]` to your structures (if you want them to be zero-copy)
-and ε-serde will do the rest.
+just have to add `#[copy_type]` to your structures if they are [`Copy`] types and
+they do not contain references.
+
+Note that this approach forces us to compute the size of structures that contain
+references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
 
 */
 
@@ -134,7 +105,7 @@ impl Default for SizeFlags {
     }
 }
 
-/// A trait to compute recursively the overall size and capacity of a structure, as opposed to the
+/// A trait to compute recursively the overall size or capacity of a structure, as opposed to the
 /// stack size returned by [`core::mem::size_of()`].
 pub trait MemSize {
     /// Return the (recursively computed) overall
@@ -175,7 +146,7 @@ impl DbgFlags {
 }
 
 impl Default for DbgFlags {
-    /// The default set of flags contains [`DbgFlags::TYPE_NAME`].
+    /// The default set of flags contains [`DbgFlags::TYPE_NAME`] and [`DbgFlags::SEPARATOR`].
     #[inline(always)]
     fn default() -> Self {
         Self::TYPE_NAME | Self::SEPARATOR

@@ -82,9 +82,26 @@ impl<T: CopyType + MemSize, const N: usize> CopyType for [T; N] {
     type Copy = T::Copy;
 }
 
-impl<T: MemSize, const N: usize> MemSize for [T; N] {
+impl<T: CopyType, const N: usize> MemSize for [T; N]
+where
+    [T; N]: MemSizeHelper<<T as CopyType>::Copy>,
+{
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
+        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(&self, flags)
+    }
+}
+
+impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
+    #[inline(always)]
+    fn _mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
+    }
+}
+
+impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
+    #[inline(always)]
+    fn _mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
             + self
                 .iter()

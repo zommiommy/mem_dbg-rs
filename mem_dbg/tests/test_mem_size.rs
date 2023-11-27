@@ -52,6 +52,62 @@ fn test_vec_capacity() {
 }
 
 #[test]
+fn test_vec_copy_or_not() {
+    #[derive(MemDbg, MemSize, Clone)]
+    struct NewType(usize);
+
+    assert_eq!(
+        vec![1_usize; 10].mem_size(SizeFlags::default()),
+        vec![NewType(1_usize); 10].mem_size(SizeFlags::default())
+    );
+}
+
+#[test]
+fn test_boxed_slice_copy_or_not() {
+    #[derive(MemDbg, MemSize, Clone)]
+    struct NewType(usize);
+
+    assert_eq!(
+        vec![1_usize; 10]
+            .into_boxed_slice()
+            .mem_size(SizeFlags::FOLLOW_REFS),
+        vec![NewType(1_usize); 10]
+            .into_boxed_slice()
+            .mem_size(SizeFlags::FOLLOW_REFS)
+    );
+}
+
+#[test]
+fn test_slice_copy_or_not() {
+    #[derive(MemDbg, MemSize, Clone)]
+    struct NewType(usize);
+
+    assert_eq!(
+        vec![1_usize; 10]
+            .into_boxed_slice()
+            .as_ref()
+            .mem_size(SizeFlags::FOLLOW_REFS),
+        vec![NewType(1_usize); 10]
+            .into_boxed_slice()
+            .as_ref()
+            .mem_size(SizeFlags::FOLLOW_REFS)
+    );
+}
+
+#[test]
+fn test_array_copy_or_not() {
+    #[derive(MemDbg, MemSize, Clone, Copy)]
+    struct NewType(usize);
+
+    assert_eq!(
+        [1_usize; 10].as_ref().mem_size(SizeFlags::FOLLOW_REFS),
+        [NewType(1_usize); 10]
+            .as_ref()
+            .mem_size(SizeFlags::FOLLOW_REFS)
+    );
+}
+
+#[test]
 fn test_empty_struct() {
     #[derive(MemSize)]
     struct Data {}
