@@ -44,14 +44,14 @@ let person = PersonVec {
 
 // get the type name of the value
 // print the size in bytes of the value
-println!("mem_size: {}\n", person.mem_size());
+println!("mem_size: {}\n", person.mem_size(SizeFlags::default()));
 
 // print the tree of fields and their memory size
-person.mem_dbg(Flags::default()).unwrap();
+person.mem_dbg(DbgFlags::default()).unwrap();
 ```
 
 It prints:
-```ignore
+```text
 mem_size: 4772
 
 4.772 KB $ROOT example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>

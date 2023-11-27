@@ -30,13 +30,25 @@ bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct SizeFlags: u32 {
         /// Follow references.
+        ///
+        /// By default [`MemSize::mem_size`] does not follow references
+        /// and computes only the size of the reference itself.
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
+        ///
+        /// Size does not include memory allocated but not
+        /// used: for example, in the case of a vector this option
+        /// makes [`MemSize::mem_size`] call [`Vec::len`] rather than [`Vec::capacity`].
+        ///
+        /// Capacity includes also memory allocated but not
+        /// used: for example, in the case of a vector this function
+        /// makes [`MemSize::mem_size`] call [`Vec::capacity`] rather than [`Vec::len`].
         const CAPACITY = 1 << 1;
     }
 }
 
 impl Default for SizeFlags {
+    /// The default set of flags is the empty set.
     #[inline(always)]
     fn default() -> Self {
         Self::empty()
@@ -45,20 +57,9 @@ impl Default for SizeFlags {
 
 /// A trait to compute recursively the overall size and capacity of a structure, as opposed to the
 /// stack size returned by [`core::mem::size_of()`].
-///
-/// The trait provides two functions, [`MemSize::mem_size`] and [`MemSize::mem_capacity`], which
-/// return the memory used, and the memory allocated, respectively.
 pub trait MemSize {
     /// Return the (recursively computed) overall
     /// memory size of the structure in bytes.
-    ///
-    /// Size does not include memory allocated but not
-    /// used: for example, in the case of a vector this function
-    /// calls [`Vec::len`] rather than [`Vec::capacity`].
-    /// Capacity includes also memory allocated but not
-    /// used: for example, in the case of a vector this function
-    /// calls [`Vec::capacity`] rather than [`Vec::len`].
-    ///
     fn mem_size(&self, flags: SizeFlags) -> usize;
 }
 
@@ -93,6 +94,7 @@ impl DbgFlags {
 }
 
 impl Default for DbgFlags {
+    /// The default set of flags contains [`DbgFlags::TYPE_NAME`].
     #[inline(always)]
     fn default() -> Self {
         DbgFlags::TYPE_NAME
