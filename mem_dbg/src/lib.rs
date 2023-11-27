@@ -199,8 +199,11 @@ pub trait MemDbg: MemDbgImpl {
 impl<T: MemDbgImpl> MemDbg for T {}
 
 /// Inner trait used to implement [`MemDbg`].
+///
 /// This trait should not be implemented by users, but they should use the
 /// [`MemDbg`] derive macro instead.
+///
+/// The default no-op implementation is used by primitive types.
 pub trait MemDbgImpl: MemSize {
     #[inline(always)]
     /// Composite structs should implement this to print their children.

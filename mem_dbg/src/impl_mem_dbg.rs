@@ -6,7 +6,7 @@
 
 use core::marker::PhantomData;
 
-use crate::MemDbgImpl;
+use crate::{Flags, MemDbgImpl};
 
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
@@ -20,7 +20,39 @@ impl_mem_dbg! {
     i8, i16, i32, i64, i128, isize
 }
 
-impl<T: MemDbgImpl> MemDbgImpl for &'_ T {}
+impl<T: MemDbgImpl> MemDbgImpl for &'_ T {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        depth: usize,
+        max_depth: usize,
+        is_last: bool,
+        flags: Flags,
+    ) -> core::fmt::Result {
+        if flags.contains(Flags::FOLLOW_REFS) {
+            (**self)._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for &'_ mut T {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        depth: usize,
+        max_depth: usize,
+        is_last: bool,
+        flags: Flags,
+    ) -> core::fmt::Result {
+        if flags.contains(Flags::FOLLOW_REFS) {
+            (**self)._mem_dbg_rec_on(writer, depth, max_depth, is_last, flags)
+        } else {
+            Ok(())
+        }
+    }
+}
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
