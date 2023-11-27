@@ -103,3 +103,45 @@ impl MemDbgImpl for mmap_rs::Mmap {}
 
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::MmapMut {}
+
+macro_rules! impl_mem_dbg_tuples {
+    ($(($idx:tt => $ty:ident),)*) => {
+        impl<$($ty: crate::MemSize + MemDbgImpl,)*> MemDbgImpl for ($($ty,)*)  {
+            fn _mem_dbg_rec_on(
+                &self,
+                writer: &mut impl core::fmt::Write,
+                total_size: usize,
+                depth: usize,
+                max_depth: usize,
+                is_last: bool,
+                flags: DbgFlags,
+            ) -> core::fmt::Result {
+                Ok(())
+            }
+        }
+    }
+}
+
+macro_rules! impl_tuples_muncher {
+    (($idx:tt => $ty:ident), $(($i:tt => $t:ident),)*) => {
+        impl_mem_dbg_tuples!(($idx => $ty), $(($i => $t),)*);
+        impl_tuples_muncher!($(($i => $t),)*);
+    };
+    (($idx:tt => $ty:ident)) => {
+        impl_mem_size_tuples!(($idx => $ty));
+    };
+    () => {};
+}
+
+impl_tuples_muncher!(
+    (9 => T9),
+    (8 => T8),
+    (7 => T7),
+    (6 => T6),
+    (5 => T5),
+    (4 => T4),
+    (3 => T3),
+    (2 => T2),
+    (1 => T1),
+    (0 => T0),
+);
