@@ -265,7 +265,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                     let is_last = field_idx == s.fields.len().saturating_sub(1);
 
-                    quote!{self.#field_ident.mem_dbg_depth_on(writer, depth, max_depth, Some(#fields_str), type_name, humanize, #is_last)?;}
+                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_depth, _memdbg_max_depth, Some(#fields_str), #is_last, _memdbg_flags)?;}
                 })
                 .collect::<Vec<_>>();
 
@@ -275,12 +275,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
-                        writer: &mut impl core::fmt::Write,
-                        depth: usize,
-                        max_depth: usize,
-                        type_name: bool,
-                        humanize: bool,
-                        is_last: bool,
+                        _memdbg_writer: &mut impl core::fmt::Write,
+                        _memdbg_depth: usize,
+                        _memdbg_max_depth: usize,
+                        _memdbg_is_last: bool,
+                        _memdbg_flags: mem_dbg::Flags,
                     ) -> core::fmt::Result {
                         #(#code)*
                         Ok(())
@@ -307,7 +306,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 let field_name = format!("{}", ident);
                                 let is_last = idx == fields.named.len().saturating_sub(1);
                                 variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(writer, depth, max_depth, Some(#field_name), type_name, humanize, #is_last)?;
+                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -328,7 +327,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_name = format!("{}", idx);
                             let is_last = idx == fields.unnamed.len().saturating_sub(1);
                             variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(writer, depth, max_depth, Some(#field_name), type_name, humanize, #is_last)?;
+                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -341,16 +340,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }
                 variants.push(res);
                 let variant_name = format!("Variant: {}\n", variant.ident);
-                let print_variant = quote! {
-                    writer.write_str(&" ".repeat(9))?;
-                    let indent = "│".repeat(depth.saturating_sub(1));
-                    writer.write_str(&indent)?;
-                    writer.write_char(if is_last { '╰' } else { '├' })?;
-                    writer.write_char('╴')?;
-                    writer.write_str(#variant_name)?;
-                };
                 variants_code.push(quote!{{
-                    #print_variant
+                    _memdbg_writer.write_str(#variant_name)?;
                     #variant_code
                 }});
             });
@@ -361,13 +352,16 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
-                        writer: &mut impl core::fmt::Write,
-                        depth: usize,
-                        max_depth: usize,
-                        type_name: bool,
-                        humanize: bool,
-                        is_last: bool,
+                        _memdbg_writer: &mut impl core::fmt::Write,
+                        _memdbg_depth: usize,
+                        _memdbg_max_depth: usize,
+                        _memdbg_is_last: bool,
+                        _memdbg_flags: mem_dbg::Flags,
                     ) -> core::fmt::Result {
+                        _memdbg_writer.write_str(&" ".repeat(9))?;
+                        _memdbg_writer.write_str(&"│".repeat(_memdbg_depth.saturating_sub(1)))?;
+                        _memdbg_writer.write_char(if _memdbg_is_last { '╰' } else { '├' })?;
+                        _memdbg_writer.write_char('╴')?;
                         match self {
                             #(
                                #name::#variants => #variants_code,
