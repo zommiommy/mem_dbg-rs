@@ -161,7 +161,7 @@ impl Default for DbgFlags {
 /// You can derive this trait with `#[derive(MemDbg)]` if all the fields of your structure
 /// implement [`MemDbg`]. Note that you will also need to derive [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
-    /// Print debug infos about the structure memory usage, expanding
+    /// Write to stdout debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     #[inline(always)]
@@ -175,8 +175,8 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Print debug infos about the structure memory usage, expanding
-    /// all levels of nested structures.
+    /// Write to a [`core::fmt::Write`] debug infos about the structure memory usage,
+    /// expanding all levels of nested structures.
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         self.mem_dbg_depth_on(
@@ -225,8 +225,8 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Write the data on `writer` debug infos about the structure memory usage, but expanding only
-    /// up to `max_depth` levels of nested structures.
+    /// Write to a [`core::fmt::Write`] debug infos about the structure memory usage,
+    /// but expanding only up to `max_depth` levels of nested structures.
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     fn mem_dbg_depth_on(
@@ -323,19 +323,19 @@ pub trait MemDbg: MemDbgImpl {
 }
 
 /// Implement [`MemDbg`] for all types that implement [`MemDbgImpl`].
+///
 /// This is done so that no one can change the implementation of [`MemDbg`],
-/// this ensures consistency in printing.
+/// which ensures consistency in printing.
 impl<T: MemDbgImpl> MemDbg for T {}
 
 /// Inner trait used to implement [`MemDbg`].
 ///
-/// This trait should not be implemented by users, but they should use the
-/// [`MemDbg`] derive macro instead.
+/// This trait should not be implemented by users, which should use the
+/// `MemDbg` derive macro instead.
 ///
 /// The default no-op implementation is used by primitive types.
 pub trait MemDbgImpl: MemSize {
     #[inline(always)]
-    /// Composite structs should implement this to print their children.
     fn _mem_dbg_rec_on(
         &self,
         _writer: &mut impl core::fmt::Write,

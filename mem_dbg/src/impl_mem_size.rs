@@ -34,12 +34,6 @@ impl_memory_size! {
    AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize
 }
 
-/// Note that references are not considered to be copy types
-/// because in case [`SizeFlags::FOLLOW_REFS`] is set we need
-/// to follow the reference. This implies that the optimization
-/// for copy types cannot be applied to references.
-///
-/// TODO
 impl<T: ?Sized + MemSize> CopyType for &'_ T {
     type Copy = False;
 }
@@ -77,116 +71,6 @@ impl<T: MemSize> MemSize for Option<T> {
             + self
                 .as_ref()
                 .map_or(0, |x| x.mem_size(flags) - core::mem::size_of::<T>())
-    }
-}
-
-impl<T: CopyType + MemSize, const N: usize> CopyType for [T; N] {
-    type Copy = T::Copy;
-}
-
-impl<T: CopyType, const N: usize> MemSize for [T; N]
-where
-    [T; N]: MemSizeHelper<<T as CopyType>::Copy>,
-{
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(self, flags)
-    }
-}
-
-impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
-    #[inline(always)]
-    fn _mem_size(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
-    }
-}
-
-impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
-    #[inline(always)]
-    fn _mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>()
-            + self
-                .iter()
-                .map(|x| x.mem_size(flags) - core::mem::size_of::<T>())
-                .sum::<usize>()
-    }
-}
-
-impl<T> CopyType for Vec<T> {
-    type Copy = False;
-}
-
-pub trait MemSizeHelper<T: Boolean> {
-    fn _mem_size(&self, flags: SizeFlags) -> usize;
-}
-
-impl<T: CopyType> MemSize for Vec<T>
-where
-    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>,
-{
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(self, flags)
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
-    #[inline(always)]
-    fn _mem_size(&self, flags: SizeFlags) -> usize {
-        if flags.contains(SizeFlags::CAPACITY) {
-            core::mem::size_of::<Self>() + self.capacity() * core::mem::size_of::<T>()
-        } else {
-            core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
-        }
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
-    #[inline(always)]
-    fn _mem_size(&self, flags: SizeFlags) -> usize {
-        if flags.contains(SizeFlags::CAPACITY) {
-            core::mem::size_of::<Self>()
-                + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
-                + (self.capacity() - self.len()) * core::mem::size_of::<T>()
-        } else {
-            core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
-        }
-    }
-}
-
-impl<T: CopyType> MemSize for [T]
-where
-    [T]: MemSizeHelper<<T as CopyType>::Copy>,
-{
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::_mem_size(self, flags)
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
-    #[inline(always)]
-    fn _mem_size(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
-    #[inline(always)]
-    fn _mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
     }
 }
 
@@ -236,6 +120,170 @@ impl MemSize for String {
         }
     }
 }
+
+/// A helper trait that makes it possible to implement differently
+/// the size computation for arrays, vectors, and slices of
+/// [`Copy`] types.
+///
+/// See [`crate::CopyType`] for more information.
+pub trait MemSizeHelper<T: Boolean> {
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize;
+}
+
+// Arrays
+
+impl<T: CopyType + MemSize, const N: usize> CopyType for [T; N] {
+    type Copy = T::Copy;
+}
+
+impl<T: CopyType, const N: usize> MemSize for [T; N]
+where
+    [T; N]: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
+    #[inline(always)]
+    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
+    }
+}
+
+impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+            + self
+                .iter()
+                .map(|x| x.mem_size(flags) - core::mem::size_of::<T>())
+                .sum::<usize>()
+    }
+}
+
+// Vectors
+
+impl<T> CopyType for Vec<T> {
+    type Copy = False;
+}
+
+impl<T: CopyType> MemSize for Vec<T>
+where
+    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        if flags.contains(SizeFlags::CAPACITY) {
+            core::mem::size_of::<Self>() + self.capacity() * core::mem::size_of::<T>()
+        } else {
+            core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
+        }
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        if flags.contains(SizeFlags::CAPACITY) {
+            core::mem::size_of::<Self>()
+                + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
+                + (self.capacity() - self.len()) * core::mem::size_of::<T>()
+        } else {
+            core::mem::size_of::<Self>() + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
+        }
+    }
+}
+
+// Slices
+
+impl<T: CopyType> MemSize for [T]
+where
+    [T]: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
+    #[inline(always)]
+    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<usize>() + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
+    }
+}
+
+macro_rules! impl_mem_size_tuples {
+    ($(($idx:tt => $ty:ident),)*) => {
+        impl<$($ty,)*> CopyType for ($($ty,)*)  {
+            type Copy = False;
+		}
+
+		impl<$($ty: MemSize,)*> MemSize for ($($ty,)*)
+        {
+            #[inline(always)]
+            fn mem_size(&self, flags: SizeFlags) -> usize {
+                0
+                $(
+                    + self.$idx.mem_size(flags)
+                )*
+            }
+        }
+    }
+}
+
+macro_rules! impl_tuples_muncher {
+    (($idx:tt => $ty:ident), $(($i:tt => $t:ident),)*) => {
+        impl_mem_size_tuples!(($idx => $ty), $(($i => $t),)*);
+        impl_tuples_muncher!($(($i => $t),)*);
+    };
+    (($idx:tt => $ty:ident)) => {
+        impl_mem_size_tuples!(($idx => $ty));
+    };
+    () => {};
+}
+
+impl_tuples_muncher!(
+    (9 => T0),
+    (8 => T1),
+    (7 => T2),
+    (6 => T3),
+    (5 => T4),
+    (4 => T5),
+    (3 => T6),
+    (2 => T7),
+    (1 => T8),
+    (0 => T9),
+);
 
 #[cfg(feature = "mmap_rs")]
 impl MemSize for mmap_rs::Mmap {

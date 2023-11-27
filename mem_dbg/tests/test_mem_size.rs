@@ -290,3 +290,9 @@ fn test_exotic() {
     assert_eq!(enum_size, v.mem_size(SizeFlags::default()));
     assert_eq!(enum_size, v.mem_size(SizeFlags::CAPACITY));
 }
+
+#[test]
+fn test_tuple() {
+    assert_eq!((8, 4).mem_size(SizeFlags::default()), 8);
+    assert_eq!((8, 4).mem_size(SizeFlags::CAPACITY), 8);
+}
