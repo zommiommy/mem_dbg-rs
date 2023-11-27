@@ -46,7 +46,6 @@ fn main() {
         test: -0xbadf00d,
     };
 
-    // get the type name of the value
     // print the size in bytes of the value
     println!("mem_size: {}", person.mem_size(SizeFlags::default()));
     println!("mem_size: {}", person.mem_size(SizeFlags::CAPACITY));

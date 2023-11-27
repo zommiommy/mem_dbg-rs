@@ -117,7 +117,8 @@ fn test_array_copy_or_not() {
 
 #[test]
 fn test_empty_struct() {
-    #[derive(MemSize)]
+    #[derive(MemSize, Clone, Copy)]
+    #[copy_type]
     struct Data {}
     let v = Data {};
     assert_eq!(0, v.mem_size(SizeFlags::default()));
@@ -206,18 +207,6 @@ fn test_option() {
 
 #[test]
 fn test_enum() {
-    #[derive(MemSize)]
-    #[copy_type]
-    struct Dummy<'a> {
-        p: &'a usize,
-    }
-
-    let v = Dummy { p: &1 };
-    assert_eq!(
-        core::mem::size_of::<usize>(),
-        v.mem_size(SizeFlags::default())
-    );
-
     #[derive(MemSize)]
     #[repr(u8)]
     enum Data {

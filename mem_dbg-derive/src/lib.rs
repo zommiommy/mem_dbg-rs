@@ -97,7 +97,6 @@ impl CommonDeriveInput {
             generics_names,
             where_clause,
             generics_names_raw,
-            //consts_names_raw,
             generics_name_vec,
         }
     }
@@ -110,11 +109,12 @@ Generate a `mem_dbg::MemSize` implementation for custom types.
 Presently we do not support unions.
 
 The attribute `copy_type` can be used on [`Copy`] types that do not contain references
-to make [`MemSize::mem_size`] faster on arrays, vectors and slices.
+to make `MemSize::mem_size` faster on arrays, vectors and slices. Note that specifying
+`copy_type` will add the bound that the type is `'static` and [`Copy`].
 
 See `mem_dbg::CopyType` for more details.
 
- */
+*/
 #[proc_macro_derive(MemSize, attributes(copy_type))]
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -137,6 +137,13 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         where_clause,
         ..
     } = CommonDeriveInput::new(input.clone(), vec![]);
+
+    let copy_static = if is_copy_type {
+        quote! { Self: Copy + 'static }
+    } else {
+        quote! {}
+    };
+    dbg!(&name, &copy_static);
 
     let out = match input.data {
         Data::Enum(e) => {
@@ -194,7 +201,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             let mut res = quote! {
                 #[automatically_derived]
-                impl<#generics_memsize> mem_dbg::MemSize for #name<#generics_names> #where_clause_memsize{
+                impl<#generics_memsize> mem_dbg::MemSize for #name<#generics_names> #where_clause_memsize #copy_static{
                     fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         match self {
                             #(
@@ -208,7 +215,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 res.extend(quote! {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
-                        Self: Copy + 'static 
+                        Self: Copy + 'static
                     {
                         type Copy = True;
                     }
@@ -239,7 +246,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             });
             let mut res = quote! {
                 #[automatically_derived]
-                impl<#generics_memsize> mem_dbg::MemSize for #name<#generics_names> #where_clause_memsize{
+                impl<#generics_memsize> mem_dbg::MemSize for #name<#generics_names> #where_clause_memsize #copy_static {
                     fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         let mut bytes = core::mem::size_of::<Self>();
                         #(bytes += self.#fields_ident.mem_size(_memsize_flags) - core::mem::size_of::<#fields_ty>();)*
@@ -247,11 +254,12 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                 }
             };
+            eprintln!("{}", res);
             if is_copy_type {
                 res.extend(quote! {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
-                        Self: Copy + 'static 
+                        Self: Copy + 'static
                     {
                         type Copy = True;
                     }
@@ -275,11 +283,11 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
 /**
 
-Generate a [`MemDbg`] implementation for custom types.
+Generate a `mem_dbg::MemDbg` implementation for custom types.
 
 Presently we do not support unions.
 
- */
+*/
 #[proc_macro_derive(MemDbg)]
 pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

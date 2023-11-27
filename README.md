@@ -45,9 +45,8 @@ let person = PersonVec {
     test: -0xbadf00d,
 };
 
-// get the type name of the value
 // print the size in bytes of the value
-println!("mem_size: {}\n", person.mem_size(SizeFlags::default()));
+println!("size: {}\n", person.mem_size(SizeFlags::default()));
 
 // print the tree of fields and their memory size
 person.mem_dbg(DbgFlags::default()).unwrap();
@@ -55,6 +54,8 @@ person.mem_dbg(DbgFlags::default()).unwrap();
 
 The previous program prints:
 ```text
+size: 4772
+
 4_772 B ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B ├╴a : example::TestEnum
         │├╴Variant: Unamed
@@ -65,8 +66,10 @@ The previous program prints:
 4_024 B │╰╴b : alloc::vec::Vec<i32>
     8 B ╰╴test : isize
 ```
-If we use the flag `DbgFlags::HUMANIZE` it prints:
+If we use the flag [`DbgFlags::HUMANIZE`] it prints:
 ```text
+size: 4772
+
 4.772 KB ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
    16 B  ├╴a example::TestEnum
          │├╴Variant: Unamed
@@ -77,8 +80,10 @@ If we use the flag `DbgFlags::HUMANIZE` it prints:
 4.024 KB │╰╴b alloc::vec::Vec<i32>
     8 B  ╰╴test isize
 ```
-If we use the flag `DbgFlags::PERCENTAGE` it prints:
+If we use the flag [`DbgFlags::PERCENTAGE`] it prints:
 ```text
+size: 4772
+
 100.00% ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
   0.34% ├╴a : example::TestEnum
         │├╴Variant: Unamed
