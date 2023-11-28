@@ -10,7 +10,7 @@
 
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, WherePredicate};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput};
 
 /**
 
@@ -29,20 +29,25 @@ See `mem_dbg::CopyType` for more details.
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);
 
-    let is_copy_type = input
-        .attrs
-        .iter()
-        .any(|x| x.meta.path().is_ident("copy_type"));
-
     let name = input.ident;
     input.generics.make_where_clause();
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let mut where_clause = where_clause.unwrap().clone(); // We just created it
 
+    let is_copy_type = input
+        .attrs
+        .iter()
+        .any(|x| x.meta.path().is_ident("copy_type"));
+
+    let copy_type: syn::Expr;
+
     if is_copy_type {
         where_clause
             .predicates
             .push(parse_quote!(Self: Copy + 'static));
+        copy_type = parse_quote!(mem_dbg::True);
+    } else {
+        copy_type = parse_quote!(mem_dbg::False);
     };
 
     let out = match input.data {
@@ -119,23 +124,13 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
             };
 
-            if is_copy_type {
-                res.extend(quote! {
-                    #[automatically_derived]
-                    impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
-                    {
-                        type Copy = mem_dbg::True;
-                    }
-                });
-            } else {
-                res.extend(quote! {
-                    #[automatically_derived]
-                    impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
-                    {
-                        type Copy = mem_dbg::False;
-                    }
-                });
-            }
+            res.extend(quote! {
+                #[automatically_derived]
+                impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
+                {
+                    type Copy = #copy_type;
+                }
+            });
             res
         }
         Data::Struct(s) => {
@@ -165,27 +160,17 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                 }
             };
-            if is_copy_type {
-                res.extend(quote! {
-                    #[automatically_derived]
-                    impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
-                    {
-                        type Copy = mem_dbg::True;
-                    }
-                });
-            } else {
-                res.extend(quote! {
-                    #[automatically_derived]
-                    impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
-                    {
-                        type Copy = mem_dbg::False;
-                    }
-                });
-            }
+            res.extend(quote! {
+                #[automatically_derived]
+                impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
+                {
+                    type Copy = #copy_type;
+                }
+            });
             res
         }
 
-        _ => todo!(),
+        Data::Union(_) => unimplemented!("Unions are not supported"),
     };
     out.into()
 }
@@ -367,7 +352,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }
             }
         }
-        _ => todo!(),
+        Data::Union(_) => unimplemented!("Unions are not supported"),
     };
     out.into()
 }
