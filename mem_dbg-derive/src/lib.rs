@@ -50,7 +50,42 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         copy_type = parse_quote!(mem_dbg::False);
     };
 
-    let out = match input.data {
+    match input.data {
+        Data::Struct(s) => {
+            let mut fields_ident = vec![];
+            let mut fields_ty = vec![];
+            s.fields.iter().enumerate().for_each(|(field_idx, field)| {
+                fields_ident.push(
+                    field
+                        .ident
+                        .to_owned()
+                        .map(|t| t.to_token_stream())
+                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream()),
+                );
+                fields_ty.push(field.ty.to_token_stream());
+                let ty = &field.ty;
+                where_clause
+                    .predicates
+                    .push(parse_quote!(#ty: mem_dbg::MemSize));
+            });
+            quote! {
+                #[automatically_derived]
+                impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
+                {
+                    type Copy = #copy_type;
+                }
+
+                #[automatically_derived]
+                impl #impl_generics mem_dbg::MemSize for #name #ty_generics #where_clause {
+                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                        let mut bytes = core::mem::size_of::<Self>();
+                        #(bytes += self.#fields_ident.mem_size(_memsize_flags) - core::mem::size_of::<#fields_ty>();)*
+                        bytes
+                    }
+                }
+            }
+        }
+
         Data::Enum(e) => {
             let mut variants = Vec::new();
             let mut variant_sizes = Vec::new();
@@ -111,7 +146,13 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 variant_sizes.push(var_args_size);
             });
 
-            let mut res = quote! {
+            quote! {
+                #[automatically_derived]
+                impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
+                {
+                    type Copy = #copy_type;
+                }
+
                 #[automatically_derived]
                 impl #impl_generics mem_dbg::MemSize for #name #ty_generics #where_clause {
                     fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
@@ -122,57 +163,11 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         }
                     }
                 }
-            };
-
-            res.extend(quote! {
-                #[automatically_derived]
-                impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
-                {
-                    type Copy = #copy_type;
-                }
-            });
-            res
-        }
-        Data::Struct(s) => {
-            let mut fields_ident = vec![];
-            let mut fields_ty = vec![];
-            s.fields.iter().enumerate().for_each(|(field_idx, field)| {
-                fields_ident.push(
-                    field
-                        .ident
-                        .to_owned()
-                        .map(|t| t.to_token_stream())
-                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream()),
-                );
-                fields_ty.push(field.ty.to_token_stream());
-                let ty = &field.ty;
-                where_clause
-                    .predicates
-                    .push(parse_quote!(#ty: mem_dbg::MemSize));
-            });
-            let mut res = quote! {
-                #[automatically_derived]
-                impl #impl_generics mem_dbg::MemSize for #name #ty_generics #where_clause {
-                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
-                        let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += self.#fields_ident.mem_size(_memsize_flags) - core::mem::size_of::<#fields_ty>();)*
-                        bytes
-                    }
-                }
-            };
-            res.extend(quote! {
-                #[automatically_derived]
-                impl #impl_generics mem_dbg::CopyType for #name #ty_generics #where_clause
-                {
-                    type Copy = #copy_type;
-                }
-            });
-            res
+            }
         }
 
         Data::Union(_) => unimplemented!("Unions are not supported"),
-    };
-    out.into()
+    }.into()
 }
 
 /**
@@ -191,7 +186,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let mut where_clause = where_clause.unwrap().clone(); // We just created it
 
-    let out = match input.data {
+    match input.data {
         Data::Struct(s) => {
             let code = s
                 .fields
@@ -240,6 +235,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }
             }
         }
+
         Data::Enum(e) => {
             let mut variants = Vec::new();
             let mut variants_code = Vec::new();
@@ -352,7 +348,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }
             }
         }
+
         Data::Union(_) => unimplemented!("Unions are not supported"),
-    };
-    out.into()
+    }.into()
 }
