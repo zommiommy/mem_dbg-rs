@@ -11,6 +11,8 @@ use core::sync::atomic::*;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
+// Primitive type, atomic types, ()
+
 macro_rules! impl_memory_size {
     ($($ty:ty),*) => {$(
         impl CopyType for $ty {
@@ -34,66 +36,7 @@ impl_memory_size! {
    AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize
 }
 
-impl<T: ?Sized + MemSize> CopyType for &'_ T {
-    type Copy = False;
-}
-
-impl<T: ?Sized + MemSize> MemSize for &'_ T {
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() + (**self).mem_size(flags)
-        } else {
-            core::mem::size_of::<Self>()
-        }
-    }
-}
-
-impl<T: ?Sized + MemSize> CopyType for &'_ mut T {
-    type Copy = False;
-}
-
-impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <&'_ T as MemSize>::mem_size(&&**self, flags)
-    }
-}
-
-impl<T: CopyType + MemSize> CopyType for Option<T> {
-    type Copy = T::Copy;
-}
-
-impl<T: MemSize> MemSize for Option<T> {
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>()
-            + self
-                .as_ref()
-                .map_or(0, |x| x.mem_size(flags) - core::mem::size_of::<T>())
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::boxed::Box;
-#[cfg(feature = "alloc")]
-impl<T: ?Sized + MemSize> MemSize for Box<T> {
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + self.as_ref().mem_size(flags)
-    }
-}
-
-impl<T> CopyType for PhantomData<T> {
-    type Copy = True;
-}
-
-impl<T: ?Sized> MemSize for PhantomData<T> {
-    #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
-        0
-    }
-}
+// Strings
 
 impl CopyType for str {
     type Copy = False;
@@ -121,6 +64,75 @@ impl MemSize for String {
     }
 }
 
+// PhantomData
+
+impl<T> CopyType for PhantomData<T> {
+    type Copy = True;
+}
+
+impl<T: ?Sized> MemSize for PhantomData<T> {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        0
+    }
+}
+
+// References: we recurse only if FOLLOW_REFS is set
+
+impl<T: ?Sized + MemSize> CopyType for &'_ T {
+    type Copy = False;
+}
+
+impl<T: ?Sized + MemSize> MemSize for &'_ T {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        if flags.contains(SizeFlags::FOLLOW_REFS) {
+            core::mem::size_of::<Self>() + (**self).mem_size(flags)
+        } else {
+            core::mem::size_of::<Self>()
+        }
+    }
+}
+
+impl<T: ?Sized + MemSize> CopyType for &'_ mut T {
+    type Copy = False;
+}
+
+impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <&'_ T as MemSize>::mem_size(&&**self, flags)
+    }
+}
+
+// Option
+
+impl<T: CopyType + MemSize> CopyType for Option<T> {
+    type Copy = T::Copy;
+}
+
+impl<T: MemSize> MemSize for Option<T> {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+            + self
+                .as_ref()
+                .map_or(0, |x| x.mem_size(flags) - core::mem::size_of::<T>())
+    }
+}
+
+// Box
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
+impl<T: ?Sized + MemSize> MemSize for Box<T> {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() + self.as_ref().mem_size(flags)
+    }
+}
+
 /// A helper trait that makes it possible to implement differently
 /// the size computation for arrays, vectors, and slices of
 /// [`Copy`] types.
@@ -128,6 +140,38 @@ impl MemSize for String {
 /// See [`crate::CopyType`] for more information.
 pub trait MemSizeHelper<T: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags) -> usize;
+}
+
+// Slices
+
+impl<T: CopyType> MemSize for [T]
+where
+    [T]: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
+    #[inline(always)]
+    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
+    }
+}
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<usize>() + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
+    }
 }
 
 // Arrays
@@ -210,37 +254,7 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
     }
 }
 
-// Slices
-
-impl<T: CopyType> MemSize for [T]
-where
-    [T]: MemSizeHelper<<T as CopyType>::Copy>,
-{
-    #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
-    #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + self.iter().map(|x| x.mem_size(flags)).sum::<usize>()
-    }
-}
+// Tuples
 
 macro_rules! impl_mem_size_tuples {
     ($(($idx:tt => $ty:ident),)*) => {

@@ -10,6 +10,8 @@ use core::{marker::PhantomData, sync::atomic::*};
 
 use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
 
+// Primitive type, atomic types, ()
+
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
  impl MemDbgImpl for $ty {}
@@ -24,6 +26,18 @@ impl_mem_dbg! {
     AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize,
     AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize
 }
+
+// Strings
+
+impl MemDbgImpl for str {}
+
+impl MemDbgImpl for String {}
+
+// PhantomData
+
+impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
+
+// References: we recurse only if FOLLOW_REFS is set
 
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
     fn _mem_dbg_rec_on(
@@ -61,20 +75,11 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
     }
 }
 
-impl<T: CopyType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as CopyType>::Copy> {}
+// Option
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
-impl<T: CopyType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
-    [T; N]: MemSizeHelper<<T as CopyType>::Copy>
-{
-}
-
-#[cfg(feature = "alloc")]
-impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where
-    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>
-{
-}
+// Box
 
 #[cfg(feature = "alloc")]
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
@@ -92,17 +97,26 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
     }
 }
 
-impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
+// Slices
 
-impl MemDbgImpl for str {}
+impl<T: CopyType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as CopyType>::Copy> {}
 
-impl MemDbgImpl for String {}
+// Arrays
 
-#[cfg(feature = "mmap_rs")]
-impl MemDbgImpl for mmap_rs::Mmap {}
+impl<T: CopyType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
+    [T; N]: MemSizeHelper<<T as CopyType>::Copy>
+{
+}
 
-#[cfg(feature = "mmap_rs")]
-impl MemDbgImpl for mmap_rs::MmapMut {}
+// Vectors
+
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where
+    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>
+{
+}
+
+// Tuples
 
 macro_rules! impl_tuples_muncher {
     () => {};
@@ -153,3 +167,9 @@ impl_tuples_muncher!(
     (1 => T1),
     (0 => T0),
 );
+
+#[cfg(feature = "mmap_rs")]
+impl MemDbgImpl for mmap_rs::Mmap {}
+
+#[cfg(feature = "mmap_rs")]
+impl MemDbgImpl for mmap_rs::MmapMut {}
