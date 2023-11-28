@@ -97,13 +97,17 @@ size: 4772
 
 ## Caveats
 
-* We support most basic types, and tuples of parameterless types up to size ten.
+* We support out-of-the-box most basic types, and tuples up to size ten. The derive macros 
+  `MemSize`/`MemDbg` will generate
+  implementations for structs and enums whose fields implement the associated interface: if this is not
+  the case (e.g., because of the orphan rule) one can implement the traits manually.
 
 * Computation of the size of arrays, slices and vectors will be performed by iterating over their elements
   unless the type is a copy type that does not contain references and it is declared as such using
   the attribute `#[copy_type]`. See [`CopyType`] for more details.
 
-* The data of vectors and slices are not expanded recursively as it might print too much.
+* The data of vectors and slices are not expanded recursively as the output might be too 
+  complex; this might be changed in the future (e.g., via a flag) should interesting use cases arise.
 
 * `HashMaps`, `HashSet`, `BTreeMap`, and `BTreeSet`,  are not currently supported as we still 
   have to figure out a way to precisely measure their memory size and capacity.

@@ -61,11 +61,12 @@ you will not be able to compute the size arrays, vectors, and slices but error
 messages will be very unhelpful due to the contrived way we have to implement
 mutually exclusive types [working around the bug that prevents the compiler
 from understanding that implementations for the two flavors of `CopyType` are mutually
-exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983)
+exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
 
 If you use the provided derive macros all this logic will be hidden from you. You'll
-just have to add `#[copy_type]` to your structures if they are [`Copy`] types and
-they do not contain references.
+just have to add the attribute `#[copy_type]` to your structures if they
+are [`Copy`] types and they do not contain references. This is enforced by the
+attribute by adding a bound `Copy + 'static` to the type.
 
 Note that this approach forces us to compute the size of [`Copy`] types that contain
 references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
@@ -109,6 +110,10 @@ impl Default for SizeFlags {
 
 /// A trait to compute recursively the overall size or capacity of a structure, as opposed to the
 /// stack size returned by [`core::mem::size_of()`].
+///
+/// You can derive this trait with `#[derive(MemSize)]` if all the fields of your type
+/// implement [`MemSize`].
+
 pub trait MemSize {
     /// Return the (recursively computed) overall
     /// memory size of the structure in bytes.
@@ -129,7 +134,7 @@ bitflags::bitflags! {
         const TYPE_NAME = 1 << 3;
         /// Display capacity instead of size. See [`SizeFlags::CAPACITY`].
         const CAPACITY = 1 << 4;
-        /// Add an _ every 3 digits.
+        /// Add an underscore every 3 digits.
         const SEPARATOR = 1 << 5;
     }
 }
@@ -158,7 +163,7 @@ impl Default for DbgFlags {
 /// A trait providing methods to display recursively the content
 /// and size of a structure.
 ///
-/// You can derive this trait with `#[derive(MemDbg)]` if all the fields of your structure
+/// You can derive this trait with `#[derive(MemDbg)]` if all the fields of your type
 /// implement [`MemDbg`]. Note that you will also need to derive [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
     /// Write to stdout debug infos about the structure memory usage, expanding

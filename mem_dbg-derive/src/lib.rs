@@ -110,7 +110,7 @@ Presently we do not support unions.
 
 The attribute `copy_type` can be used on [`Copy`] types that do not contain references
 to make `MemSize::mem_size` faster on arrays, vectors and slices. Note that specifying
-`copy_type` will add the bound that the type is `'static` and [`Copy`].
+`copy_type` will add the bound that the type is `Copy + 'static`.
 
 See `mem_dbg::CopyType` for more details.
 
