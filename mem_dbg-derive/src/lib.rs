@@ -288,7 +288,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                             args.extend([ident]);
                             args.extend([quote! {,}]);
-                            
+
                             let ty = &field.ty;
                             where_clause
                                 .predicates
