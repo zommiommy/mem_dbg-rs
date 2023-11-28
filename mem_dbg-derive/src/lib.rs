@@ -216,7 +216,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                         Self: Copy + 'static
                     {
-                        type Copy = True;
+                        type Copy = mem_dbg::True;
                     }
                 });
             } else {
@@ -224,7 +224,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                     {
-                        type Copy = False;
+                        type Copy = mem_dbg::False;
                     }
                 });
             }
@@ -259,7 +259,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                         Self: Copy + 'static
                     {
-                        type Copy = True;
+                        type Copy = mem_dbg::True;
                     }
                 });
             } else {
@@ -267,7 +267,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     #[automatically_derived]
                     impl<#generics> mem_dbg::CopyType for #name<#generics_names> #where_clause
                     {
-                        type Copy = False;
+                        type Copy = mem_dbg::False;
                     }
                 });
             }
