@@ -106,8 +106,8 @@ size: 4772
   unless the type is a copy type that does not contain references and it is declared as such using
   the attribute `#[copy_type]`. See [`CopyType`] for more details.
 
-* The data of vectors and slices are not expanded recursively as the output might be too 
-  complex; this might be changed in the future (e.g., via a flag) should interesting use cases arise.
+* The content of vectors and slices is not expanded recursively as the output might be too 
+  complex; this might change in the future (e.g., via a flag) should interesting use cases arise.
 
-* `HashMaps`, `HashSet`, `BTreeMap`, and `BTreeSet`,  are not currently supported as we still 
+* `HashMaps`, `HashSet`, `BTreeMap`, and `BTreeSet`, are not currently supported as we still 
   have to figure out a way to precisely measure their memory size and capacity.

@@ -29,7 +29,7 @@ pub mod utils;
 
 /**
 
-Internal trait used by [`CopyType`] to implement [`MemSize`] depending
+Internal trait used within [`CopyType`] to implement [`MemSize`] depending
 on whether a type is [`Copy`] or not.
 
 It has only two implementations, [`True`] and [`False`].
@@ -59,7 +59,7 @@ implements [`Copy`] from a procedural macro.
 Since we cannot use negative trait bounds, every type that is used as a parameter of
 an array, vector, or slice must implement either `CopyType<Copy=True>` or
 `CopyType<Copy=False>`.  If you do not implement either of these traits,
-you will not be able to compute the size arrays, vectors, and slices but error
+you will not be able to compute the size of arrays, vectors, and slices but error
 messages will be very unhelpful due to the contrived way we have to implement
 mutually exclusive types [working around the bug that prevents the compiler
 from understanding that implementations for the two flavors of `CopyType` are mutually
@@ -67,8 +67,8 @@ exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
 
 If you use the provided derive macros all this logic will be hidden from you. You'll
 just have to add the attribute `#[copy_type]` to your structures if they
-are [`Copy`] types and they do not contain references. This is enforced by the
-attribute by adding a bound `Copy + 'static` to the type.
+are [`Copy`] types and they do not contain references. We enforced this property by
+adding a bound `Copy + 'static` to the type.
 
 Note that this approach forces us to compute the size of [`Copy`] types that contain
 references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
