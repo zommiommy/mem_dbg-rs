@@ -310,3 +310,14 @@ fn test_atomic() {
 fn test_unit() {
     assert_eq!(().mem_size(SizeFlags::default()), 0);
 }
+
+#[test]
+fn test_phantom() {
+    struct Dummy();
+    #[derive(MemSize, MemDbg)]
+    struct Example<A>(PhantomData<A>);
+
+    Example::<Dummy>(PhantomData)
+        .mem_dbg(DbgFlags::default())
+        .unwrap();
+}
