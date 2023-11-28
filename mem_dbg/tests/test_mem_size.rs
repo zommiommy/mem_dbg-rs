@@ -17,7 +17,7 @@ enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
-    Unamed(usize, u8),
+    Unnamed(usize, u8),
     Named {
         first: usize,
         second: PhantomData<u8>,

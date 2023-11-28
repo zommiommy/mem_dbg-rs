@@ -13,7 +13,7 @@ enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
-    Unamed(usize, u8),
+    Unnamed(usize, u8),
     Named { first: usize, second: u8 },
 }
 
@@ -38,7 +38,7 @@ struct Data<A> {
 
 fn main() {
     let person = PersonVec {
-        a: TestEnum::Unamed(0, 16),
+        a: TestEnum::Unnamed(0, 16),
         b: Data {
             a: vec![0x42_u8; 700],
             b: vec![0xbadf00d; 1000],
