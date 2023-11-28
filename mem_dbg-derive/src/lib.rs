@@ -10,7 +10,9 @@
 
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput};
+use syn::{
+    parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned, Data, DeriveInput,
+};
 
 /**
 
@@ -42,7 +44,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let copy_type: syn::Expr = if is_copy_type {
         where_clause
             .predicates
-            .push(parse_quote!(Self: Copy + 'static));
+            .push(parse_quote_spanned!(name.span()=> Self: Copy + 'static));
         parse_quote!(mem_dbg::True)
     } else {
         parse_quote!(mem_dbg::False)
@@ -64,7 +66,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 let ty = &field.ty;
                 where_clause
                     .predicates
-                    .push(parse_quote!(#ty: mem_dbg::MemSize));
+                    .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemSize));
             });
             quote! {
                 #[automatically_derived]
@@ -97,8 +99,12 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         fields
                             .named
                             .iter()
-                            .map(|named| {
-                                (named.ident.as_ref().unwrap(), named.ty.to_token_stream())
+                            .map(|field| {
+                                let ty = &field.ty;
+                                where_clause
+                                    .predicates
+                                    .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemSize));
+                                (field.ident.as_ref().unwrap(), field.ty.to_token_stream())
                             })
                             .for_each(|(ident, ty)| {
                                 var_args_size.extend([quote! {
@@ -106,10 +112,6 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
-
-                                where_clause
-                                    .predicates
-                                    .push(parse_quote!(#ty: mem_dbg::MemSize));
                             });
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
@@ -118,21 +120,22 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                     syn::Fields::Unnamed(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
-                        fields.unnamed.iter().enumerate().for_each(|(idx, value)| {
+                        fields.unnamed.iter().enumerate().for_each(|(field_idx, field)| {
                             let ident = syn::Ident::new(
-                                &format!("v{}", idx),
+                                &format!("v{}", field_idx),
                                 proc_macro2::Span::call_site(),
                             )
                             .to_token_stream();
-                            let ty = value.ty.to_token_stream();
+                            let ty = field.ty.to_token_stream();
                             var_args_size.extend([quote! {
                                 + #ident.mem_size(_memsize_flags) - core::mem::size_of::<#ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
+
                             where_clause
                                 .predicates
-                                .push(parse_quote!(#ty: mem_dbg::MemSize));
+                                .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemSize));
                         });
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
@@ -206,7 +209,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     let ty = &field.ty;
                     where_clause
                         .predicates
-                        .push(parse_quote!(#ty: mem_dbg::MemDbgImpl));
+                        .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
 
                     let is_last = field_idx == s.fields.len().saturating_sub(1);
 
@@ -248,8 +251,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .named
                             .iter()
                             .enumerate()
-                            .for_each(|(idx, named)| {
-                                let ident = named.ident.as_ref().unwrap();
+                            .for_each(|(idx, field)| {
+                                let ident = field.ident.as_ref().unwrap();
                                 let field_name = format!("{}", ident);
                                 let is_last = idx == fields.named.len().saturating_sub(1);
                                 variant_code.extend([quote! {
@@ -258,10 +261,10 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
 
-                                let ty = &named.ty;
+                                let ty = &field.ty;
                                 where_clause
                                     .predicates
-                                    .push(parse_quote!(#ty: mem_dbg::MemDbgImpl));
+                                    .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
 
                             });
                         // extend res with the args sourrounded by curly braces
@@ -271,7 +274,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     }
                     syn::Fields::Unnamed(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
-                        fields.unnamed.iter().enumerate().for_each(|(idx, value)| {
+                        fields.unnamed.iter().enumerate().for_each(|(idx, field)| {
                             let ident = syn::Ident::new(
                                 &format!("v{}", idx),
                                 proc_macro2::Span::call_site(),
@@ -282,13 +285,14 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             variant_code.extend([quote! {
                                 #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                             }]);
+
                             args.extend([ident]);
                             args.extend([quote! {,}]);
-
-                            let ty = &value.ty;
+                            
+                            let ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote!(#ty: mem_dbg::MemDbgImpl));
+                                .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
                         });
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
