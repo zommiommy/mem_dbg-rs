@@ -10,7 +10,7 @@ use core::{marker::PhantomData, sync::atomic::*};
 
 use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
 
-// Primitive type, atomic types, ()
+// Primitive types, atomic types, ()
 
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(

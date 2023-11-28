@@ -11,7 +11,7 @@ use core::sync::atomic::*;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
-// Primitive type, atomic types, ()
+// Primitive types, atomic types, ()
 
 macro_rules! impl_memory_size {
     ($($ty:ty),*) => {$(

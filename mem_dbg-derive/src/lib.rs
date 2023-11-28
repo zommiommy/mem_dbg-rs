@@ -39,15 +39,13 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         .iter()
         .any(|x| x.meta.path().is_ident("copy_type"));
 
-    let copy_type: syn::Expr;
-
-    if is_copy_type {
+    let copy_type: syn::Expr = if is_copy_type {
         where_clause
             .predicates
             .push(parse_quote!(Self: Copy + 'static));
-        copy_type = parse_quote!(mem_dbg::True);
+        parse_quote!(mem_dbg::True)
     } else {
-        copy_type = parse_quote!(mem_dbg::False);
+        parse_quote!(mem_dbg::False)
     };
 
     match input.data {
