@@ -7,7 +7,7 @@
  */
 
 use core::marker::PhantomData;
-use std::sync::atomic::AtomicU64;
+use std::{fmt::Display, sync::atomic::AtomicU64};
 
 use mem_dbg::*;
 
@@ -25,7 +25,10 @@ enum TestEnum {
 }
 
 #[derive(MemSize, MemDbg)]
-struct TestConst<const N: usize = 10> {
+struct TestConst<const N: usize = 10>
+where
+    usize: Display,
+{
     a: [u8; N],
 }
 

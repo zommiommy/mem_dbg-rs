@@ -36,8 +36,10 @@ It has only two implementations, [`True`] and [`False`].
 
 */
 pub trait Boolean {}
+/// One of the two possible implementations of [`Boolean`].
 pub struct True {}
 impl Boolean for True {}
+/// One of the two possible implementations of [`Boolean`].
 pub struct False {}
 impl Boolean for False {}
 
