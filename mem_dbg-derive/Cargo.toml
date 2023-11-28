@@ -2,7 +2,7 @@
 name = "mem_dbg-derive"
 version = "0.1.0"
 edition = "2021"
-description = "Implementation of #[derive(MemSize, MemDbg)] for mem_dbg"
+description = "Procedural macros for mem_dbg"
 repository = "https://github.com/zommiommy/mem_dbg/"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
 readme = "README.md"
@@ -15,4 +15,4 @@ proc-macro = true
 [dependencies]
 quote = "1"
 proc-macro2 = "1.0"
-syn = "2.0.39"
+syn = "2.0"
