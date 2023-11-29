@@ -95,8 +95,7 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        self.as_ref()
-            .mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, None, is_last, flags)
+        self.as_ref()._mem_dbg_rec_on(writer, total_size, depth, max_depth, last_depth, is_last, flags)
     }
 }
 
@@ -146,16 +145,23 @@ macro_rules! impl_tuples_muncher {
                 depth: usize,
                 max_depth: usize,
                 last_depth: usize,
-                _is_last: bool,
+                is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
                 let mut _max_idx = $idx;
                 $(
                     _max_idx = _max_idx.max($nidx);
                 )*
-                self.$idx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, Some(stringify!($idx)), $idx == _max_idx, flags)?;
+                
+                let last_depth_offset = if is_last {
+                    1
+                } else {
+                    0
+                };
+
+                self.$idx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, last_depth_offset, Some(stringify!($idx)), $idx == _max_idx, flags)?;
                 $(
-                    self.$nidx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, Some(stringify!($nidx)), $nidx == _max_idx, flags)?;
+                    self.$nidx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, last_depth_offset, Some(stringify!($nidx)), $nidx == _max_idx, flags)?;
                 )*
                 Ok(())
             }

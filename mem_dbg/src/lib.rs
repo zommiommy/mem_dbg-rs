@@ -174,10 +174,7 @@ pub trait MemDbg: MemDbgImpl {
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         self.mem_dbg_depth(
             self.mem_size(flags.to_size_flags()),
-            0,
             usize::MAX,
-            0,
-            false,
             flags,
         )
     }
@@ -192,8 +189,9 @@ pub trait MemDbg: MemDbgImpl {
             0,
             usize::MAX,
             0,
+            0,
             Some("⏺"),
-            false,
+            true,
             flags,
         )
     }
@@ -205,10 +203,7 @@ pub trait MemDbg: MemDbgImpl {
     fn mem_dbg_depth(
         &self,
         total_size: usize,
-        depth: usize,
         max_depth: usize,
-        last_depth: usize,
-        is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         struct Wrapper(std::io::Stdout);
@@ -226,11 +221,12 @@ pub trait MemDbg: MemDbgImpl {
         self.mem_dbg_depth_on(
             &mut Wrapper(std::io::stdout()),
             total_size,
-            depth,
+            0,
             max_depth,
-            last_depth,
+            0,
+            0,
             Some("⏺"),
-            is_last,
+            true,
             flags,
         )
     }
@@ -246,6 +242,7 @@ pub trait MemDbg: MemDbgImpl {
         depth: usize,
         max_depth: usize,
         last_depth: usize,
+        last_depth_offset: usize,
         field_name: Option<&str>,
         is_last: bool,
         flags: DbgFlags,
@@ -308,7 +305,6 @@ pub trait MemDbg: MemDbgImpl {
                 100.0 * real_size as f64 / total_size as f64
             ))?;
         }
-
         for _ in 0..last_depth {
             writer.write_char(' ')?;
         }
@@ -336,7 +332,7 @@ pub trait MemDbg: MemDbgImpl {
         writer.write_char('\n')?;
 
         self._mem_dbg_rec_on(writer, total_size, depth + 1, max_depth, if is_last {
-            last_depth + 1
+            last_depth + last_depth_offset
         } else {
             last_depth
         }, is_last, flags)

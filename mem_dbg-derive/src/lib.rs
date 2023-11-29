@@ -212,8 +212,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
 
                     let is_last = field_idx == s.fields.len().saturating_sub(1);
-
-                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, Some(#fields_str), #is_last, _memdbg_flags)?;}
+                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, _memdbg_last_depth_offset, Some(#fields_str), #is_last, _memdbg_flags)?;}
                 })
                 .collect::<Vec<_>>();
 
@@ -231,6 +230,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
+                        let _memdbg_last_depth_offset = if _memdbg_is_last {
+                            1
+                        } else {
+                            0
+                        };
                         #(#code)*
                         Ok(())
                     }
@@ -244,10 +248,14 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             e.variants.iter().for_each(|variant| {
                 let mut res = variant.ident.to_owned().to_token_stream();
                 let mut variant_code = quote! {};
+                let mut arrow = '╰';
                 match &variant.fields {
                     syn::Fields::Unit => {},
                     syn::Fields::Named(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
+                        if fields.named.len() > 0 {
+                            arrow = '├';
+                        }
                         fields
                             .named
                             .iter()
@@ -257,7 +265,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 let field_name = format!("{}", ident);
                                 let is_last = idx == fields.named.len().saturating_sub(1);
                                 variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, Some(#field_name), #is_last, _memdbg_flags)?;
+                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, _memdbg_last_depth_offset, Some(#field_name), #is_last, _memdbg_flags)?;
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -275,6 +283,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     }
                     syn::Fields::Unnamed(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
+                        if fields.unnamed.len() > 0 {
+                            arrow = '├';
+                        }
                         fields.unnamed.iter().enumerate().for_each(|(idx, field)| {
                             let ident = syn::Ident::new(
                                 &format!("v{}", idx),
@@ -284,7 +295,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_name = format!("{}", idx);
                             let is_last = idx == fields.unnamed.len().saturating_sub(1);
                             variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, Some(#field_name), #is_last, _memdbg_flags)?;
+                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, _memdbg_last_depth_offset, Some(#field_name), #is_last, _memdbg_flags)?;
                             }]);
 
                             args.extend([ident]);
@@ -304,6 +315,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 variants.push(res);
                 let variant_name = format!("Variant: {}\n", variant.ident);
                 variants_code.push(quote!{{
+                    _memdbg_writer.write_char(#arrow)?;
+                    _memdbg_writer.write_char('╴')?;
                     _memdbg_writer.write_str(#variant_name)?;
                     #variant_code
                 }});
@@ -323,6 +336,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
+                        let _memdbg_last_depth_offset = if _memdbg_is_last {
+                            1
+                        } else {
+                            0
+                        };
                         let mut _memdbg_digits_number = mem_dbg::utils::n_of_digits(_memdbg_total_size);
                         if _memdbg_flags.contains(DbgFlags::SEPARATOR) {
                             _memdbg_digits_number += _memdbg_digits_number / 3;
@@ -344,8 +362,6 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         for _ in _memdbg_last_depth.._memdbg_depth.saturating_sub(1) {
                             _memdbg_writer.write_char('│')?;
                         }
-                        _memdbg_writer.write_char(if _memdbg_is_last { '╰' } else { '├' })?;
-                        _memdbg_writer.write_char('╴')?;
                         match self {
                             #(
                                #name::#variants => #variants_code,
