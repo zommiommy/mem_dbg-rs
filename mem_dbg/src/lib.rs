@@ -74,7 +74,6 @@ Note that this approach forces us to compute the size of [`Copy`] types that con
 references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
 
 */
-
 pub trait CopyType {
     type Copy: Boolean;
 }

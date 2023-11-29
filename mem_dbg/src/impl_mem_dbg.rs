@@ -8,7 +8,7 @@
 
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
+use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl, MemDbg};
 
 // Primitive types, atomic types, ()
 
@@ -93,7 +93,7 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         flags: DbgFlags,
     ) -> core::fmt::Result {
         self.as_ref()
-            ._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)
+            .mem_dbg_depth_on(writer, total_size, depth, max_depth, None, is_last, flags)
     }
 }
 
@@ -145,9 +145,9 @@ macro_rules! impl_tuples_muncher {
                 is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
-                self.$idx._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)?;
+                self.$idx.mem_dbg_depth_on(writer, total_size, depth, max_depth, Some(stringify!($idx)), is_last, flags)?;
                 $(
-                    self.$nidx._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)?;
+                    self.$nidx.mem_dbg_depth_on(writer, total_size, depth, max_depth, Some(stringify!($nidx)), is_last, flags)?;
                 )*
                 Ok(())
             }
