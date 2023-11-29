@@ -157,7 +157,7 @@ impl Default for DbgFlags {
     /// The default set of flags contains [`DbgFlags::TYPE_NAME`] and [`DbgFlags::SEPARATOR`].
     #[inline(always)]
     fn default() -> Self {
-        Self::TYPE_NAME | Self::SEPARATOR
+        Self::TYPE_NAME | Self::SEPARATOR | Self::PERCENTAGE
     }
 }
 
@@ -176,6 +176,7 @@ pub trait MemDbg: MemDbgImpl {
             self.mem_size(flags.to_size_flags()),
             0,
             usize::MAX,
+            0,
             false,
             flags,
         )
@@ -190,6 +191,7 @@ pub trait MemDbg: MemDbgImpl {
             self.mem_size(flags.to_size_flags()),
             0,
             usize::MAX,
+            0,
             Some("⏺"),
             false,
             flags,
@@ -205,6 +207,7 @@ pub trait MemDbg: MemDbgImpl {
         total_size: usize,
         depth: usize,
         max_depth: usize,
+        last_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
@@ -225,6 +228,7 @@ pub trait MemDbg: MemDbgImpl {
             total_size,
             depth,
             max_depth,
+            last_depth,
             Some("⏺"),
             is_last,
             flags,
@@ -241,6 +245,7 @@ pub trait MemDbg: MemDbgImpl {
         total_size: usize,
         depth: usize,
         max_depth: usize,
+        last_depth: usize,
         field_name: Option<&str>,
         is_last: bool,
         flags: DbgFlags,
@@ -249,12 +254,7 @@ pub trait MemDbg: MemDbgImpl {
             return Ok(());
         }
         let mut real_size = self.mem_size(flags.to_size_flags());
-        if flags.contains(DbgFlags::PERCENTAGE) {
-            writer.write_fmt(format_args!(
-                "{:>6.2}% ",
-                100.0 * real_size as f64 / total_size as f64
-            ))?;
-        } else if flags.contains(DbgFlags::HUMANIZE) {
+        if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
                 writer.write_fmt(format_args!("{:>6} B ", real_size))?;
@@ -302,8 +302,19 @@ pub trait MemDbg: MemDbgImpl {
             writer.write_fmt(format_args!("{:>align$} B ", real_size, align = align))?;
         }
 
-        let indent = "│".repeat(depth.saturating_sub(1));
-        writer.write_str(&indent)?;
+        if flags.contains(DbgFlags::PERCENTAGE) {
+            writer.write_fmt(format_args!(
+                "{:>6.2}% ",
+                100.0 * real_size as f64 / total_size as f64
+            ))?;
+        }
+
+        for _ in 0..last_depth {
+            writer.write_char(' ')?;
+        }
+        for _ in last_depth..depth.saturating_sub(1) {
+            writer.write_char('│')?;
+        }
         if depth > 0 {
             if is_last {
                 writer.write_char('╰')?;
@@ -324,7 +335,11 @@ pub trait MemDbg: MemDbgImpl {
 
         writer.write_char('\n')?;
 
-        self._mem_dbg_rec_on(writer, total_size, depth + 1, max_depth, false, flags)
+        self._mem_dbg_rec_on(writer, total_size, depth + 1, max_depth, if is_last {
+            last_depth + 1
+        } else {
+            last_depth
+        }, is_last, flags)
     }
 }
 
@@ -348,6 +363,7 @@ pub trait MemDbgImpl: MemSize {
         _total_size: usize,
         _depth: usize,
         _max_depth: usize,
+        _last_depth: usize,
         _is_last: bool,
         _flags: DbgFlags,
     ) -> core::fmt::Result {

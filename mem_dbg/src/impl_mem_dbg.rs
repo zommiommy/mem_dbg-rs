@@ -46,11 +46,12 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
         total_size: usize,
         depth: usize,
         max_depth: usize,
+        last_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)
+            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, last_depth, is_last, flags)
         } else {
             Ok(())
         }
@@ -64,11 +65,12 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
         total_size: usize,
         depth: usize,
         max_depth: usize,
+        last_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, is_last, flags)
+            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, last_depth, is_last, flags)
         } else {
             Ok(())
         }
@@ -89,11 +91,12 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         total_size: usize,
         depth: usize,
         max_depth: usize,
+        last_depth: usize,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         self.as_ref()
-            .mem_dbg_depth_on(writer, total_size, depth, max_depth, None, is_last, flags)
+            .mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, None, is_last, flags)
     }
 }
 
@@ -142,12 +145,17 @@ macro_rules! impl_tuples_muncher {
                 total_size: usize,
                 depth: usize,
                 max_depth: usize,
-                is_last: bool,
+                last_depth: usize,
+                _is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
-                self.$idx.mem_dbg_depth_on(writer, total_size, depth, max_depth, Some(stringify!($idx)), is_last, flags)?;
+                let mut _max_idx = $idx;
                 $(
-                    self.$nidx.mem_dbg_depth_on(writer, total_size, depth, max_depth, Some(stringify!($nidx)), is_last, flags)?;
+                    _max_idx = _max_idx.max($nidx);
+                )*
+                self.$idx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, Some(stringify!($idx)), $idx == _max_idx, flags)?;
+                $(
+                    self.$nidx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, Some(stringify!($nidx)), $nidx == _max_idx, flags)?;
                 )*
                 Ok(())
             }

@@ -213,7 +213,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                     let is_last = field_idx == s.fields.len().saturating_sub(1);
 
-                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#fields_str), #is_last, _memdbg_flags)?;}
+                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, Some(#fields_str), #is_last, _memdbg_flags)?;}
                 })
                 .collect::<Vec<_>>();
 
@@ -227,6 +227,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_total_size: usize,
                         _memdbg_depth: usize,
                         _memdbg_max_depth: usize,
+                        _memdbg_last_depth: usize,
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
@@ -256,7 +257,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 let field_name = format!("{}", ident);
                                 let is_last = idx == fields.named.len().saturating_sub(1);
                                 variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
+                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -283,7 +284,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_name = format!("{}", idx);
                             let is_last = idx == fields.unnamed.len().saturating_sub(1);
                             variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, Some(#field_name), #is_last, _memdbg_flags)?;
+                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_depth, _memdbg_max_depth, _memdbg_last_depth, Some(#field_name), #is_last, _memdbg_flags)?;
                             }]);
 
                             args.extend([ident]);
@@ -318,6 +319,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_total_size: usize,
                         _memdbg_depth: usize,
                         _memdbg_max_depth: usize,
+                        _memdbg_last_depth: usize,
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
@@ -328,14 +330,18 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         if _memdbg_flags.contains(DbgFlags::HUMANIZE) {
                             _memdbg_digits_number = 6;
                         }
+
                         if _memdbg_flags.contains(DbgFlags::PERCENTAGE) {
-                            _memdbg_digits_number = 5;
+                            _memdbg_digits_number += 8;
                         }
 
                         for _ in 0.._memdbg_digits_number + 3 {
                             _memdbg_writer.write_char(' ')?;
                         }
-                        for _ in 0.._memdbg_depth.saturating_sub(1) {
+                        for _ in 0.._memdbg_last_depth {
+                            _memdbg_writer.write_char(' ')?;
+                        }
+                        for _ in _memdbg_last_depth.._memdbg_depth.saturating_sub(1) {
                             _memdbg_writer.write_char('│')?;
                         }
                         _memdbg_writer.write_char(if _memdbg_is_last { '╰' } else { '├' })?;

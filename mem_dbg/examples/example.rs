@@ -38,7 +38,7 @@ struct Data<A> {
 }
 
 fn main() {
-    let person = PersonVec {
+    let person = (10_usize, PersonVec {
         a: TestEnum::Unnamed(0, 16),
         b: Data {
             a: vec![0x42_u8; 700],
@@ -46,7 +46,7 @@ fn main() {
             c: (1, 2, 3),
         },
         test: -0xbadf00d,
-    };
+    });
 
     // print the size in bytes of the value
     println!("mem_size: {}", person.mem_size(SizeFlags::default()));
