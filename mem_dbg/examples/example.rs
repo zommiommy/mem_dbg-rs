@@ -24,7 +24,7 @@ struct TestMarker;
 struct TestTuple(usize, u8);
 
 #[derive(MemSize, MemDbg)]
-struct PersonVec<A, B> {
+struct Struct<A, B> {
     a: A,
     b: B,
     test: isize,
@@ -34,26 +34,31 @@ struct PersonVec<A, B> {
 struct Data<A> {
     a: A,
     b: Vec<i32>,
-    c: (usize, usize, usize),
+    c: (usize, String),
 }
 
 fn main() {
-    let person = (10_usize, PersonVec {
-        a: TestEnum::Unnamed(0, 16),
-        b: Data {
-            a: vec![0x42_u8; 700],
-            b: vec![0xbadf00d; 1000],
-            c: (1, 2, 3),
+    let person = (
+        10_usize,
+        Struct {
+            a: TestEnum::Unnamed(0, 16),
+            b: Data {
+                a: vec![0x42_u8; 700],
+                b: vec![0xbadf00d; 1000],
+                c: (1, "foo".to_owned()),
+            },
+            test: -0xbadf00d,
         },
-        test: -0xbadf00d,
-    });
+    );
 
     // print the size in bytes of the value
     println!("mem_size: {}", person.mem_size(SizeFlags::default()));
     println!("mem_size: {}", person.mem_size(SizeFlags::CAPACITY));
 
     // print the tree of fields and their memory size
-    person.mem_dbg(DbgFlags::default()).unwrap();
+    person
+        .mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE)
+        .unwrap();
 
     let test = TestEnum::Named {
         first: 0x89,

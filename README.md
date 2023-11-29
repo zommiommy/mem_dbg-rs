@@ -15,7 +15,7 @@ the way the data is displayed (e.g., humanize the size or display it as a percen
 use mem_dbg::*;
 
 #[derive(MemSize, MemDbg)]
-struct PersonVec<A, B> {
+struct Struct<A, B> {
     a: A,
     b: B,
     test: isize,
@@ -25,6 +25,7 @@ struct PersonVec<A, B> {
 struct Data<A> {
     a: A,
     b: Vec<i32>,
+    c: (usize, String)
 }
 
 #[derive(MemSize, MemDbg)]
@@ -36,11 +37,12 @@ enum TestEnum {
     Named { first: usize, second: u8 },
 }
 
-let person = PersonVec {
+let person = Struct {
     a: TestEnum::Unnamed(0, 16),
     b: Data {
         a: vec![0x42_u8; 700],
         b: vec![0xbadf00d; 1000],
+        c: (1, "foo".to_owned()),
     },
     test: -0xbadf00d,
 };
@@ -54,45 +56,60 @@ person.mem_dbg(DbgFlags::default()).unwrap();
 
 The previous program prints:
 ```text
-size: 4772
+size: 4815
 
-4_772 B ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-   16 B ├╴a : example::TestEnum
-        │├╴Variant: Unnamed
-    8 B │├╴0 : usize
-    1 B │╰╴1 : u8
-4_748 B ├╴b : example::Data<alloc::vec::Vec<u8>>
-  724 B │├╴a : alloc::vec::Vec<u8>
-4_024 B │╰╴b : alloc::vec::Vec<i32>
-    8 B ╰╴test : isize
+4_815 B 100.00% ⏺ : (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
+    8 B   0.17% ├╴0 : usize
+4_807 B  99.83% ╰╴1 : example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+   16 B   0.33%  ├╴a : example::TestEnum
+                 │├╴Variant: Unnamed
+    8 B   0.17%  │├╴0 : usize
+    1 B   0.02%  │╰╴1 : u8
+4_783 B  99.34%  ├╴b : example::Data<alloc::vec::Vec<u8>>
+  724 B  15.04%  │├╴a : alloc::vec::Vec<u8>
+4_024 B  83.57%  │├╴b : alloc::vec::Vec<i32>
+   35 B   0.73%  │╰╴c : (usize, alloc::string::String)
+    8 B   0.17%  ││├╴0 : usize
+   27 B   0.56%  ││╰╴1 : alloc::string::String
+    8 B   0.17%  ╰╴test : isize
 ```
 If we use the flag [`DbgFlags::HUMANIZE`] it prints:
 ```text
-size: 4772
+size: 4815
 
-4.772 KB ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-   16 B  ├╴a example::TestEnum
-         │├╴Variant: Unnamed
-    8 B  │├╴0 usize
-    1 B  │╰╴1 u8
-4.748 KB ├╴b example::Data<alloc::vec::Vec<u8>>
-  724 B  │├╴a alloc::vec::Vec<u8>
-4.024 KB │╰╴b alloc::vec::Vec<i32>
-    8 B  ╰╴test isize
+4.815 KB100.00% ⏺ : (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
+     8 B   0.17% ├╴0 : usize
+4.807 KB 99.83% ╰╴1 : example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+    16 B   0.33%  ├╴a : example::TestEnum
+                  │├╴Variant: Unnamed
+     8 B   0.17%  │├╴0 : usize
+     1 B   0.02%  │╰╴1 : u8
+4.783 KB 99.34%  ├╴b : example::Data<alloc::vec::Vec<u8>>
+   724 B  15.04%  │├╴a : alloc::vec::Vec<u8>
+4.024 KB 83.57%  │├╴b : alloc::vec::Vec<i32>
+    35 B   0.73%  │╰╴c : (usize, alloc::string::String)
+     8 B   0.17%  ││├╴0 : usize
+    27 B   0.56%  ││╰╴1 : alloc::string::String
+     8 B   0.17%  ╰╴test : isize
 ```
-If we use the flag [`DbgFlags::PERCENTAGE`] it prints:
+If we use no flags it prints:
 ```text
-size: 4772
+size: 4815
 
-100.00% ⏺ : example::PersonVec<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-  0.34% ├╴a : example::TestEnum
+4815 B ⏺
+   8 B ├╴0
+4807 B ╰╴1
+  16 B  ├╴a
         │├╴Variant: Unnamed
-  0.17% │├╴0 : usize
-  0.02% │╰╴1 : u8
- 99.50% ├╴b : example::Data<alloc::vec::Vec<u8>>
- 15.17% │├╴a : alloc::vec::Vec<u8>
- 84.33% │╰╴b : alloc::vec::Vec<i32>
-  0.17% ╰╴test : isize
+   8 B  │├╴0
+   1 B  │╰╴1
+4783 B  ├╴b
+ 724 B  │├╴a
+4024 B  │├╴b
+  35 B  │╰╴c
+   8 B  ││├╴0
+  27 B  ││╰╴1
+   8 B  ╰╴test
 ```
 
 ## Caveats

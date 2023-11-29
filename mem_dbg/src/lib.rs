@@ -154,7 +154,7 @@ impl DbgFlags {
 }
 
 impl Default for DbgFlags {
-    /// The default set of flags contains [`DbgFlags::TYPE_NAME`] and [`DbgFlags::SEPARATOR`].
+    /// The default set of flags contains [`DbgFlags::TYPE_NAME`], [`DbgFlags::SEPARATOR`], and [`DbgFlags::PERCENTAGE`].
     #[inline(always)]
     fn default() -> Self {
         Self::TYPE_NAME | Self::SEPARATOR | Self::PERCENTAGE
@@ -172,11 +172,7 @@ pub trait MemDbg: MemDbgImpl {
     #[cfg(feature = "std")]
     #[inline(always)]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
-        self.mem_dbg_depth(
-            self.mem_size(flags.to_size_flags()),
-            usize::MAX,
-            flags,
-        )
+        self.mem_dbg_depth(self.mem_size(flags.to_size_flags()), usize::MAX, flags)
     }
 
     /// Write to a [`core::fmt::Write`] debug infos about the structure memory usage,
@@ -250,7 +246,7 @@ pub trait MemDbg: MemDbgImpl {
         if depth > max_depth {
             return Ok(());
         }
-        let mut real_size = self.mem_size(flags.to_size_flags());
+        let real_size = self.mem_size(flags.to_size_flags());
         if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
@@ -269,6 +265,7 @@ pub trait MemDbg: MemDbgImpl {
             }
         } else if flags.contains(DbgFlags::SEPARATOR) {
             let mut align = crate::utils::n_of_digits(total_size);
+            let mut real_size = real_size;
             align += align / 3;
             let mut digits = crate::utils::n_of_digits(real_size);
             let digit_align = digits + digits / 3;
@@ -331,11 +328,19 @@ pub trait MemDbg: MemDbgImpl {
 
         writer.write_char('\n')?;
 
-        self._mem_dbg_rec_on(writer, total_size, depth + 1, max_depth, if is_last {
-            last_depth + last_depth_offset
-        } else {
-            last_depth
-        }, is_last, flags)
+        self._mem_dbg_rec_on(
+            writer,
+            total_size,
+            depth + 1,
+            max_depth,
+            if is_last {
+                last_depth + last_depth_offset
+            } else {
+                last_depth
+            },
+            is_last,
+            flags,
+        )
     }
 }
 
