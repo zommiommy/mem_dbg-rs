@@ -34,6 +34,7 @@ struct PersonVec<A, B> {
 struct Data<A> {
     a: A,
     b: Vec<i32>,
+    c: (usize, usize, usize),
 }
 
 fn main() {
@@ -42,6 +43,7 @@ fn main() {
         b: Data {
             a: vec![0x42_u8; 700],
             b: vec![0xbadf00d; 1000],
+            c: (1, 2, 3),
         },
         test: -0xbadf00d,
     };
