@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!("../README.md")]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #[cfg(all(feature = "alloc", not(feature = "std")))]
