@@ -1,16 +1,23 @@
 # mem_dbg
 
-Traits and associated procedural macros to recursively compute the memory usage of a data structure or print its layout.
+Traits and associated procedural macros to display recursively the layout and memory usage of a value.
 
+The trait [`MemDbg`] can be used to display the recursive layout of a value, together with the size of each part. We provide
+implementations from for most basic types, and a derive macro for structs and enums whose fields implement [`MemDbg`].
+
+To compute the size, we provide the trait [`MemSize`] and a derive macro that can be used to compute the size of a value in bytes.
 The standard library function [`std::mem::size_of`] returns the stack size of a type in bytes, but
-it does not take into consideration heap memory. This crate provides a trait [`MemSize`] and an associated procedural macro
-for that purpose. Moreover, the trait [`MemDbg`] can be used to display the recursive layout of a data structure, together
-with the size of each part.
+it does not take into consideration heap memory: [`MemSize`]
+is a trait and associated 
+associated procedural macro that perform this task, with options
+to take into account size or capacity, and to optionally follow references.
 
-Both traits accept options that can change their behavior (e.g., follow references or not) or 
-the way the data is displayed (e.g., humanize the size or display it as a percentage of the total size).
+Note that other traits partially provide the functionality of [`MemSize`], but either they require to implement manually a trait,
+which is prone to error, or do not provide the flexibility necessary
+for [`MemDbg`]. Most importantly, [`MemSize`] uses the type system
+to avoid iterating over the content of a container (a vector, etc.) when it is not necessary, making it possible to compute instantly the size of values occupying hundreds of gigabytes of heap memory.
 
-### Example
+## Example
 ```rust
 use mem_dbg::*;
 

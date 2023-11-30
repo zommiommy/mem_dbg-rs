@@ -2,7 +2,7 @@
 name = "mem_dbg"
 version = "0.1.0"
 edition = "2021"
-description = "Traits and associated procedural macros to recursively compute the memory usage of a data structure or print its layout"
+description = "Traits and associated procedural macros to display recursively the layout and memory usage of a value"
 repository = "https://github.com/zommiommy/mem_dbg/"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
 readme = "README.md"

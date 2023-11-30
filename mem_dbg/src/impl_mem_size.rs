@@ -6,7 +6,8 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-use core::marker::PhantomData;
+use core::marker::{PhantomData, PhantomPinned};
+use core::num::*;
 use core::sync::atomic::*;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
@@ -33,7 +34,10 @@ impl_memory_size! {
    i8, i16, i32, i64, i128, isize,
    AtomicBool,
    AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize,
-   AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize
+   AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize,
+   NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize,
+   NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
+   PhantomPinned
 }
 
 // Strings
