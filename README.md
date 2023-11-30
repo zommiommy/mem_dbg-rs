@@ -37,64 +37,68 @@ enum TestEnum {
     Named { first: usize, second: u8 },
 }
 
-let person = Struct {
+let b = Vec::with_capacity(100);
+
+let s = Struct {
     a: TestEnum::Unnamed(0, 16),
     b: Data {
         a: vec![0x42_u8; 700],
-        b: vec![0xbadf00d; 1000],
+        b,
         c: (1, "foo".to_owned()),
     },
     test: -0xbadf00d,
 };
 
-// print the size in bytes of the value
-println!("size: {}\n", person.mem_size(SizeFlags::default()));
+println!("size:     {}", s.mem_size(SizeFlags::default()));
+println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
 
-// print the tree of fields and their memory size
-person.mem_dbg(DbgFlags::default()).unwrap();
+s.mem_dbg(DbgFlags::default()).unwrap();
 ```
 
 The previous program prints:
 ```text
-size: 4815
+size:     815
+capacity: 1215
 
-4_815 B 100.00% ⏺ : (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
-    8 B   0.17% ├╴0 : usize
-4_807 B  99.83% ╰╴1 : example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-   16 B   0.33%  ├╴a : example::TestEnum
-                 │├╴Variant: Unnamed
-    8 B   0.17%  │├╴0 : usize
-    1 B   0.02%  │╰╴1 : u8
-4_783 B  99.34%  ├╴b : example::Data<alloc::vec::Vec<u8>>
-  724 B  15.04%  │├╴a : alloc::vec::Vec<u8>
-4_024 B  83.57%  │├╴b : alloc::vec::Vec<i32>
-   35 B   0.73%  │╰╴c : (usize, alloc::string::String)
-    8 B   0.17%  │ ├╴0 : usize
-   27 B   0.56%  │ ╰╴1 : alloc::string::String
-    8 B   0.17%  ╰╴test : isize
+ 815 B 100.00% ⏺: (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
+   8 B   0.98% ├╴0: usize
+ 807 B  99.02% ╰╴1: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+  16 B   1.96%   ├╴a: example::TestEnum
+                 │ ├╴Variant: Unnamed
+   8 B   0.98%   │ ├╴0: usize
+   1 B   0.12%   │ ╰╴1: u8
+ 783 B  96.07%   ├╴b: example::Data<alloc::vec::Vec<u8>>
+ 724 B  88.83%   │ ├╴a: alloc::vec::Vec<u8>
+  24 B   2.94%   │ ├╴b: alloc::vec::Vec<i32>
+  35 B   4.29%   │ ╰╴c: (usize, alloc::string::String)
+   8 B   0.98%   │   ├╴0: usize
+  27 B   3.31%   │   ╰╴1: alloc::string::String
+   8 B   0.98%   ╰╴test: isize
 ```
-If we use the flag [`DbgFlags::HUMANIZE`] it prints:
+If we add the flags [`DbgFlags::CAPACITY`] and [`DbgFlags::HUMANIZE`] it prints:
 ```text
-size: 4815
+size:     815
+capacity: 1215
 
-4.815 KB 100.00% ⏺ : (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
-     8 B   0.17% ├╴0 : usize
-4.807 KB  99.83% ╰╴1 : example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-    16 B   0.33%  ├╴a : example::TestEnum
-                  │├╴Variant: Unnamed
-     8 B   0.17%  │├╴0 : usize
-     1 B   0.02%  │╰╴1 : u8
-4.783 KB  99.34%  ├╴b : example::Data<alloc::vec::Vec<u8>>
-   724 B  15.04%  │├╴a : alloc::vec::Vec<u8>
-4.024 KB  83.57%  │├╴b : alloc::vec::Vec<i32>
-    35 B   0.73%  │╰╴c : (usize, alloc::string::String)
-     8 B   0.17%  │ ├╴0 : usize
-    27 B   0.56%  │ ╰╴1 : alloc::string::String
-     8 B   0.17%  ╰╴test : isize
+1.215 kB 100.00% ⏺: (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
+    8  B   0.66% ├╴0: usize
+1.207 kB  99.34% ╰╴1: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+   16  B   1.32%   ├╴a: example::TestEnum
+                   │ ├╴Variant: Unnamed
+    8  B   0.66%   │ ├╴0: usize
+    1  B   0.08%   │ ╰╴1: u8
+1.183 kB  97.37%   ├╴b: example::Data<alloc::vec::Vec<u8>>
+  724  B  59.59%   │ ├╴a: alloc::vec::Vec<u8>
+  424  B  34.90%   │ ├╴b: alloc::vec::Vec<i32>
+   35  B   2.88%   │ ╰╴c: (usize, alloc::string::String)
+    8  B   0.66%   │   ├╴0: usize
+   27  B   2.22%   │   ╰╴1: alloc::string::String
+    8  B   0.66%   ╰╴test: isize
 ```
-If we use no flags it prints:
+If we use [`DbgFlags::empty()`] it prints:
 ```text
-size: 4815
+size:     815
+capacity: 1215
 
 4815 B ⏺
    8 B ├╴0

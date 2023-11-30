@@ -39,7 +39,7 @@ struct Data<A> {
 
 fn main() {
     let b = Vec::with_capacity(100);
-    let person = (
+    let s = (
         10_usize,
         Struct {
             a: TestEnum::Unnamed(0, 16),
@@ -53,48 +53,43 @@ fn main() {
     );
 
     // print the size in bytes of the value
-    println!("size:     {}", person.mem_size(SizeFlags::default()));
-    println!("capacity: {}", person.mem_size(SizeFlags::CAPACITY));
+    println!("size:     {}", s.mem_size(SizeFlags::default()));
+    println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
 
     println!();
 
     println!("DbgFlags::default():");
     println!();
-    person.mem_dbg(DbgFlags::default()).unwrap();
+    s.mem_dbg(DbgFlags::default()).unwrap();
 
     println!();
 
     println!("DbgFlags::default() | DbgFlags::HUMANIZE:");
     println!();
-    person
-        .mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE)
-        .unwrap();
+    s.mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE).unwrap();
 
     println!();
 
     println!("DbgFlags::default() | DbgFlags::CAPACITY:");
     println!();
-    person
-        .mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY)
-        .unwrap();
+    s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY).unwrap();
 
     println!();
 
     println!("DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE:");
     println!();
-    person
-        .mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)
+    s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)
         .unwrap();
 
     println!();
 
     println!("DbgFlags::empty():");
     println!();
-    person.mem_dbg(DbgFlags::empty()).unwrap();
+    s.mem_dbg(DbgFlags::empty()).unwrap();
 
     println!();
 
     println!("DbgFlags::HUMANIZE:");
     println!();
-    person.mem_dbg(DbgFlags::HUMANIZE).unwrap();
+    s.mem_dbg(DbgFlags::HUMANIZE).unwrap();
 }
