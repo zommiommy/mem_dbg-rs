@@ -67,4 +67,12 @@ fn main() {
     println!();
 
     person.mem_dbg(DbgFlags::empty()).unwrap();
+
+    println!();
+
+    person.mem_dbg(DbgFlags::HUMANIZE).unwrap();
+
+    println!();
+
+    person.mem_dbg(DbgFlags::SEPARATOR).unwrap();
 }

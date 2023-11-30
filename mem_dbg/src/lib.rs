@@ -244,7 +244,7 @@ pub trait MemDbg: MemDbgImpl {
         if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
-                writer.write_fmt(format_args!("{:>6} B", real_size))?;
+                writer.write_fmt(format_args!("{:>5}  B", real_size))?;
             } else {
                 let mut precision = 4;
                 let a = value.abs();
