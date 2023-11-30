@@ -8,7 +8,7 @@
 
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl, MemDbg};
+use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbg, MemDbgImpl};
 
 // Primitive types, atomic types, ()
 
@@ -51,7 +51,9 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, last_depth, is_last, flags)
+            (**self)._mem_dbg_rec_on(
+                writer, total_size, depth, max_depth, last_depth, is_last, flags,
+            )
         } else {
             Ok(())
         }
@@ -70,7 +72,9 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, total_size, depth, max_depth, last_depth, is_last, flags)
+            (**self)._mem_dbg_rec_on(
+                writer, total_size, depth, max_depth, last_depth, is_last, flags,
+            )
         } else {
             Ok(())
         }
@@ -95,7 +99,9 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        self.as_ref()._mem_dbg_rec_on(writer, total_size, depth, max_depth, last_depth, is_last, flags)
+        self.as_ref()._mem_dbg_rec_on(
+            writer, total_size, depth, max_depth, last_depth, is_last, flags,
+        )
     }
 }
 
@@ -152,7 +158,7 @@ macro_rules! impl_tuples_muncher {
                 $(
                     _max_idx = _max_idx.max($nidx);
                 )*
-                
+
                 let last_depth_offset = if is_last {
                     1
                 } else {
