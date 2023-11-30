@@ -44,15 +44,14 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
         &self,
         writer: &mut impl core::fmt::Write,
         total_size: usize,
-        depth: usize,
         max_depth: usize,
-        last_depth: usize,
+        prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             (**self)._mem_dbg_rec_on(
-                writer, total_size, depth, max_depth, last_depth, is_last, flags,
+                writer, total_size, max_depth, prefix, is_last, flags,
             )
         } else {
             Ok(())
@@ -65,15 +64,14 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
         &self,
         writer: &mut impl core::fmt::Write,
         total_size: usize,
-        depth: usize,
         max_depth: usize,
-        last_depth: usize,
+        prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             (**self)._mem_dbg_rec_on(
-                writer, total_size, depth, max_depth, last_depth, is_last, flags,
+                writer, total_size, max_depth, prefix, is_last, flags,
             )
         } else {
             Ok(())
@@ -93,14 +91,13 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         &self,
         writer: &mut impl core::fmt::Write,
         total_size: usize,
-        depth: usize,
         max_depth: usize,
-        last_depth: usize,
+        prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         self.as_ref()._mem_dbg_rec_on(
-            writer, total_size, depth, max_depth, last_depth, is_last, flags,
+            writer, total_size, max_depth, prefix, is_last, flags,
         )
     }
 }
@@ -148,10 +145,9 @@ macro_rules! impl_tuples_muncher {
                 &self,
                 writer: &mut impl core::fmt::Write,
                 total_size: usize,
-                depth: usize,
                 max_depth: usize,
-                last_depth: usize,
-                is_last: bool,
+                prefix: &mut String,
+                _is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
                 let mut _max_idx = $idx;
@@ -159,15 +155,9 @@ macro_rules! impl_tuples_muncher {
                     _max_idx = _max_idx.max($nidx);
                 )*
 
-                let last_depth_offset = if is_last {
-                    1
-                } else {
-                    0
-                };
-
-                self.$idx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, last_depth_offset, Some(stringify!($idx)), $idx == _max_idx, flags)?;
+                self.$idx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, flags)?;
                 $(
-                    self.$nidx.mem_dbg_depth_on(writer, total_size, depth, max_depth, last_depth, last_depth_offset, Some(stringify!($nidx)), $nidx == _max_idx, flags)?;
+                    self.$nidx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, flags)?;
                 )*
                 Ok(())
             }

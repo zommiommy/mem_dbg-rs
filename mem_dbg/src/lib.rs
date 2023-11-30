@@ -182,10 +182,8 @@ pub trait MemDbg: MemDbgImpl {
         self.mem_dbg_depth_on(
             writer,
             self.mem_size(flags.to_size_flags()),
-            0,
             usize::MAX,
-            0,
-            0,
+            &mut String::new(),
             Some("⏺"),
             true,
             flags,
@@ -217,10 +215,8 @@ pub trait MemDbg: MemDbgImpl {
         self.mem_dbg_depth_on(
             &mut Wrapper(std::io::stdout()),
             total_size,
-            0,
             max_depth,
-            0,
-            0,
+            &mut String::new(),
             Some("⏺"),
             true,
             flags,
@@ -235,15 +231,13 @@ pub trait MemDbg: MemDbgImpl {
         &self,
         writer: &mut impl core::fmt::Write,
         total_size: usize,
-        depth: usize,
         max_depth: usize,
-        last_depth: usize,
-        last_depth_offset: usize,
+        prefix: &mut String,
         field_name: Option<&str>,
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        if depth > max_depth {
+        if prefix.len() > max_depth {
             return Ok(());
         }
         let real_size = self.mem_size(flags.to_size_flags());
@@ -302,13 +296,8 @@ pub trait MemDbg: MemDbgImpl {
                 100.0 * real_size as f64 / total_size as f64
             ))?;
         }
-        for _ in 0..last_depth {
-            writer.write_char(' ')?;
-        }
-        for _ in last_depth..depth.saturating_sub(1) {
-            writer.write_char('│')?;
-        }
-        if depth > 0 {
+        writer.write_str(&prefix)?;
+        if !prefix.is_empty() {
             if is_last {
                 writer.write_char('╰')?;
             } else {
@@ -328,19 +317,24 @@ pub trait MemDbg: MemDbgImpl {
 
         writer.write_char('\n')?;
 
+        if is_last {
+            prefix.push(' ' );
+        } else {
+            prefix.push('│');
+        }
+
         self._mem_dbg_rec_on(
             writer,
             total_size,
-            depth + 1,
             max_depth,
-            if is_last {
-                last_depth + last_depth_offset
-            } else {
-                last_depth
-            },
+            prefix,
             is_last,
             flags,
-        )
+        )?;
+
+        prefix.pop();
+
+        Ok(())
     }
 }
 
@@ -362,9 +356,8 @@ pub trait MemDbgImpl: MemSize {
         &self,
         _writer: &mut impl core::fmt::Write,
         _total_size: usize,
-        _depth: usize,
         _max_depth: usize,
-        _last_depth: usize,
+        _prefix: &mut String,
         _is_last: bool,
         _flags: DbgFlags,
     ) -> core::fmt::Result {
