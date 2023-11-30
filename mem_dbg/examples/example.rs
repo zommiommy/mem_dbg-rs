@@ -56,14 +56,15 @@ fn main() {
     println!("mem_size: {}", person.mem_size(SizeFlags::CAPACITY));
 
     // print the tree of fields and their memory size
+    person.mem_dbg(DbgFlags::default()).unwrap();
+
+    println!();
+
     person
         .mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE)
         .unwrap();
 
     println!();
-    let test = TestEnum::Named {
-        first: 0x89,
-        second: 0x42,
-    };
-    test.mem_dbg(DbgFlags::default()).unwrap();
+
+    person.mem_dbg(DbgFlags::empty()).unwrap();
 }
