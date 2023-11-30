@@ -297,15 +297,13 @@ pub trait MemDbg: MemDbgImpl {
             ))?;
         }
         if !prefix.is_empty() {
-            writer.write_str(&prefix[1..])?;
+            writer.write_str(&prefix[2..])?;
             if is_last {
                 writer.write_char('╰')?;
             } else {
                 writer.write_char('├')?;
             }
             writer.write_char('╴')?;
-        } else {
-            writer.write_char(' ')?;
         }
 
         if let Some(field_name) = field_name {

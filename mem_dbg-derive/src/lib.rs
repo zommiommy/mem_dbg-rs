@@ -345,9 +345,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             _memdbg_writer.write_char(' ')?;
                         }
                         if !_memdbg_prefix.is_empty() {
-                            _memdbg_writer.write_str(&_memdbg_prefix[1..])?;
-                        } else {
-                            _memdbg_writer.write_char(' ')?;
+                            _memdbg_writer.write_str(&_memdbg_prefix[2..])?;
                         }
                         match self {
                             #(
