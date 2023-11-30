@@ -247,7 +247,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     syn::Fields::Unit => {},
                     syn::Fields::Named(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
-                        if fields.named.len() > 0 {
+                        if !fields.named.is_empty() {
                             arrow = '├';
                         }
                         fields
@@ -277,7 +277,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     }
                     syn::Fields::Unnamed(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
-                        if fields.unnamed.len() > 0 {
+                        if !fields.unnamed.is_empty() {
                             arrow = '├';
                         }
                         fields.unnamed.iter().enumerate().for_each(|(idx, field)| {
@@ -344,7 +344,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         for _ in 0.._memdbg_digits_number + 3 {
                             _memdbg_writer.write_char(' ')?;
                         }
-                        _memdbg_writer.write_str(&_memdbg_prefix)?;
+                        if !_memdbg_prefix.is_empty() {
+                            _memdbg_writer.write_str(&_memdbg_prefix[1..])?;
+                        }
                         match self {
                             #(
                                #name::#variants => #variants_code,

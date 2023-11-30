@@ -296,8 +296,8 @@ pub trait MemDbg: MemDbgImpl {
                 100.0 * real_size as f64 / total_size as f64
             ))?;
         }
-        writer.write_str(&prefix)?;
         if !prefix.is_empty() {
+            writer.write_str(&prefix[1..])?;
             if is_last {
                 writer.write_char('╰')?;
             } else {
