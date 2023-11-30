@@ -7,10 +7,11 @@
  */
 
 use core::marker::{PhantomData, PhantomPinned};
-use core::num::*;
 use core::sync::atomic::*;
+use core::{hash, num::*};
+use std::collections::{HashMap, HashSet};
 
-use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
+use crate::{Boolean, CopyType, DbgFlags, False, MemSize, SizeFlags, True};
 
 // Primitive types, atomic types, ()
 
@@ -316,5 +317,168 @@ impl MemSize for mmap_rs::MmapMut {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
+    }
+}
+
+// Hash-based containers from the standard library
+//
+// If the standard library changes load factor, this code will have to change
+// accordingly.
+
+// Straight from hashbrown
+fn capacity_to_buckets(cap: usize) -> Option<usize> {
+    debug_assert_ne!(cap, 0);
+
+    // For small tables we require at least 1 empty bucket so that lookups are
+    // guaranteed to terminate if an element doesn't exist in the table.
+    if cap < 8 {
+        // We don't bother with a table size of 2 buckets since that can only
+        // hold a single element. Instead we skip directly to a 4 bucket table
+        // which can hold 3 elements.
+        return Some(if cap < 4 { 4 } else { 8 });
+    }
+
+    // Otherwise require 1/8 buckets to be empty (87.5% load)
+    //
+    // Be careful when modifying this, calculate_layout relies on the
+    // overflow check here.
+    let adjusted_cap = cap.checked_mul(8)? / 7;
+
+    // Any overflows will have been caught by the checked_mul. Also, any
+    // rounding errors from the division above will be cleaned up by
+    // next_power_of_two (which can't overflow because of the previous division).
+    Some(adjusted_cap.next_power_of_two())
+}
+
+impl<T: CopyType> MemSize for HashSet<T>
+where
+    HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <HashSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+// Add to the given size the space occupied on the stack by the hash set, by the
+// speedup bytes of Swiss Tables, and if `flags` contains `SizeFlags::CAPACITY`,
+// by empty buckets.
+fn fix_set_for_capacity<K>(hash_set: &HashSet<K>, size: usize, flags: SizeFlags) -> usize {
+    if flags.contains(SizeFlags::CAPACITY) {
+        core::mem::size_of::<HashSet<K>>()
+            + size
+            + (capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX) - hash_set.len())
+                * std::mem::size_of::<K>()
+            + capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX)
+                * std::mem::size_of::<u8>()
+    } else {
+        core::mem::size_of::<HashSet<K>>() + size + hash_set.len() * std::mem::size_of::<u8>()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<True> for HashSet<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        fix_set_for_capacity(self, std::mem::size_of::<T>() * self.len(), flags)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: CopyType + MemSize> MemSizeHelper<False> for HashSet<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        fix_set_for_capacity(
+            self,
+            self.iter().map(|x| x.mem_size(flags)).sum::<usize>(),
+            flags,
+        )
+    }
+}
+
+/// A helper trait that makes it possible to implement differently
+/// the size computation for maps in which keys or values are
+/// [`Copy`] types.
+///
+/// See [`crate::CopyType`] for more information.
+pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize;
+}
+
+impl<K: CopyType, V: CopyType> MemSize for HashMap<K, V>
+where
+    HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <HashMap<K, V> as MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+// Add to the given size the space occupied on the stack by the hash map, by the
+// speedup bytes of Swiss Tables, and if `flags` contains `SizeFlags::CAPACITY`,
+// by empty buckets.
+fn fix_map_for_capacity<K, V>(hash_map: &HashMap<K, V>, size: usize, flags: SizeFlags) -> usize {
+    if flags.contains(SizeFlags::CAPACITY) {
+        core::mem::size_of::<HashSet<K>>()
+            + size
+            + (capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX) - hash_map.len())
+                * (std::mem::size_of::<K>() + std::mem::size_of::<V>())
+            + capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX)
+                * std::mem::size_of::<u8>()
+    } else {
+        core::mem::size_of::<HashSet<K>>() + size + hash_map.len() * std::mem::size_of::<u8>()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True> for HashMap<K, V> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        fix_map_for_capacity(
+            self,
+            (std::mem::size_of::<K>() + std::mem::size_of::<V>()) * self.len(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False> for HashMap<K, V> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        fix_map_for_capacity(
+            self,
+            (std::mem::size_of::<K>()) * self.len()
+                + self.values().map(|v| v.mem_size(flags)).sum::<usize>(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True> for HashMap<K, V> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        fix_map_for_capacity(
+            self,
+            self.keys().map(|k| k.mem_size(flags)).sum::<usize>()
+                + (std::mem::size_of::<V>()) * self.len(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False> for HashMap<K, V> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        fix_map_for_capacity(
+            self,
+            self.iter()
+                .map(|(k, v)| k.mem_size(flags) + v.mem_size(flags))
+                .sum::<usize>(),
+            flags,
+        )
     }
 }

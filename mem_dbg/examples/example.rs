@@ -5,6 +5,8 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 #![allow(dead_code)]
+use std::collections::HashSet;
+
 use mem_dbg::*;
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
@@ -28,6 +30,7 @@ struct Struct<A, B> {
     a: A,
     b: B,
     test: isize,
+    s: HashSet<usize>,
 }
 
 #[derive(MemSize, MemDbg)]
@@ -38,7 +41,11 @@ struct Data<A> {
 }
 
 fn main() {
-    let b = Vec::with_capacity(100);
+    let mut b = Vec::with_capacity(100);
+    b.extend(0..10);
+    let mut s = HashSet::with_capacity(100);
+    s.extend(0..10);
+
     let s = (
         10_usize,
         Struct {
@@ -49,6 +56,7 @@ fn main() {
                 c: (1, "foo".to_owned()),
             },
             test: -0xbadf00d,
+            s,
         },
     );
 
@@ -64,15 +72,15 @@ fn main() {
 
     println!();
 
-    println!("DbgFlags::default() | DbgFlags::HUMANIZE:");
-    println!();
-    s.mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE).unwrap();
-
-    println!();
-
     println!("DbgFlags::default() | DbgFlags::CAPACITY:");
     println!();
     s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY).unwrap();
+
+    println!();
+
+    println!("DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE:");
+    println!();
+    s.mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE).unwrap();
 
     println!();
 

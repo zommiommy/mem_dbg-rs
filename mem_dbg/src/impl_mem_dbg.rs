@@ -9,7 +9,9 @@
 use core::marker::PhantomPinned;
 use core::num::*;
 use core::{marker::PhantomData, sync::atomic::*};
+use std::collections::{HashMap, HashSet};
 
+use crate::impl_mem_size::MemSizeHelper2;
 use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbg, MemDbgImpl};
 
 // Primitive types, atomic types, ()
@@ -177,6 +179,14 @@ impl_tuples_muncher!(
     (1 => T1),
     (0 => T0),
 );
+
+// Hash-based containers from the standard library
+
+impl<K: CopyType> MemDbgImpl for HashSet<K> where HashSet<K>: MemSizeHelper<<K as CopyType>::Copy> {}
+impl<K: CopyType, V: CopyType> MemDbgImpl for HashMap<K, V> where
+    HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
+{
+}
 
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::Mmap {}
