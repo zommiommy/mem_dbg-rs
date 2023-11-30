@@ -60,6 +60,7 @@ fn main() {
         .mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE)
         .unwrap();
 
+    println!();
     let test = TestEnum::Named {
         first: 0x89,
         second: 0x42,

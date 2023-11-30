@@ -250,7 +250,7 @@ pub trait MemDbg: MemDbgImpl {
         if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
-                writer.write_fmt(format_args!("{:>6} B ", real_size))?;
+                writer.write_fmt(format_args!("{:>6} B", real_size))?;
             } else {
                 let mut precision = 4;
                 let a = value.abs();
@@ -290,15 +290,15 @@ pub trait MemDbg: MemDbgImpl {
                 digits -= 3;
             }
 
-            writer.write_str(" B ")?;
+            writer.write_str(" B")?;
         } else {
             let align = crate::utils::n_of_digits(total_size);
-            writer.write_fmt(format_args!("{:>align$} B ", real_size, align = align))?;
+            writer.write_fmt(format_args!("{:>align$} B", real_size, align = align))?;
         }
 
         if flags.contains(DbgFlags::PERCENTAGE) {
             writer.write_fmt(format_args!(
-                "{:>6.2}% ",
+                "{:>7.2}% ",
                 100.0 * real_size as f64 / total_size as f64
             ))?;
         }
