@@ -7,11 +7,11 @@
  */
 
 use core::marker::{PhantomData, PhantomPinned};
+use core::num::*;
 use core::sync::atomic::*;
-use core::{hash, num::*};
 use std::collections::{HashMap, HashSet};
 
-use crate::{Boolean, CopyType, DbgFlags, False, MemSize, SizeFlags, True};
+use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
 // Primitive types, atomic types, ()
 

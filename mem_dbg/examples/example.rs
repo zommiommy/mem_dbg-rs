@@ -46,19 +46,16 @@ fn main() {
     let mut s = HashSet::with_capacity(100);
     s.extend(0..10);
 
-    let s = (
-        10_usize,
-        Struct {
-            a: TestEnum::Unnamed(0, 16),
-            b: Data {
-                a: vec![0x42_u8; 700],
-                b,
-                c: (1, "foo".to_owned()),
-            },
-            test: -0xbadf00d,
-            s,
+    let s = Struct {
+        a: TestEnum::Unnamed(0, 16),
+        b: Data {
+            a: vec![0x42_u8; 700],
+            b,
+            c: (1, "foo".to_owned()),
         },
-    );
+        test: -0xbadf00d,
+        s,
+    };
 
     // print the size in bytes of the value
     println!("size:     {}", s.mem_size(SizeFlags::default()));

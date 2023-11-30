@@ -67,60 +67,57 @@ The previous program prints:
 size:     815
 capacity: 1215
 
- 815 B 100.00% ⏺: (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
-   8 B   0.98% ├╴0: usize
- 807 B  99.02% ╰╴1: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-  16 B   1.96%   ├╴a: example::TestEnum
-                 │ ├╴Variant: Unnamed
-   8 B   0.98%   │ ├╴0: usize
-   1 B   0.12%   │ ╰╴1: u8
- 783 B  96.07%   ├╴b: example::Data<alloc::vec::Vec<u8>>
- 724 B  88.83%   │ ├╴a: alloc::vec::Vec<u8>
-  24 B   2.94%   │ ├╴b: alloc::vec::Vec<i32>
-  35 B   4.29%   │ ╰╴c: (usize, alloc::string::String)
-   8 B   0.98%   │   ├╴0: usize
-  27 B   3.31%   │   ╰╴1: alloc::string::String
-   8 B   0.98%   ╰╴test: isize
+ 985 B 100.00% ⏺: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+  16 B   1.62% ├╴a: example::TestEnum
+               │ ├╴Variant: Unnamed
+   8 B   0.81% │ ├╴0: usize
+   1 B   0.10% │ ╰╴1: u8
+ 823 B  83.55% ├╴b: example::Data<alloc::vec::Vec<u8>>
+ 724 B  73.50% │ ├╴a: alloc::vec::Vec<u8>
+  64 B   6.50% │ ├╴b: alloc::vec::Vec<i32>
+  35 B   3.55% │ ╰╴c: (usize, alloc::string::String)
+   8 B   0.81% │   ├╴0: usize
+  27 B   2.74% │   ╰╴1: alloc::string::String
+   8 B   0.81% ├╴test: isize
+ 138 B  14.01% ╰╴s: std::collections::hash::set::HashSet<usize>
 ```
 If we add the flags [`DbgFlags::CAPACITY`] and [`DbgFlags::HUMANIZE`] it prints:
 ```text
 size:     815
 capacity: 1215
 
-1.215 kB 100.00% ⏺: (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
-    8  B   0.66% ├╴0: usize
-1.207 kB  99.34% ╰╴1: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-   16  B   1.32%   ├╴a: example::TestEnum
-                   │ ├╴Variant: Unnamed
-    8  B   0.66%   │ ├╴0: usize
-    1  B   0.08%   │ ╰╴1: u8
-1.183 kB  97.37%   ├╴b: example::Data<alloc::vec::Vec<u8>>
-  724  B  59.59%   │ ├╴a: alloc::vec::Vec<u8>
-  424  B  34.90%   │ ├╴b: alloc::vec::Vec<i32>
-   35  B   2.88%   │ ╰╴c: (usize, alloc::string::String)
-    8  B   0.66%   │   ├╴0: usize
-   27  B   2.22%   │   ╰╴1: alloc::string::String
-    8  B   0.66%   ╰╴test: isize
+2_407 B 100.00% ⏺: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+   16 B   0.66% ├╴a: example::TestEnum
+                │ ├╴Variant: Unnamed
+    8 B   0.33% │ ├╴0: usize
+    1 B   0.04% │ ╰╴1: u8
+1_183 B  49.15% ├╴b: example::Data<alloc::vec::Vec<u8>>
+  724 B  30.08% │ ├╴a: alloc::vec::Vec<u8>
+  424 B  17.62% │ ├╴b: alloc::vec::Vec<i32>
+   35 B   1.45% │ ╰╴c: (usize, alloc::string::String)
+    8 B   0.33% │   ├╴0: usize
+   27 B   1.12% │   ╰╴1: alloc::string::String
+    8 B   0.33% ├╴test: isize
+1_200 B  49.85% ╰╴s: std::collections::hash::set::HashSet<usize>
 ```
 If we use [`DbgFlags::empty()`] it prints:
 ```text
 size:     815
 capacity: 1215
 
-4815 B ⏺
-   8 B ├╴0
-4807 B ╰╴1
-  16 B  ├╴a
-        │├╴Variant: Unnamed
-   8 B  │├╴0
-   1 B  │╰╴1
-4783 B  ├╴b
- 724 B  │├╴a
-4024 B  │├╴b
-  35 B  │╰╴c
-   8 B  │ ├╴0
-  27 B  │ ╰╴1
-   8 B  ╰╴test
+985 B ⏺
+ 16 B ├╴a
+      │ ├╴Variant: Unnamed
+  8 B │ ├╴0
+  1 B │ ╰╴1
+823 B ├╴b
+724 B │ ├╴a
+ 64 B │ ├╴b
+ 35 B │ ╰╴c
+  8 B │   ├╴0
+ 27 B │   ╰╴1
+  8 B ├╴test
+138 B ╰╴s
 ```
 
 ## Caveats
