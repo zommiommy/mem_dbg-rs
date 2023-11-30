@@ -304,6 +304,8 @@ pub trait MemDbg: MemDbgImpl {
                 writer.write_char('├')?;
             }
             writer.write_char('╴')?;
+        } else {
+            writer.write_char(' ')?;
         }
 
         if let Some(field_name) = field_name {
