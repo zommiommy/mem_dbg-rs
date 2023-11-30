@@ -311,20 +311,21 @@ pub trait MemDbg: MemDbgImpl {
         }
 
         if flags.contains(DbgFlags::TYPE_NAME) {
-            writer.write_str(" : ")?;
+            writer.write_str(": ")?;
             writer.write_fmt(format_args!("{:}", core::any::type_name::<Self>()))?;
         }
 
         writer.write_char('\n')?;
 
         if is_last {
-            prefix.push(' ');
+            prefix.push_str("  ");
         } else {
-            prefix.push('│');
+            prefix.push_str("│ ");
         }
 
         self._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
 
+        prefix.pop();
         prefix.pop();
 
         Ok(())
