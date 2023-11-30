@@ -318,19 +318,12 @@ pub trait MemDbg: MemDbgImpl {
         writer.write_char('\n')?;
 
         if is_last {
-            prefix.push(' ' );
+            prefix.push(' ');
         } else {
             prefix.push('│');
         }
 
-        self._mem_dbg_rec_on(
-            writer,
-            total_size,
-            max_depth,
-            prefix,
-            is_last,
-            flags,
-        )?;
+        self._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
 
         prefix.pop();
 
