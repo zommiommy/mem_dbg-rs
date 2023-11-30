@@ -69,28 +69,28 @@ size: 4815
   724 B  15.04%  │├╴a : alloc::vec::Vec<u8>
 4_024 B  83.57%  │├╴b : alloc::vec::Vec<i32>
    35 B   0.73%  │╰╴c : (usize, alloc::string::String)
-    8 B   0.17%  ││├╴0 : usize
-   27 B   0.56%  ││╰╴1 : alloc::string::String
+    8 B   0.17%  │ ├╴0 : usize
+   27 B   0.56%  │ ╰╴1 : alloc::string::String
     8 B   0.17%  ╰╴test : isize
 ```
 If we use the flag [`DbgFlags::HUMANIZE`] it prints:
 ```text
 size: 4815
 
-4.815 KB100.00% ⏺ : (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
-     8 B   0.17% ├╴0 : usize
-4.807 KB 99.83% ╰╴1 : example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-    16 B   0.33%  ├╴a : example::TestEnum
-                  │├╴Variant: Unnamed
-     8 B   0.17%  │├╴0 : usize
-     1 B   0.02%  │╰╴1 : u8
-4.783 KB 99.34%  ├╴b : example::Data<alloc::vec::Vec<u8>>
-   724 B  15.04%  │├╴a : alloc::vec::Vec<u8>
-4.024 KB 83.57%  │├╴b : alloc::vec::Vec<i32>
-    35 B   0.73%  │╰╴c : (usize, alloc::string::String)
-     8 B   0.17%  ││├╴0 : usize
-    27 B   0.56%  ││╰╴1 : alloc::string::String
-     8 B   0.17%  ╰╴test : isize
+4.815 KB 100.00% ⏺ : (usize, example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>)
+     8 B   0.17%  ├╴0 : usize
+4.807 KB  99.83%  ╰╴1 : example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
+    16 B   0.33%   ├╴a : example::TestEnum
+                   │├╴Variant: Unnamed
+     8 B   0.17%   │├╴0 : usize
+     1 B   0.02%   │╰╴1 : u8
+4.783 KB  99.34%   ├╴b : example::Data<alloc::vec::Vec<u8>>
+   724 B  15.04%   │├╴a : alloc::vec::Vec<u8>
+4.024 KB  83.57%   │├╴b : alloc::vec::Vec<i32>
+    35 B   0.73%   │╰╴c : (usize, alloc::string::String)
+     8 B   0.17%   │ ├╴0 : usize
+    27 B   0.56%   │ ╰╴1 : alloc::string::String
+     8 B   0.17%   ╰╴test : isize
 ```
 If we use no flags it prints:
 ```text
@@ -107,8 +107,8 @@ size: 4815
  724 B  │├╴a
 4024 B  │├╴b
   35 B  │╰╴c
-   8 B  ││├╴0
-  27 B  ││╰╴1
+   8 B  │ ├╴0
+  27 B  │ ╰╴1
    8 B  ╰╴test
 ```
 
