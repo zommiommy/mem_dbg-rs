@@ -360,32 +360,35 @@ where
     }
 }
 
-// Add to the given size the space occupied on the stack by the hash set, by the
-// speedup bytes of Swiss Tables, and if `flags` contains `SizeFlags::CAPACITY`,
-// by empty buckets.
+// Add to the given size the space occupied on the stack by the hash set, by the unused
+// but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
+// `SizeFlags::CAPACITY`, by empty buckets.
 fn fix_set_for_capacity<K>(hash_set: &HashSet<K>, size: usize, flags: SizeFlags) -> usize {
-    if flags.contains(SizeFlags::CAPACITY) {
-        core::mem::size_of::<HashSet<K>>()
-            + size
-            + (capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX) - hash_set.len())
+    core::mem::size_of::<HashSet<K>>()
+        + size
+        + if flags.contains(SizeFlags::CAPACITY) {
+            (capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX) - hash_set.len())
                 * std::mem::size_of::<K>()
-            + capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX)
-                * std::mem::size_of::<u8>()
-    } else {
-        core::mem::size_of::<HashSet<K>>() + size + hash_set.len() * std::mem::size_of::<u8>()
-    }
+                + capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX)
+                    * std::mem::size_of::<u8>()
+        } else {
+            (capacity_to_buckets(hash_set.len()).unwrap_or(usize::MAX) - hash_set.len())
+                * std::mem::size_of::<K>()
+                + capacity_to_buckets(hash_set.len()).unwrap_or(usize::MAX)
+                    * std::mem::size_of::<u8>()
+        }
 }
 
 #[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<True> for HashSet<T> {
+impl<K: CopyType + MemSize> MemSizeHelper<True> for HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        fix_set_for_capacity(self, std::mem::size_of::<T>() * self.len(), flags)
+        fix_set_for_capacity(self, std::mem::size_of::<K>() * self.len(), flags)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<T: CopyType + MemSize> MemSizeHelper<False> for HashSet<T> {
+impl<K: CopyType + MemSize> MemSizeHelper<False> for HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_set_for_capacity(
@@ -415,20 +418,23 @@ where
     }
 }
 
-// Add to the given size the space occupied on the stack by the hash map, by the
-// speedup bytes of Swiss Tables, and if `flags` contains `SizeFlags::CAPACITY`,
-// by empty buckets.
+// Add to the given size the space occupied on the stack by the hash map, by the unused
+// but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
+// `SizeFlags::CAPACITY`, by empty buckets.
 fn fix_map_for_capacity<K, V>(hash_map: &HashMap<K, V>, size: usize, flags: SizeFlags) -> usize {
-    if flags.contains(SizeFlags::CAPACITY) {
-        core::mem::size_of::<HashSet<K>>()
-            + size
-            + (capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX) - hash_map.len())
+    core::mem::size_of::<HashSet<K>>()
+        + size
+        + if flags.contains(SizeFlags::CAPACITY) {
+            (capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX) - hash_map.len())
                 * (std::mem::size_of::<K>() + std::mem::size_of::<V>())
-            + capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX)
-                * std::mem::size_of::<u8>()
-    } else {
-        core::mem::size_of::<HashSet<K>>() + size + hash_map.len() * std::mem::size_of::<u8>()
-    }
+                + capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX)
+                    * std::mem::size_of::<u8>()
+        } else {
+            (capacity_to_buckets(hash_map.len()).unwrap_or(usize::MAX) - hash_map.len())
+                * (std::mem::size_of::<K>() + std::mem::size_of::<V>())
+                + capacity_to_buckets(hash_map.len()).unwrap_or(usize::MAX)
+                    * std::mem::size_of::<u8>()
+        }
 }
 
 #[cfg(feature = "alloc")]
