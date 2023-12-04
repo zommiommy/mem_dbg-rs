@@ -4,4 +4,6 @@ resolver = "2"
 members = [
     "mem_dbg-derive",
     "mem_dbg",
+    "mem_dbg/examples/bench_hash_map"
 ]
+
