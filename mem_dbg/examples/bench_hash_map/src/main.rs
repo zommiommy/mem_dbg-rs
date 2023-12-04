@@ -18,21 +18,21 @@ fn main() {
         m.insert(i, i);
     }
 
-    println!("Allocated: {}", ALLOCATOR.allocated());
+    println!("Allocated:    {}", ALLOCATOR.allocated());
 
     let start = Instant::now();
     let size = m.get_size();
-    println!("get_size: {} {:?}", size, start.elapsed());
+    println!("get_size:     {} {:?} ns", size, start.elapsed().as_nanos());
 
     let start = Instant::now();
     let size = m.deep_size_of();
-    println!("deep_size_of: {} {:?}", size, start.elapsed());
+    println!("deep_size_of: {} {:?} ns", size, start.elapsed().as_nanos());
 
     let start = Instant::now();
     let size = m.size_of().total_bytes();
-    println!("size_of: {} {:?}", size, start.elapsed());
+    println!("size_of:      {} {:?} ns", size, start.elapsed().as_nanos());
 
     let start = Instant::now();
     let size = m.mem_size(SizeFlags::default());
-    println!("mem_size: {} {:?}", size, start.elapsed());
+    println!("mem_size:     {} {:?} ns", size, start.elapsed().as_nanos());
 }
