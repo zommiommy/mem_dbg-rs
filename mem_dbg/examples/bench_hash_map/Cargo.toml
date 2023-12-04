@@ -1,5 +1,6 @@
 [package]
 name = "bench_hash_map"
+description = "A simple benchmark showing the output and performance of a few crates tracking heap usage of a value"
 version = "0.1.0"
 edition = "2021"
 

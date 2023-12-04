@@ -3,19 +3,36 @@
 Traits and associated procedural macros to display recursively the layout and memory usage of a value.
 
 The trait [`MemDbg`] can be used to display the recursive layout of a value, together with the size of each part. We provide
-implementations from for most basic types, and a derive macro for structs and enums whose fields implement [`MemDbg`].
+implementations for most basic types and a derive macro for structs and enums whose fields implement [`MemDbg`].
 
-To compute the size, we provide the trait [`MemSize`] and a derive macro that can be used to compute the size of a value in bytes.
-The standard library function [`std::mem::size_of`] returns the stack size of a type in bytes, but
-it does not take into consideration heap memory: [`MemSize`]
-is a trait and associated 
-associated procedural macro that perform this task, with options
-to take into account size or capacity, and to optionally follow references.
+To compute the size, we provide the trait [`MemSize`] and a derive macro that can be used to compute the size of a value in bytes
+as the standard library function [`std::mem::size_of`] returns the stack size of a type in bytes, but
+it does not take into consideration heap memory.
 
-Note that other traits partially provide the functionality of [`MemSize`], but either they require to implement manually a trait,
-which is prone to error, or do not provide the flexibility necessary
+# Why `MemSize`
+
+Other traits partially provide the functionality of [`MemSize`], but either they require 
+implementing manually a trait, which is prone to error, or they do not provide the flexibility necessary
 for [`MemDbg`]. Most importantly, [`MemSize`] uses the type system
-to avoid iterating over the content of a container (a vector, etc.) when it is not necessary, making it possible to compute instantly the size of values occupying hundreds of gigabytes of heap memory.
+to avoid iterating over the content of a container (a vector, etc.) when it is not necessary, making it possible to 
+compute instantly the size of values occupying hundreds of gigabytes of heap memory.
+
+This is the result of the benchmark `bench_hash_map` contained in the `examples` directory. It builds a hash map
+with a hundred million entries and then measure its heap size:
+```test
+Allocated:    2281701509
+get_size:     1879048240 152477833 ns
+deep_size_of: 1879048240 152482000 ns
+size_of:      2281701432 152261958 ns
+mem_size:     2281701424 209 ns
+```
+The first line is the number of bytes allocated by the program as returned by [`cap`](https:/crates.io/crates/cap).
+Then, we display the result of [`get-size`](https://crates.io/crates/get_size), [`deepsize`](https://crates.io/crates/deepsize), 
+[`size-of`](https://crates.io/crates/size_of), and our own [`MemSize`]. Note that the first two crates are just measuring the
+space used by the items, and not by the data structure (i.e., they are not taking into account the load factor and the power-of-two size
+constraint of the hash map). Moreover, all other crates are about six orders of magnitude slower than our implementation, due to
+the necessity to iterate over all elements.
+
 
 ## Example
 ```rust
@@ -134,5 +151,5 @@ capacity: 1215
 * The content of vectors and slices is not expanded recursively as the output might be too 
   complex; this might change in the future (e.g., via a flag) should interesting use cases arise.
 
-* `HashMaps`, `HashSet`, `BTreeMap`, and `BTreeSet`, are not currently supported as we still 
+* `BTreeMap`, and `BTreeSet`, are not currently supported as we still 
   have to figure out a way to precisely measure their memory size and capacity.
