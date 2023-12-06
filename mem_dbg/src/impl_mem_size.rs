@@ -488,3 +488,47 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False> 
         )
     }
 }
+
+impl<H> CopyType for core::hash::BuildHasherDefault<H> {
+    type Copy = True;
+}
+impl<H> MemSize for core::hash::BuildHasherDefault<H> {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        // it's a phantom hash
+        debug_assert_eq!(core::mem::size_of::<Self>(), 0);
+        0
+    }
+}
+
+#[cfg(feature = "std")]
+impl CopyType for std::collections::hash_map::RandomState {
+    type Copy = True;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::collections::hash_map::RandomState {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+impl CopyType for core::alloc::Layout {
+    type Copy = True;
+}
+impl MemSize for core::alloc::Layout {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+impl<T: ?Sized> CopyType for core::ptr::NonNull<T> {
+    type Copy = True;
+}
+impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
