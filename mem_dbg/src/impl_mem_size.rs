@@ -198,7 +198,7 @@ where
 impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
     #[inline(always)]
     fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
+        core::mem::size_of::<Self>()
     }
 }
 

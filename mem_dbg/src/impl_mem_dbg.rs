@@ -193,3 +193,22 @@ impl MemDbgImpl for mmap_rs::Mmap {}
 
 #[cfg(feature = "mmap_rs")]
 impl MemDbgImpl for mmap_rs::MmapMut {}
+
+impl<H> MemDbgImpl for core::hash::BuildHasherDefault<H> {
+    // it's a phantom data so no recursion
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::collections::hash_map::RandomState {
+    // it's two u64s, but they are private so can't recurse
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for core::alloc::Layout {
+    // Layout is size + align, but align is unstable so we can't recurse
+    // on that, nor implement memdbg or memsize for that :)
+}
+
+impl<T: ?Sized> MemDbgImpl for core::ptr::NonNull<T> {
+    // no recursion because we don't follow pointers
+}
