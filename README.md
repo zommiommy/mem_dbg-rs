@@ -1,5 +1,11 @@
 # mem_dbg
 
+[![downloads](https://img.shields.io/crates/d/mem_dbg)](https://crates.io/crates/mem_dbg)
+[![dependents](https://img.shields.io/librariesio/dependents/cargo/mem_dbg)](https://crates.io/crates/mem_dbg/reverse_dependencies)
+![GitHub CI](https://github.com/zommiommy/mem_dbg-rs/actions/workflows/rust.yml/badge.svg)
+![license](https://img.shields.io/crates/l/mem_dbg)
+[![](https://tokei.rs/b1/github/zommiommy/mem_dbg-rs?type=Rust,Python)](https://github.com/zommiommy/mem_dbg-rs)
+
 Traits and associated procedural macros to display recursively the layout and memory usage of a value.
 
 The trait [`MemDbg`] can be used to display the recursive layout of a value, together with the size of each part. We provide
