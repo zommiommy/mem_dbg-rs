@@ -17,14 +17,15 @@ it does not take into consideration heap memory.
 
 # Why `MemSize`
 
-Other traits partially provide the functionality of [`MemSize`], but either they require 
+Other traits partially provide the functionality of [`MemSize`], but either they require
 implementing manually a trait, which is prone to error, or they do not provide the flexibility necessary
 for [`MemDbg`]. Most importantly, [`MemSize`] uses the type system
-to avoid iterating over the content of a container (a vector, etc.) when it is not necessary, making it possible to 
+to avoid iterating over the content of a container (a vector, etc.) when it is not necessary, making it possible to
 compute instantly the size of values occupying hundreds of gigabytes of heap memory.
 
 This is the result of the benchmark `bench_hash_map` contained in the `examples` directory. It builds a hash map
 with a hundred million entries and then measure its heap size:
+
 ```test
 Allocated:    2281701509
 get_size:     1879048240 152477833 ns
@@ -32,15 +33,16 @@ deep_size_of: 1879048240 152482000 ns
 size_of:      2281701432 152261958 ns
 mem_size:     2281701424 209 ns
 ```
+
 The first line is the number of bytes allocated by the program as returned by [`cap`](https:/crates.io/crates/cap).
-Then, we display the result of [`get-size`](https://crates.io/crates/get_size), [`deepsize`](https://crates.io/crates/deepsize), 
+Then, we display the result of [`get-size`](https://crates.io/crates/get_size), [`deepsize`](https://crates.io/crates/deepsize),
 [`size-of`](https://crates.io/crates/size_of), and our own [`MemSize`]. Note that the first two crates are just measuring the
 space used by the items, and not by the data structure (i.e., they are not taking into account the load factor and the power-of-two size
 constraint of the hash map). Moreover, all other crates are about six orders of magnitude slower than our implementation, due to
 the necessity to iterate over all elements.
 
-
 ## Example
+
 ```rust
 use mem_dbg::*;
 
@@ -86,6 +88,7 @@ s.mem_dbg(DbgFlags::default()).unwrap();
 ```
 
 The previous program prints:
+
 ```text
 size:     815
 capacity: 1215
@@ -104,7 +107,9 @@ capacity: 1215
    8 B   0.81% ├╴test: isize
  138 B  14.01% ╰╴s: std::collections::hash::set::HashSet<usize>
 ```
+
 If we add the flags [`DbgFlags::CAPACITY`] and [`DbgFlags::HUMANIZE`] it prints:
+
 ```text
 size:     815
 capacity: 1215
@@ -123,7 +128,9 @@ capacity: 1215
     8 B   0.33% ├╴test: isize
 1_200 B  49.85% ╰╴s: std::collections::hash::set::HashSet<usize>
 ```
+
 If we use [`DbgFlags::empty()`] it prints:
+
 ```text
 size:     815
 capacity: 1215
@@ -145,7 +152,7 @@ capacity: 1215
 
 ## Caveats
 
-* We support out-of-the-box most basic types, and tuples up to size ten. The derive macros 
+* We support out-of-the-box most basic types, and tuples up to size ten. The derive macros
   `MemSize`/`MemDbg` will generate
   implementations for structs and enums whose fields implement the associated interface: if this is not
   the case (e.g., because of the orphan rule) one can implement the traits manually.
@@ -154,8 +161,16 @@ capacity: 1215
   unless the type is a copy type that does not contain references and it is declared as such using
   the attribute `#[copy_type]`. See [`CopyType`] for more details.
 
-* The content of vectors and slices is not expanded recursively as the output might be too 
+* The content of vectors and slices is not expanded recursively as the output might be too
   complex; this might change in the future (e.g., via a flag) should interesting use cases arise.
 
-* `BTreeMap`, and `BTreeSet`, are not currently supported as we still 
+* `BTreeMap`, and `BTreeSet`, are not currently supported as we still
   have to figure out a way to precisely measure their memory size and capacity.
+
+[`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
+[`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html
+[`std::mem::size_of`]: https://doc.rust-lang.org/std/mem/fn.size_of.html
+[`DbgFlags::CAPACITY`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.CAPACITY
+[`DbgFlags::HUMANIZE`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.HUMANIZE
+[`DbgFlags::empty()`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#method.empty
+[`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
