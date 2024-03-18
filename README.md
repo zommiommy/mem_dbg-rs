@@ -5,6 +5,8 @@
 ![GitHub CI](https://github.com/zommiommy/mem_dbg-rs/actions/workflows/rust.yml/badge.svg)
 ![license](https://img.shields.io/crates/l/mem_dbg)
 [![](https://tokei.rs/b1/github/zommiommy/mem_dbg-rs?type=Rust,Python)](https://github.com/zommiommy/mem_dbg-rs)
+[![Latest version](https://img.shields.io/crates/v/mem_dbg.svg)](https://crates.io/crates/mem_dbg)
+[![Documentation](https://docs.rs/mem_dbg/badge.svg)](https://docs.rs/mem_dbg)
 
 Traits and associated procedural macros to display recursively the layout and memory usage of a value.
 
