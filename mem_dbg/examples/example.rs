@@ -40,7 +40,7 @@ struct Data<A> {
     c: (usize, String),
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut b = Vec::with_capacity(100);
     b.extend(0..10);
     let mut s = HashSet::with_capacity(100);
@@ -65,36 +65,37 @@ fn main() {
 
     println!("DbgFlags::default():");
     println!();
-    s.mem_dbg(DbgFlags::default()).unwrap();
+    s.mem_dbg(DbgFlags::default())?;
 
     println!();
 
     println!("DbgFlags::default() | DbgFlags::CAPACITY:");
     println!();
-    s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY).unwrap();
+    s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY)?;
 
     println!();
 
     println!("DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE:");
     println!();
-    s.mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE).unwrap();
+    s.mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE)?;
 
     println!();
 
     println!("DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE:");
     println!();
-    s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)
-        .unwrap();
+    s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
     println!();
 
     println!("DbgFlags::empty():");
     println!();
-    s.mem_dbg(DbgFlags::empty()).unwrap();
+    s.mem_dbg(DbgFlags::empty())?;
 
     println!();
 
     println!("DbgFlags::HUMANIZE:");
     println!();
-    s.mem_dbg(DbgFlags::HUMANIZE).unwrap();
+    s.mem_dbg(DbgFlags::HUMANIZE)?;
+
+    Ok(())
 }

@@ -34,9 +34,9 @@ size_of:      2281701432 152261958 ns
 mem_size:     2281701424 209 ns
 ```
 
-The first line is the number of bytes allocated by the program as returned by [`cap`](https:/crates.io/crates/cap).
-Then, we display the result of [`get-size`](https://crates.io/crates/get_size), [`deepsize`](https://crates.io/crates/deepsize),
-[`size-of`](https://crates.io/crates/size_of), and our own [`MemSize`]. Note that the first two crates are just measuring the
+The first line is the number of bytes allocated by the program as returned by [`cap`].
+Then, we display the result of [`get-size`], [`deepsize`],
+[`size-of`], and our own [`MemSize`]. Note that the first two crates are just measuring the
 space used by the items, and not by the data structure (i.e., they are not taking into account the load factor and the power-of-two size
 constraint of the hash map). Moreover, all other crates are about six orders of magnitude slower than our implementation, due to
 the necessity to iterate over all elements.
@@ -44,6 +44,7 @@ the necessity to iterate over all elements.
 ## Example
 
 ```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 use mem_dbg::*;
 
 #[derive(MemSize, MemDbg)]
@@ -84,7 +85,9 @@ let s = Struct {
 println!("size:     {}", s.mem_size(SizeFlags::default()));
 println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
 
-s.mem_dbg(DbgFlags::default()).unwrap();
+s.mem_dbg(DbgFlags::default())?;
+# Ok(())
+# }
 ```
 
 The previous program prints:
@@ -174,3 +177,7 @@ capacity: 1215
 [`DbgFlags::HUMANIZE`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.HUMANIZE
 [`DbgFlags::empty()`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#method.empty
 [`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
+[`cap`]: (https:/crates.io/crates/cap)
+[`get-size`]: (https://crates.io/crates/get_size)
+[`deepsize`]: (https://crates.io/crates/deepsize)
+[`size-of`]: (https://crates.io/crates/size_of)
