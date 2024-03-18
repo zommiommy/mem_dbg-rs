@@ -1,7 +1,8 @@
+# Change Log
 
-  # Change Log
+## [0.1.4] - 2024-03-18
 
-  ## [0.1.4] - 2024-03-18
+### Changed
 
-  ### Changed
-  * Removed `.unwrap()` from the examples
+* Removed `.unwrap()` from the examples.
+
