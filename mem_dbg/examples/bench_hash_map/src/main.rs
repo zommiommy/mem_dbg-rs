@@ -1,7 +1,6 @@
 use cap::Cap;
 use deepsize::*;
 use get_size::*;
-use mem_dbg::SizeFlags;
 use mem_dbg::*;
 use size_of::*;
 use std::alloc;
