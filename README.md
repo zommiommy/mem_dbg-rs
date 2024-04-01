@@ -88,6 +88,9 @@ println!("size:     {}", s.mem_size(SizeFlags::default()));
 println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
 
 s.mem_dbg(DbgFlags::default())?;
+// Different flags can be combinated
+// s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
+
 # Ok(())
 # }
 ```

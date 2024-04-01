@@ -104,6 +104,26 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
     }
 }
 
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::sync::Arc;
+#[cfg(feature = "std")]
+use std::sync::Arc;
+#[cfg(feature = "alloc")]
+impl<T: MemDbgImpl> MemDbgImpl for Arc<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.as_ref()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
 // Slices
 
 impl<T: CopyType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as CopyType>::Copy> {}

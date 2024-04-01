@@ -138,6 +138,18 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
     }
 }
 
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::sync::Arc;
+#[cfg(feature = "std")]
+use std::sync::Arc;
+#[cfg(feature = "alloc")]
+impl<T: MemSize> MemSize for Arc<T> {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + self.as_ref().mem_size(flags)
+    }
+}
+
 /// A helper trait that makes it possible to implement differently
 /// the size computation for arrays, vectors, and slices of
 /// [`Copy`] types.
