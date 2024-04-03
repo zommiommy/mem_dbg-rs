@@ -86,6 +86,12 @@ bitflags::bitflags! {
         ///
         /// By default [`MemSize::mem_size`] does not follow references
         /// and computes only the size of the reference itself.
+        ///
+        /// # Warning
+        ///
+        /// Note that all references are followed independently. If the
+        /// same region of memory is reachable by two different paths,
+        /// it will be counted twice.
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///
