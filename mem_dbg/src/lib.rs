@@ -67,8 +67,8 @@ exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
 
 If you use the provided derive macros all this logic will be hidden from you. You'll
 just have to add the attribute `#[copy_type]` to your structures if they
-are [`Copy`] types and they do not contain references. We enforced this property by
-adding a bound `Copy + 'static` to the type.
+are [`Copy`] types and they do not contain references. We enforce this property by
+adding a bound `Copy + 'static` to the type in the procedural macro.
 
 Note that this approach forces us to compute the size of [`Copy`] types that contain
 references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
