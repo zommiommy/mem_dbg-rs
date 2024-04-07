@@ -591,6 +591,105 @@ impl MemSize for std::ffi::OsString {
     }
 }
 
+#[cfg(feature = "std")]
+impl CopyType for std::fs::File {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::fs::File {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl CopyType for std::fs::OpenOptions {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::fs::OpenOptions {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl CopyType for std::fs::Metadata {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::fs::Metadata {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl CopyType for std::fs::FileTimes {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::fs::FileTimes {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl CopyType for std::fs::FileType {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::fs::FileType {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl CopyType for std::fs::Permissions {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl MemSize for std::fs::Permissions {
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemSize + std::io::Read> CopyType for std::io::BufReader<T> {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + self.get_ref().mem_size(flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemSize + std::io::Write> CopyType for std::io::BufWriter<T> {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + self.get_ref().mem_size(flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T> CopyType for std::io::Cursor<T> {
+    type Copy = False;
+}
+#[cfg(feature = "std")]
+impl<T: MemSize> MemSize for std::io::Cursor<T> {
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + self.get_ref().mem_size(flags)
+    }
+}
+
 #[cfg(feature = "mmap_rs")]
 impl CopyType for mmap_rs::Mmap {
     type Copy = False;

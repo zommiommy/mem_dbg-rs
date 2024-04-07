@@ -502,6 +502,72 @@ impl MemDbgImpl for std::ffi::OsString {
     // cannot recourse
 }
 
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::fs::File {}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::fs::OpenOptions {}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::fs::Metadata {}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::fs::FileTimes {}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::fs::FileType {}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::fs::Permissions {}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl + std::io::Read> MemDbgImpl for std::io::BufReader<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.get_ref()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl + std::io::Write> MemDbgImpl for std::io::BufWriter<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.get_ref()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::io::Cursor<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.get_ref()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
 #[cfg(feature = "maligned")]
 impl MemDbgImpl for maligned::A2 {}
 #[cfg(feature = "maligned")]
