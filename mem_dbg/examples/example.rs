@@ -97,12 +97,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     s.mem_dbg(DbgFlags::HUMANIZE)?;
 
-	let s = Struct {
-		a: 0_u8,
-		b: 0_u8,
-		test: 1,
-		h: HashSet::new()
-	};
+    let s = Struct {
+        a: 0_u8,
+        b: 0_u8,
+        test: 1,
+        h: HashSet::new(),
+    };
 
     println!();
 
@@ -115,7 +115,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("DbgFlags::PADDING");
     println!();
     s.mem_dbg(DbgFlags::PADDING)?;
-
 
     Ok(())
 }
