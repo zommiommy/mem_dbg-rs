@@ -501,3 +501,37 @@ impl MemDbgImpl for std::ffi::OsStr {
 impl MemDbgImpl for std::ffi::OsString {
     // cannot recourse
 }
+
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A2 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A4 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A8 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A16 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A32 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A64 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A128 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A256 {}
+#[cfg(feature = "maligned")]
+impl MemDbgImpl for maligned::A512 {}
+#[cfg(feature = "maligned")]
+impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.deref()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}

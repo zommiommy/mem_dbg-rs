@@ -827,3 +827,73 @@ impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
         core::mem::size_of::<Self>()
     }
 }
+
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A2 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A4 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A8 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A16 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A32 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A64 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A128 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A256 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl MemSize for maligned::A512 {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        self.0.mem_size(flags)
+    }
+}
+#[cfg(feature = "maligned")]
+impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + self.deref().mem_size(flags)
+    }
+}
