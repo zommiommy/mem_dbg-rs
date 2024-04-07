@@ -330,14 +330,14 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
                         let mut _memdbg_digits_number = mem_dbg::utils::n_of_digits(_memdbg_total_size);
-                        if _memdbg_flags.contains(DbgFlags::SEPARATOR) {
+                        if _memdbg_flags.contains(mem_dbg::DbgFlags::SEPARATOR) {
                             _memdbg_digits_number += _memdbg_digits_number / 3;
                         }
-                        if _memdbg_flags.contains(DbgFlags::HUMANIZE) {
+                        if _memdbg_flags.contains(mem_dbg::DbgFlags::HUMANIZE) {
                             _memdbg_digits_number = 6;
                         }
 
-                        if _memdbg_flags.contains(DbgFlags::PERCENTAGE) {
+                        if _memdbg_flags.contains(mem_dbg::DbgFlags::PERCENTAGE) {
                             _memdbg_digits_number += 8;
                         }
 

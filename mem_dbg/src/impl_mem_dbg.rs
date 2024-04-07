@@ -8,6 +8,7 @@
 
 use core::marker::PhantomPinned;
 use core::num::*;
+use core::ops::Deref;
 use core::{marker::PhantomData, sync::atomic::*};
 use std::collections::{HashMap, HashSet};
 
@@ -200,6 +201,13 @@ impl_tuples_muncher!(
     (0 => T0),
 );
 
+// function pointers cannot recourse
+impl<R> MemDbgImpl for fn() -> R {}
+impl<A, R> MemDbgImpl for fn(A) -> R {}
+impl<A, B, R> MemDbgImpl for fn(A, B) -> R {}
+impl<A, B, C, R> MemDbgImpl for fn(A, B, C) -> R {}
+impl<A, B, C, D, R> MemDbgImpl for fn(A, B, C, D) -> R {}
+
 // Hash-based containers from the standard library
 
 impl<K: CopyType> MemDbgImpl for HashSet<K> where HashSet<K>: MemSizeHelper<<K as CopyType>::Copy> {}
@@ -229,6 +237,267 @@ impl MemDbgImpl for core::alloc::Layout {
     // on that, nor implement memdbg or memsize for that :)
 }
 
+impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::Range<Idx> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.start
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
+        self.end
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeFrom<Idx> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.start
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeInclusive<Idx> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.start()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
+        self.end()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeTo<Idx> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.end
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeToInclusive<Idx> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.end
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
 impl<T: ?Sized> MemDbgImpl for core::ptr::NonNull<T> {
     // no recursion because we don't follow pointers
+}
+
+#[cfg(feature = "rand")]
+impl MemDbgImpl for rand::rngs::SmallRng {
+    // it's a struct with 4 u64, but it's private so we can't recurse
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.borrow()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        unsafe {
+            (*self.as_ptr())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+        }
+    }
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        unsafe {
+            (*self.get())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.lock()
+            .unwrap()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.read()
+            .unwrap()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::cell::OnceCell<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self.get()
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
+            self.deref()
+                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockReadGuard<'_, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
+            self.deref()
+                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
+            self.deref()
+                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::path::Path {
+    // cannot recourse
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::path::PathBuf {
+    // cannot recourse
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::ffi::OsStr {
+    // cannot recourse
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for std::ffi::OsString {
+    // cannot recourse
 }

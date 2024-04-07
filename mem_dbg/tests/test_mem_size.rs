@@ -321,3 +321,40 @@ fn test_phantom() {
         .mem_dbg(DbgFlags::default())
         .unwrap();
 }
+
+#[test]
+fn test_vec_strings() {
+    let data = vec![String::new(), String::new()];
+    data.mem_dbg(DbgFlags::default()).unwrap();
+}
+
+#[test]
+fn test_array_u8() {
+    let data = [0_u8; 10];
+    data.mem_dbg(DbgFlags::default()).unwrap();
+}
+
+#[test]
+fn test_array() {
+    #[derive(MemSize, MemDbg, Clone, Copy)]
+    struct Dummy;
+    let data = [Dummy; 10];
+    data.mem_dbg(DbgFlags::default()).unwrap();
+}
+
+#[test]
+fn test_indirect_call() {
+    #[derive(MemSize, MemDbg)]
+    struct Dummy<T>(Vec<T>);
+
+    fn test<T>(data: Vec<T>)
+    where
+        // this is needed because the type system is not smart enough to infer it
+        Vec<T>: MemSize + MemDbgImpl,
+    {
+        let data = Dummy(data);
+        data.mem_dbg(DbgFlags::default()).unwrap();
+    }
+
+    test(vec![1, 2, 3, 4, 5]);
+}
