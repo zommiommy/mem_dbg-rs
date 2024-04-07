@@ -5,3 +5,10 @@
 ### Improved
 
 * Many new implementations for standard types such as RefCell.
+
+## [0.1.4] - 2024-03-18
+
+### Changed
+
+* Removed `.unwrap()` from the examples.
+
