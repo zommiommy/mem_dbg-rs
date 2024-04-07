@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.7] - 2024-04-07
+
+### Improved
+
+* Added missing CopyTypes for maligned types
+
 ## [0.1.6] - 2024-04-07
 
 ### Improved

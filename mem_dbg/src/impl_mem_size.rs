@@ -938,11 +938,19 @@ impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
 }
 
 #[cfg(feature = "maligned")]
+impl CopyType for maligned::A2 {
+    type Copy = True;
+}
+#[cfg(feature = "maligned")]
 impl MemSize for maligned::A2 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         self.0.mem_size(flags)
     }
+}
+#[cfg(feature = "maligned")]
+impl CopyType for maligned::A4 {
+    type Copy = True;
 }
 #[cfg(feature = "maligned")]
 impl MemSize for maligned::A4 {
@@ -952,11 +960,19 @@ impl MemSize for maligned::A4 {
     }
 }
 #[cfg(feature = "maligned")]
+impl CopyType for maligned::A8 {
+    type Copy = True;
+}
+#[cfg(feature = "maligned")]
 impl MemSize for maligned::A8 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         self.0.mem_size(flags)
     }
+}
+#[cfg(feature = "maligned")]
+impl CopyType for maligned::A16 {
+    type Copy = True;
 }
 #[cfg(feature = "maligned")]
 impl MemSize for maligned::A16 {
@@ -966,11 +982,19 @@ impl MemSize for maligned::A16 {
     }
 }
 #[cfg(feature = "maligned")]
+impl CopyType for maligned::A32 {
+    type Copy = True;
+}
+#[cfg(feature = "maligned")]
 impl MemSize for maligned::A32 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         self.0.mem_size(flags)
     }
+}
+#[cfg(feature = "maligned")]
+impl CopyType for maligned::A64 {
+    type Copy = True;
 }
 #[cfg(feature = "maligned")]
 impl MemSize for maligned::A64 {
@@ -980,11 +1004,19 @@ impl MemSize for maligned::A64 {
     }
 }
 #[cfg(feature = "maligned")]
+impl CopyType for maligned::A128 {
+    type Copy = True;
+}
+#[cfg(feature = "maligned")]
 impl MemSize for maligned::A128 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         self.0.mem_size(flags)
     }
+}
+#[cfg(feature = "maligned")]
+impl CopyType for maligned::A256 {
+    type Copy = True;
 }
 #[cfg(feature = "maligned")]
 impl MemSize for maligned::A256 {
@@ -994,11 +1026,19 @@ impl MemSize for maligned::A256 {
     }
 }
 #[cfg(feature = "maligned")]
+impl CopyType for maligned::A512 {
+    type Copy = True;
+}
+#[cfg(feature = "maligned")]
 impl MemSize for maligned::A512 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         self.0.mem_size(flags)
     }
+}
+#[cfg(feature = "maligned")]
+impl<A: maligned::Alignment, T: MemSize> CopyType for maligned::Aligned<A, T> {
+    type Copy = True;
 }
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
