@@ -216,10 +216,10 @@ impl<K: CopyType, V: CopyType> MemDbgImpl for HashMap<K, V> where
 {
 }
 
-#[cfg(feature = "mmap_rs")]
+#[cfg(feature = "mmap-rs")]
 impl MemDbgImpl for mmap_rs::Mmap {}
 
-#[cfg(feature = "mmap_rs")]
+#[cfg(feature = "mmap-rs")]
 impl MemDbgImpl for mmap_rs::MmapMut {}
 
 impl<H> MemDbgImpl for core::hash::BuildHasherDefault<H> {

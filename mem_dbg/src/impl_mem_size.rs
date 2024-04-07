@@ -690,11 +690,11 @@ impl<T: MemSize> MemSize for std::io::Cursor<T> {
     }
 }
 
-#[cfg(feature = "mmap_rs")]
+#[cfg(feature = "mmap-rs")]
 impl CopyType for mmap_rs::Mmap {
     type Copy = False;
 }
-#[cfg(feature = "mmap_rs")]
+#[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::Mmap {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
@@ -707,11 +707,11 @@ impl MemSize for mmap_rs::Mmap {
     }
 }
 
-#[cfg(feature = "mmap_rs")]
+#[cfg(feature = "mmap-rs")]
 impl CopyType for mmap_rs::MmapMut {
     type Copy = False;
 }
-#[cfg(feature = "mmap_rs")]
+#[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::MmapMut {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {

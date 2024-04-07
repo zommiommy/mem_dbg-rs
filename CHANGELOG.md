@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.8] - 2024-04-07
+
+### Improved
+
+* Fixed cfgs for mmap-rs because it could not be enabled
+
 ## [0.1.7] - 2024-04-07
 
 ### Improved
