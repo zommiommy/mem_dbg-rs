@@ -30,7 +30,7 @@ struct Struct<A, B> {
     a: A,
     b: B,
     test: isize,
-    s: HashSet<usize>,
+    h: HashSet<usize>,
 }
 
 #[derive(MemSize, MemDbg)]
@@ -43,8 +43,8 @@ struct Data<A> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut b = Vec::with_capacity(100);
     b.extend(0..10);
-    let mut s = HashSet::with_capacity(100);
-    s.extend(0..10);
+    let mut h = HashSet::with_capacity(100);
+    h.extend(0..10);
 
     let s = Struct {
         a: TestEnum::Unnamed(0, 16),
@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             c: (1, "foo".to_owned()),
         },
         test: -0xbadf00d,
-        s,
+        h,
     };
 
     // print the size in bytes of the value
@@ -96,6 +96,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("DbgFlags::HUMANIZE:");
     println!();
     s.mem_dbg(DbgFlags::HUMANIZE)?;
+
+	let s = Struct {
+		a: 0_u8,
+		b: 0_u8,
+		test: 1,
+		h: HashSet::new()
+	};
+
+    println!();
+
+    println!("DbgFlags::empty()");
+    println!();
+    s.mem_dbg(DbgFlags::empty())?;
+
+    println!();
+
+    println!("DbgFlags::PADDING");
+    println!();
+    s.mem_dbg(DbgFlags::PADDING)?;
+
 
     Ok(())
 }

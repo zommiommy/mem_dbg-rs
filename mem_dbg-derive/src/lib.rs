@@ -189,7 +189,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
     match input.data {
         Data::Struct(s) => {
-            let code = s
+            let (id_offset_pushes, match_code): (Vec::<_>, Vec::<_>) = s
                 .fields
                 .iter()
                 .enumerate()
@@ -200,7 +200,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         .map(|t| t.to_token_stream())
                         .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream());
 
-                    let fields_str = field
+                    let field_str = field
                         .ident
                         .to_owned()
                         .map(|t| t.to_string().to_token_stream())
@@ -211,10 +211,19 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         .predicates
                         .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
 
-                    let is_last = field_idx == s.fields.len().saturating_sub(1);
-                    quote!{self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#fields_str), #is_last, _memdbg_flags)?;}
-                })
-                .collect::<Vec<_>>();
+                    // For each field we generate a pair of pieces of code: the
+                    // first element pushes the field index and its offset in
+                    // the id_offsets vector, whereas the second element is the
+                    // arm of the match statement that invokes mem_dbg_depth_on
+                    // on the field.
+                    (quote!{
+                        id_offsets.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #field_ident)));
+                    },
+                    quote!{
+                        #field_idx => self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_str), i == n - 1, id_offsets[i+1].1.wrapping_sub(*offset_of), _memdbg_flags)?,
+                    })
+                }).unzip();
+                
 
             quote! {
                 #[automatically_derived]
@@ -229,7 +238,23 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
-                        #(#code)*
+                        let padding = _memdbg_flags.contains(mem_dbg::DbgFlags::PADDING);
+                        let mut id_offsets: Vec<(usize, usize)> = vec![];
+                        #(#id_offset_pushes)*
+                        let n = id_offsets.len();
+                        id_offsets.push((n, core::mem::size_of::<Self>()));
+                        // If we need to compute padding, we sort the fields by offset.
+                        if  padding {
+                            id_offsets.sort_by_key(|x| x.1);
+                        }
+                        let mut last_offset = 0;
+
+                        for (i, (field_idx, offset_of)) in id_offsets.iter().enumerate().take(n) {
+                            match field_idx {
+                                #(#match_code)*
+                                _ => unreachable!(),
+                            }
+                        }
                         Ok(())
                     }
                 }
@@ -258,8 +283,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 let ident = field.ident.as_ref().unwrap();
                                 let field_name = format!("{}", ident);
                                 let is_last = idx == fields.named.len().saturating_sub(1);
+                                // TODO: fix padding
                                 variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), #is_last, _memdbg_flags)?;
+                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), #is_last, 0, _memdbg_flags)?;
                                 }]);
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -288,8 +314,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_name = format!("{}", idx);
                             let is_last = idx == fields.unnamed.len().saturating_sub(1);
+                            // TODO: fix padding
                             variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), #is_last, _memdbg_flags)?;
+                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), #is_last, 0, _memdbg_flags)?;
                             }]);
 
                             args.extend([ident]);

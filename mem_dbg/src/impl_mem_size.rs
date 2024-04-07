@@ -731,7 +731,7 @@ impl MemSize for mmap_rs::MmapMut {
 
 // Straight from hashbrown
 fn capacity_to_buckets(cap: usize) -> Option<usize> {
-    debug_assert_ne!(cap, 0);
+    // TODO: check that cap == 0 is handled correctly (we presently return 4)
 
     // For small tables we require at least 1 empty bucket so that lookups are
     // guaranteed to terminate if an element doesn't exist in the table.

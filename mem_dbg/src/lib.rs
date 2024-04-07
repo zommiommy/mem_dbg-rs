@@ -122,7 +122,7 @@ impl Default for SizeFlags {
 /// implement [`MemSize`].
 
 pub trait MemSize {
-    /// Return the (recursively computed) overall
+    /// Returns the (recursively computed) overall
     /// memory size of the structure in bytes.
     fn mem_size(&self, flags: SizeFlags) -> usize;
 }
@@ -143,6 +143,9 @@ bitflags::bitflags! {
         const CAPACITY = 1 << 4;
         /// Add an underscore every 3 digits.
         const SEPARATOR = 1 << 5;
+        /// Print fields in memory order, rather than declaration order, showing
+        /// padding.
+        const PADDING = 1 << 6;
     }
 }
 
@@ -178,13 +181,20 @@ pub trait MemDbg: MemDbgImpl {
     #[cfg(feature = "std")]
     #[inline(always)]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
-        self.mem_dbg_depth(self.mem_size(flags.to_size_flags()), usize::MAX, flags)
+        // TODO: fix padding
+        self.mem_dbg_depth(
+            self.mem_size(flags.to_size_flags()),
+            usize::MAX,
+            std::mem::size_of_val(self),
+            flags,
+        )
     }
 
     /// Write to a [`core::fmt::Write`] debug infos about the structure memory usage,
     /// expanding all levels of nested structures.
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
+        // TODO: fix padding
         self.mem_dbg_depth_on(
             writer,
             self.mem_size(flags.to_size_flags()),
@@ -192,6 +202,7 @@ pub trait MemDbg: MemDbgImpl {
             &mut String::new(),
             Some("⏺"),
             true,
+            std::mem::size_of_val(self),
             flags,
         )
     }
@@ -204,6 +215,7 @@ pub trait MemDbg: MemDbgImpl {
         &self,
         total_size: usize,
         max_depth: usize,
+        padding: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         struct Wrapper(std::io::Stdout);
@@ -225,6 +237,7 @@ pub trait MemDbg: MemDbgImpl {
             &mut String::new(),
             Some("⏺"),
             true,
+            padding,
             flags,
         )
     }
@@ -241,6 +254,7 @@ pub trait MemDbg: MemDbgImpl {
         prefix: &mut String,
         field_name: Option<&str>,
         is_last: bool,
+        padding: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if prefix.len() > max_depth {
@@ -317,8 +331,14 @@ pub trait MemDbg: MemDbgImpl {
         }
 
         if flags.contains(DbgFlags::TYPE_NAME) {
-            writer.write_str(": ")?;
-            writer.write_fmt(format_args!("{:}", core::any::type_name::<Self>()))?;
+            writer.write_fmt(format_args!(": {:}", core::any::type_name::<Self>()))?;
+        }
+
+        if flags.contains(DbgFlags::PADDING) {
+            writer.write_fmt(format_args!(
+                " [{}B]",
+                padding - std::mem::size_of_val(self)
+            ))?;
         }
 
         writer.write_char('\n')?;

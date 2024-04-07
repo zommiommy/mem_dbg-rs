@@ -177,10 +177,10 @@ macro_rules! impl_tuples_muncher {
                 $(
                     _max_idx = _max_idx.max($nidx);
                 )*
-
-                self.$idx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, flags)?;
+                // TODO: fix padding
+                self.$idx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, 0, flags)?;
                 $(
-                    self.$nidx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, flags)?;
+                    self.$nidx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, 0, flags)?;
                 )*
                 Ok(())
             }
