@@ -600,6 +600,11 @@ impl MemSize for mmap_rs::Mmap {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::FOLLOW_REFS) {
+                self.len()
+            } else {
+                0
+            }
     }
 }
 
@@ -612,6 +617,11 @@ impl MemSize for mmap_rs::MmapMut {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::FOLLOW_REFS) {
+                self.len()
+            } else {
+                0
+            }
     }
 }
 
