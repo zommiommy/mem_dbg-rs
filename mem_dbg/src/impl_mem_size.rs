@@ -274,34 +274,44 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
 
 // Tuples
 
-macro_rules! impl_mem_size_tuples {
-    ($(($idx:tt => $ty:ident),)*) => {
-        impl<$($ty,)*> CopyType for ($($ty,)*)  {
+macro_rules! impl_tuples_muncher {
+    () => {};
+
+    (($idx:tt => $ty:ident), $(($i:tt => $t:ident),)*) => {
+        // Pass to list reversal
+        impl_tuples_muncher!([($idx => $ty);] $(($i => $t),)*);
+        // Recurse on tail
+        impl_tuples_muncher!($(($i => $t),)*);
+    };
+
+    // List reversal
+    ([$(($accIdx: tt => $accTyp: ident);)+]  ($idx:tt => $typ:ident), $( ($nidx:tt => $ntyp:ident), )*) => {
+        impl_tuples_muncher!([($idx => $typ); $(($accIdx => $accTyp); )*] $( ($nidx => $ntyp), ) *);
+    };
+
+    // Implement on reversed list
+    ([($idx:tt => $ty:ident); $( ($nidx:tt => $nty:ident); )*]) => {
+        impl<$ty, $($nty,)*> CopyType for ($ty, $($nty,)*)  {
             type Copy = False;
 		}
 
-		impl<$($ty: MemSize,)*> MemSize for ($($ty,)*)
+		impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*)
         {
             #[inline(always)]
             fn mem_size(&self, flags: SizeFlags) -> usize {
-                0
+                let mut bytes = core::mem::size_of::<Self>();
+                dbg!(self.$idx.mem_size(flags), core::mem::size_of::<$ty>());
+                bytes += self.$idx.mem_size(flags) - core::mem::size_of::<$ty>();
+
                 $(
-                    + self.$idx.mem_size(flags)
+                    dbg!(self.$nidx.mem_size(flags), core::mem::size_of::<$nty>());
+                    bytes += self.$nidx.mem_size(flags) - core::mem::size_of::<$nty>();
                 )*
+                bytes
             }
         }
     }
-}
 
-macro_rules! impl_tuples_muncher {
-    (($idx:tt => $ty:ident), $(($i:tt => $t:ident),)*) => {
-        impl_mem_size_tuples!(($idx => $ty), $(($i => $t),)*);
-        impl_tuples_muncher!($(($i => $t),)*);
-    };
-    (($idx:tt => $ty:ident)) => {
-        impl_mem_size_tuples!(($idx => $ty));
-    };
-    () => {};
 }
 
 impl_tuples_muncher!(
