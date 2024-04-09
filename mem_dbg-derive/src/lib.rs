@@ -189,42 +189,40 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
     match input.data {
         Data::Struct(s) => {
-            let (id_offset_pushes, match_code): (Vec::<_>, Vec::<_>) = s
-                .fields
-                .iter()
-                .enumerate()
-                .map(|(field_idx, field)| {
-                    let field_ident = field
-                        .ident
-                        .to_owned()
-                        .map(|t| t.to_token_stream())
-                        .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream());
+            let mut id_offset_pushes = vec![];
+            let mut match_code = vec![];
 
-                    let field_str = field
-                        .ident
-                        .to_owned()
-                        .map(|t| t.to_string().to_token_stream())
-                        .unwrap_or_else(|| field_idx.to_string().to_token_stream());
+            for (field_idx, field) in s.fields.iter().enumerate() {
+                let field_ident = field
+                    .ident
+                    .to_owned()
+                    .map(|t| t.to_token_stream())
+                    .unwrap_or_else(|| syn::Index::from(field_idx).to_token_stream());
 
-                    let ty = &field.ty;
-                    where_clause
-                        .predicates
-                        .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
+                let field_str = field
+                    .ident
+                    .to_owned()
+                    .map(|t| t.to_string().to_token_stream())
+                    .unwrap_or_else(|| field_idx.to_string().to_token_stream());
 
-                    // For each field we generate a pair of pieces of code: the
-                    // first element pushes the field index and its offset in
-                    // the id_offsets vector, whereas the second element is the
-                    // arm of the match statement that invokes mem_dbg_depth_on
-                    // on the field.
-                    (quote!{
-                        id_offsets.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #field_ident)));
-                    },
-                    quote!{
-                        #field_idx => self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_str), i == n - 1, id_offsets[i+1].1.wrapping_sub(*offset_of), _memdbg_flags)?,
-                    })
-                }).unzip();
-                
+                let ty = &field.ty;
+                where_clause
+                    .predicates
+                    .push(parse_quote_spanned!(field.span()=> #ty: mem_dbg::MemDbgImpl));
 
+                // For each field we generate a pair of pieces of code: the
+                // first element pushes the field index and its offset in
+                // the id_offsets vector, whereas the second element is the
+                // arm of the match statement that invokes mem_dbg_depth_on
+                // on the field.
+                id_offset_pushes.push(quote!{
+                    id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #field_ident)));
+                });
+                match_code.push(quote!{
+                    #field_idx => self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_str), i == n - 1, *padded_size, _memdbg_flags)?,
+                });
+            }
+            
             quote! {
                 #[automatically_derived]
                 impl #impl_generics mem_dbg::MemDbgImpl for #name #ty_generics #where_clause {
@@ -238,18 +236,22 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
-                        let padding = _memdbg_flags.contains(mem_dbg::DbgFlags::PADDING);
-                        let mut id_offsets: Vec<(usize, usize)> = vec![];
+                        let mut id_sizes: Vec<(usize, usize)> = vec![];
                         #(#id_offset_pushes)*
-                        let n = id_offsets.len();
-                        id_offsets.push((n, core::mem::size_of::<Self>()));
-                        // If we need to compute padding, we sort the fields by offset.
-                        if  padding {
-                            id_offsets.sort_by_key(|x| x.1);
+                        let n = id_sizes.len();
+                        id_sizes.push((n, core::mem::size_of::<Self>()));
+                        // Sort by offset
+                        id_sizes.sort_by_key(|x| x.1);
+                        // Compute actual sizes
+                        for i in 0..n {
+                            id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
+                        };
+                        // Put the candle back unless the user requested otherwise
+                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::COMPILER_LAYOUT) {
+                            id_sizes.sort_by_key(|x| x.0);
                         }
-                        let mut last_offset = 0;
 
-                        for (i, (field_idx, offset_of)) in id_offsets.iter().enumerate().take(n) {
+                        for (i, (field_idx, padded_size)) in id_sizes.iter().enumerate().take(n) {
                             match field_idx {
                                 #(#match_code)*
                                 _ => unreachable!(),
@@ -266,7 +268,12 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             let mut variants_code = Vec::new();
             e.variants.iter().for_each(|variant| {
                 let mut res = variant.ident.to_owned().to_token_stream();
-                let mut variant_code = quote! {};
+                // Depending on the presence of the feature offset_of_enum, this
+                // will contains field indices and offset_of or field indices
+                // and size_of; in the latter case, we will assume size_of to be
+                // the padded size, resulting in no padding.
+                let mut id_offset_pushes = vec![];
+                let mut match_code = vec![];
                 let mut arrow = '╰';
                 match &variant.fields {
                     syn::Fields::Unit => {},
@@ -279,14 +286,21 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .named
                             .iter()
                             .enumerate()
-                            .for_each(|(idx, field)| {
+                            .for_each(|(field_idx, field)| {
                                 let ident = field.ident.as_ref().unwrap();
                                 let field_name = format!("{}", ident);
-                                let is_last = idx == fields.named.len().saturating_sub(1);
-                                // TODO: fix padding
-                                variant_code.extend([quote! {
-                                    #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), #is_last, 0, _memdbg_flags)?;
-                                }]);
+                                #[cfg(feature = "offset_of_enum")]
+                                id_offset_pushes.push(quote!{
+                                    id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #ident)));
+                                });
+                                #[cfg(not(feature = "offset_of_enum"))]
+                                id_offset_pushes.push(quote!{
+                                    id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
+                                });
+                                
+                                match_code.push(quote! {
+                                    #field_idx => #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), i == n - 1, *padded_size, _memdbg_flags)?,
+                                });
                                 args.extend([ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
 
@@ -298,6 +312,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             });
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
+                            // TODO: sanitize somehow the names or it'll be
+                            // havoc.
                             { #args }
                         });
                     }
@@ -306,18 +322,26 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         if !fields.unnamed.is_empty() {
                             arrow = '├';
                         }
-                        fields.unnamed.iter().enumerate().for_each(|(idx, field)| {
+                        fields.unnamed.iter().enumerate().for_each(|(field_idx, field)| {
                             let ident = syn::Ident::new(
-                                &format!("v{}", idx),
+                                &format!("v{}", field_idx),
                                 proc_macro2::Span::call_site(),
                             )
                             .to_token_stream();
-                            let field_name = format!("{}", idx);
-                            let is_last = idx == fields.unnamed.len().saturating_sub(1);
+                            let field_name = format!("{}", field_idx);
+                            
+                            #[cfg(feature = "offset_of_enum")]
+                            id_offset_pushes.push(quote!{
+                                id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #field_name)));
+                            });
+                            #[cfg(not(feature = "offset_of_enum"))]
+                            id_offset_pushes.push(quote!{
+                                id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
+                            });
                             // TODO: fix padding
-                            variant_code.extend([quote! {
-                                #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), #is_last, 0, _memdbg_flags)?;
-                            }]);
+                            match_code.push(quote! {
+                                #field_idx => #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), i == n - 1, *padded_size, _memdbg_flags)?,
+                            });
 
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -339,7 +363,43 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     _memdbg_writer.write_char(#arrow)?;
                     _memdbg_writer.write_char('╴')?;
                     _memdbg_writer.write_str(#variant_name)?;
-                    #variant_code
+
+                    let mut id_sizes: Vec<(usize, usize)> = vec![];
+                    let n;
+                    #[cfg(feature = "offset_of_enum")]
+                    {
+                        // We use the offset_of information to build the real
+                        // space occupied by a field.
+                        #(#id_offset_pushes)*
+                        n = id_sizes.len();
+                        id_sizes.push((n, core::mem::size_of::<Self>()));
+                        // Sort by offset
+                        id_sizes.sort_by_key(|x| x.1);
+                        // Compute actual sizes
+                        for i in 0..n {
+                            id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
+                        };
+                        // Put the candle back unless the user requested otherwise
+                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::COMPILER_LAYOUT) {
+                            id_sizes.sort_by_key(|x| x.0);
+                        }
+                    }
+                    #[cfg(not(feature = "offset_of_enum"))]
+                    {
+                        // Lacking offset_of for enums, here we obtain directly
+                        // the size_of of each field which we use as a surrogate
+                        // of the padded size.
+                        #(#id_offset_pushes)*
+                        n = id_sizes.len();
+                        assert!(!_memdbg_flags.contains(mem_dbg::DbgFlags::COMPILER_LAYOUT), "DbgFlags::COMPILER_LAYOUT for enums requires the offset_of_enum feature");
+                    }
+                    for (i, (field_idx, padded_size)) in id_sizes.iter().enumerate().take(n) {
+                        match field_idx {
+                            #(#match_code)*
+                            _ => unreachable!(),
+                        }
+                    }
+                    
                 }});
             });
 

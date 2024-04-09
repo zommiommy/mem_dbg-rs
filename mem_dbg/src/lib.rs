@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 /*
  * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  * SPDX-FileCopyrightText: 2023 Inria
@@ -5,7 +6,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
-
 #![doc = include_str!("../README.md")]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -143,9 +143,9 @@ bitflags::bitflags! {
         const CAPACITY = 1 << 4;
         /// Add an underscore every 3 digits.
         const SEPARATOR = 1 << 5;
-        /// Print fields in memory order, rather than declaration order, showing
-        /// padding.
-        const PADDING = 1 << 6;
+        /// Print fields in memory order (i.e., using the layout chosen by the
+        /// compiler), rather than in declaration order.
+        const COMPILER_LAYOUT = 1 << 6;
     }
 }
 
@@ -215,7 +215,7 @@ pub trait MemDbg: MemDbgImpl {
         &self,
         total_size: usize,
         max_depth: usize,
-        padding: usize,
+        padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         struct Wrapper(std::io::Stdout);
@@ -237,7 +237,7 @@ pub trait MemDbg: MemDbgImpl {
             &mut String::new(),
             Some("⏺"),
             true,
-            padding,
+            padded_size,
             flags,
         )
     }
@@ -254,7 +254,7 @@ pub trait MemDbg: MemDbgImpl {
         prefix: &mut String,
         field_name: Option<&str>,
         is_last: bool,
-        padding: usize,
+        padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
         if prefix.len() > max_depth {
@@ -334,11 +334,10 @@ pub trait MemDbg: MemDbgImpl {
             writer.write_fmt(format_args!(": {:}", core::any::type_name::<Self>()))?;
         }
 
-        if flags.contains(DbgFlags::PADDING) {
-            writer.write_fmt(format_args!(
-                " [{}B]",
-                padding - std::mem::size_of_val(self)
-            ))?;
+        //dbg!(padded_size, std::mem::size_of_val(self));
+        let padding = padded_size - std::mem::size_of_val(self);
+        if padding != 0 {
+            writer.write_fmt(format_args!(" [{}B]", padding))?;
         }
 
         writer.write_char('\n')?;

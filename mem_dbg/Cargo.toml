@@ -22,4 +22,5 @@ maligned = {version="0.2.1", optional = true}
 default = ["std", "mmap-rs", "half", "rand", "maligned", "derive"]
 derive = ["mem_dbg-derive"]
 std = ["alloc"]
+offset_of_enum = []
 alloc = []

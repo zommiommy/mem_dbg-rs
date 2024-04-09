@@ -158,11 +158,17 @@ macro_rules! impl_tuples_muncher {
 
     // List reversal
     ([$(($accIdx: tt => $accTyp: ident);)+]  ($idx:tt => $typ:ident), $( ($nidx:tt => $ntyp:ident), )*) => {
-      impl_tuples_muncher!([($idx => $typ); $(($accIdx => $accTyp); )*] $( ($nidx => $ntyp), ) *);
+        impl_tuples_muncher!([($idx => $typ); $(($accIdx => $accTyp); )*] $( ($nidx => $ntyp), ) *);
     };
 
-    // Implement on reversed list
+    // Implement on reversed list, building the tuple type as we cannot expand
+    // recursively
     ([($idx:tt => $ty:ident); $( ($nidx:tt => $nty:ident); )*]) => {
+        impl_tuples_muncher!([($idx => $ty); $(($nidx => $nty);)* ], ($ty, $($nty,)*));
+    };
+
+    // Implement on reversed list and tuple type
+    ([($idx:tt => $ty:ident); $( ($nidx:tt => $nty:ident); )*], $tty:ty) => {
         impl<$ty: crate::MemSize + MemDbgImpl, $($nty: crate::MemSize + MemDbgImpl,)*> MemDbgImpl for ($ty, $($nty,)*)  {
             fn _mem_dbg_rec_on(
                 &self,
@@ -173,14 +179,33 @@ macro_rules! impl_tuples_muncher {
                 _is_last: bool,
                 flags: DbgFlags,
             ) -> core::fmt::Result {
+                // Compute size of tuple minus one for last-field check.
                 let mut _max_idx = $idx;
+                $(_max_idx = _max_idx.max($nidx);)*
+
+                let mut id_sizes: Vec<(usize, usize)> = vec![];
+                let n;
+
+                {
+                    // We use the offset_of information to build the real
+                    // space occupied by a field.
+                    id_sizes.push(($idx, core::mem::offset_of!($tty, $idx)));
+                    $(id_sizes.push(($nidx, core::mem::offset_of!($tty, $nidx)));)*
+                    n = id_sizes.len();
+                    id_sizes.push((n, core::mem::size_of::<Self>()));
+                    // Sort by offset
+                    id_sizes.sort_by_key(|x| x.1);
+                    // Compute actual sizes
+                    for i in 0..n {
+                        id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
+                    };
+                    // Put the candle back
+                    id_sizes.sort_by_key(|x| x.0);
+                }
+
+                self.$idx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags)?;
                 $(
-                    _max_idx = _max_idx.max($nidx);
-                )*
-                // TODO: fix padding
-                self.$idx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, 0, flags)?;
-                $(
-                    self.$nidx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, 0, flags)?;
+                    self.$nidx.mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, id_sizes[$nidx].1, flags)?;
                 )*
                 Ok(())
             }

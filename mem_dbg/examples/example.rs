@@ -1,3 +1,4 @@
+//#![feature(offset_of_enum, offset_of_nested)]
 /*
  * SPDX-FileCopyrightText: 2023 Inria
  * SPDX-FileCopyrightText: 2023 Tommaso Fontana
@@ -37,7 +38,7 @@ struct Struct<A, B> {
 struct Data<A> {
     a: A,
     b: Vec<i32>,
-    c: (usize, String),
+    c: (u8, String),
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -50,11 +51,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         a: TestEnum::Unnamed(0, 16),
         b: Data {
             a: vec![0x42_u8; 700],
-            b,
+            b: b.clone(),
             c: (1, "foo".to_owned()),
         },
         test: -0xbadf00d,
-        h,
+        h: h.clone(),
     };
 
     // print the size in bytes of the value
@@ -87,16 +88,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!();
 
+    let s = Struct {
+        a: TestEnum::Named {
+            first: 0,
+            second: 1,
+        },
+        b: Data {
+            a: vec![0x42_u8; 700],
+            b,
+            c: (1, "foo".to_owned()),
+        },
+        test: -0xbadf00d,
+        h,
+    };
+
     println!("DbgFlags::empty():");
     println!();
     s.mem_dbg(DbgFlags::empty())?;
 
-    println!();
-
-    println!("DbgFlags::HUMANIZE:");
-    println!();
-    s.mem_dbg(DbgFlags::HUMANIZE)?;
-
+    #[cfg(feature = "offset_of_enum")]
+    {
+        println!();
+        println!("DbgFlags::HUMANIZE | DbgFlags::COMPILER_LAYOUT:");
+        println!();
+        s.mem_dbg(DbgFlags::HUMANIZE | DbgFlags::COMPILER_LAYOUT)?;
+    }
     let s = Struct {
         a: 0_u8,
         b: 0_u8,
@@ -112,9 +128,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!();
 
-    println!("DbgFlags::PADDING");
+    println!("DbgFlags::COMPILER_LAYOUT");
     println!();
-    s.mem_dbg(DbgFlags::PADDING)?;
+    s.mem_dbg(DbgFlags::COMPILER_LAYOUT)?;
 
     Ok(())
 }

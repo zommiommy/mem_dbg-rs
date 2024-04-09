@@ -179,6 +179,25 @@ fn test_tuple_struct() {
 }
 
 #[test]
+fn test_padding() {
+    assert_eq!((0_u8, 0_u64).mem_size(SizeFlags::default()), 16);
+    #[derive(MemSize)]
+    struct TuplePadded((u8, u64));
+    let v = TuplePadded((0, 0));
+    assert_eq!(v.mem_size(SizeFlags::default()), 16);
+
+    #[derive(MemSize)]
+    struct StructPadded(u8, u64);
+    let v = StructPadded(0, 0);
+    assert_eq!(v.mem_size(SizeFlags::default()), 16);
+
+    #[derive(MemSize)]
+    struct StructStructPadded(StructPadded);
+    let v = StructStructPadded(StructPadded(0, 0));
+    assert_eq!(v.mem_size(SizeFlags::default()), 16);
+}
+
+#[test]
 fn test_option() {
     let v = Some(1_usize);
     assert_eq!(
