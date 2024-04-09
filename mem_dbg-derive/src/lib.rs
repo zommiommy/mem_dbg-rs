@@ -222,7 +222,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     #field_idx => self.#field_ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_str), i == n - 1, *padded_size, _memdbg_flags)?,
                 });
             }
-            
+
             quote! {
                 #[automatically_derived]
                 impl #impl_generics mem_dbg::MemDbgImpl for #name #ty_generics #where_clause {
@@ -297,7 +297,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 id_offset_pushes.push(quote!{
                                     id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
                                 });
-                                
+
                                 match_code.push(quote! {
                                     #field_idx => #ident.mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_name), i == n - 1, *padded_size, _memdbg_flags)?,
                                 });
@@ -329,7 +329,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             )
                             .to_token_stream();
                             let field_name = format!("{}", field_idx);
-                            
+
                             #[cfg(feature = "enum_padding")]
                             id_offset_pushes.push(quote!{
                                 id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #field_name)));
@@ -399,7 +399,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             _ => unreachable!(),
                         }
                     }
-                    
+
                 }});
             });
 
