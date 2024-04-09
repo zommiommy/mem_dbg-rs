@@ -106,12 +106,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     s.mem_dbg(DbgFlags::empty())?;
 
-    #[cfg(feature = "offset_of_enum")]
+    #[cfg(feature = "enum_padding")]
     {
         println!();
-        println!("DbgFlags::HUMANIZE | DbgFlags::COMPILER_LAYOUT:");
+        println!("DbgFlags::HUMANIZE | DbgFlags::RUST_LAYOUT:");
         println!();
-        s.mem_dbg(DbgFlags::HUMANIZE | DbgFlags::COMPILER_LAYOUT)?;
+        s.mem_dbg(DbgFlags::HUMANIZE | DbgFlags::RUST_LAYOUT)?;
     }
     let s = Struct {
         a: 0_u8,
@@ -128,9 +128,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!();
 
-    println!("DbgFlags::COMPILER_LAYOUT");
+    println!("DbgFlags::RUST_LAYOUT");
     println!();
-    s.mem_dbg(DbgFlags::COMPILER_LAYOUT)?;
+    s.mem_dbg(DbgFlags::RUST_LAYOUT)?;
 
     Ok(())
 }

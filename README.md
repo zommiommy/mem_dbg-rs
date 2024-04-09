@@ -21,7 +21,7 @@ can be used to compute the size of a value in bytes as the standard library
 function [`std::mem::size_of`] returns the stack size of a type in bytes, but it
 does not take into consideration heap memory.
 
-# Why `MemSize`
+## Why `MemSize`
 
 Other traits partially provide the functionality of [`MemSize`], but either they
 require implementing manually a trait, which is prone to error, or they do not
@@ -50,6 +50,19 @@ taking into account the load factor and the power-of-two size constraint of the
 hash map). Moreover, all other crates are about six orders of magnitude slower
 than our implementation, due to the necessity to iterate over all elements.
 
+## Padding
+
+The trait [`MemDbg`] is useful to display the layout of a value and understand
+how much memory is used by each part. In particular, it exploits the new stable
+macro [`std::mem::offset_of`] to display the padding of each field in square
+brackets; moreover, the flag [`DbgFlags::RUST_LAYOUT`] makes it possible to
+display structures in the layout used by the Rust compiler, rather than
+that given by declaration order.
+
+These features are also available for enums using the feature `enum_padding`,
+which however needs the nightly compiler, as it enables the unstable features
+`offset_of_enum` and `offset_of_nested`.
+
 ## Example
 
 ```rust
@@ -67,7 +80,7 @@ struct Struct<A, B> {
 struct Data<A> {
     a: A,
     b: Vec<i32>,
-    c: (usize, String)
+    c: (u8, String),
 }
 
 #[derive(MemSize, MemDbg)]
@@ -93,10 +106,28 @@ let s = Struct {
 
 println!("size:     {}", s.mem_size(SizeFlags::default()));
 println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
+println!();
 
-s.mem_dbg(DbgFlags::default())?;
-// Different flags can be combined
-// s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
+s.mem_dbg(DbgFlags::empty())?;
+
+println!();
+
+println!("size:     {}", s.mem_size(SizeFlags::default()));
+println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
+println!();
+
+s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
+
+#[cfg(feature = "enum_padding")]
+{
+    println!();
+
+    println!("size:     {}", s.mem_size(SizeFlags::default()));
+    println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
+    println!();
+
+    s.mem_dbg(DbgFlags::empty() | DbgFlags::RUST_LAYOUT)?;
+}
 # Ok(())
 # }
 ```
@@ -104,43 +135,53 @@ s.mem_dbg(DbgFlags::default())?;
 The previous program prints:
 
 ```text
-size:     815
-capacity: 1215
+size:     807
+capacity: 1207
 
- 985 B 100.00% ⏺: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-  16 B   1.62% ├╴a: example::TestEnum
-               │ ├╴Variant: Unnamed
-   8 B   0.81% │ ├╴0: usize
-   1 B   0.10% │ ╰╴1: u8
- 823 B  83.55% ├╴b: example::Data<alloc::vec::Vec<u8>>
- 724 B  73.50% │ ├╴a: alloc::vec::Vec<u8>
-  64 B   6.50% │ ├╴b: alloc::vec::Vec<i32>
-  35 B   3.55% │ ╰╴c: (usize, alloc::string::String)
-   8 B   0.81% │   ├╴0: usize
-  27 B   2.74% │   ╰╴1: alloc::string::String
-   8 B   0.81% ├╴test: isize
- 138 B  14.01% ╰╴s: std::collections::hash::set::HashSet<usize>
-```
+807 B ⏺
+ 16 B ├╴a
+      │ ├╴Variant: Unnamed
+  8 B │ ├╴0
+  1 B │ ╰╴1 [6B]
+783 B ├╴b
+724 B │ ├╴a
+ 24 B │ ├╴b
+ 35 B │ ╰╴c
+  1 B │   ├╴0 [7B]
+ 27 B │   ╰╴1
+  8 B ╰╴test
 
-If we add the flags [`DbgFlags::CAPACITY`] and [`DbgFlags::HUMANIZE`] it prints:
+size:     807
+capacity: 1207
 
-```text
-size:     815
-capacity: 1215
+1.207 kB 100.00% ⏺: readme::main::Struct<readme::main::TestEnum, readme::main::Data<alloc::vec::Vec<u8>>>
+   16  B   1.33% ├╴a: readme::main::TestEnum
+                 │ ├╴Variant: Unnamed
+    8  B   0.66% │ ├╴0: usize
+    1  B   0.08% │ ╰╴1: u8 [6B]
+1.183 kB  98.01% ├╴b: readme::main::Data<alloc::vec::Vec<u8>>
+  724  B  59.98% │ ├╴a: alloc::vec::Vec<u8>
+  424  B  35.13% │ ├╴b: alloc::vec::Vec<i32>
+   35  B   2.90% │ ╰╴c: (u8, alloc::string::String)
+    1  B   0.08% │   ├╴0: u8 [7B]
+   27  B   2.24% │   ╰╴1: alloc::string::String
+    8  B   0.66% ╰╴test: isize
 
-2_407 B 100.00% ⏺: example::Struct<example::TestEnum, example::Data<alloc::vec::Vec<u8>>>
-   16 B   0.66% ├╴a: example::TestEnum
-                │ ├╴Variant: Unnamed
-    8 B   0.33% │ ├╴0: usize
-    1 B   0.04% │ ╰╴1: u8
-1_183 B  49.15% ├╴b: example::Data<alloc::vec::Vec<u8>>
-  724 B  30.08% │ ├╴a: alloc::vec::Vec<u8>
-  424 B  17.62% │ ├╴b: alloc::vec::Vec<i32>
-   35 B   1.45% │ ╰╴c: (usize, alloc::string::String)
-    8 B   0.33% │   ├╴0: usize
-   27 B   1.12% │   ╰╴1: alloc::string::String
-    8 B   0.33% ├╴test: isize
-1_200 B  49.85% ╰╴s: std::collections::hash::set::HashSet<usize>
+size:     807
+capacity: 1207
+
+807 B ⏺
+783 B ├╴b
+724 B │ ├╴a
+ 24 B │ ├╴b
+ 35 B │ ╰╴c
+  1 B │   ├╴0 [7B]
+ 27 B │   ╰╴1
+ 16 B ├╴a
+      │ ├╴Variant: Unnamed
+  1 B │ ├╴1 [6B]
+  8 B │ ╰╴0
+  8 B ╰╴test
 ```
 
 If we use [`DbgFlags::empty()`] it prints:
@@ -164,6 +205,9 @@ capacity: 1215
 138 B ╰╴s
 ```
 
+The last output happens only on the nightly compiler with the `enum_padding`
+feature enabled.
+
 ## Caveats
 
 * We support out-of-the-box most basic types, and tuples up to size ten. The
@@ -186,8 +230,7 @@ capacity: 1215
 [`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
 [`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html
 [`std::mem::size_of`]: https://doc.rust-lang.org/std/mem/fn.size_of.html
-[`DbgFlags::CAPACITY`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.CAPACITY
-[`DbgFlags::HUMANIZE`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.HUMANIZE
+[`DbgFlags::RUST_LAYOUT`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT>
 [`DbgFlags::empty()`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#method.empty
 [`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
 [`cap`]: (https:/crates.io/crates/cap)

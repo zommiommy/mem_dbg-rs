@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     struct Data<A> {
         a: A,
         b: Vec<i32>,
-        c: (usize, String),
+        c: (u8, String),
     }
 
     #[derive(MemSize, MemDbg)]
@@ -51,19 +51,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
     println!();
 
-    s.mem_dbg(DbgFlags::default())?;
+    s.mem_dbg(DbgFlags::empty())?;
 
     println!();
 
     println!("size:     {}", s.mem_size(SizeFlags::default()));
     println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
+    println!();
 
     s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
-    println!("size:     {}", s.mem_size(SizeFlags::default()));
-    println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
+    #[cfg(feature = "enum_padding")]
+    {
+        println!();
 
-    s.mem_dbg(DbgFlags::default() | DbgFlags::RUST_LAYOUT)?;
+        println!("size:     {}", s.mem_size(SizeFlags::default()));
+        println!("capacity: {}", s.mem_size(SizeFlags::CAPACITY));
+        println!();
 
+        s.mem_dbg(DbgFlags::empty() | DbgFlags::RUST_LAYOUT)?;
+    }
     Ok(())
 }

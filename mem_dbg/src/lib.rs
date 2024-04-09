@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
+#![cfg_attr(feature = "enum_padding", feature(offset_of_enum, offset_of_nested))]
 /*
  * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  * SPDX-FileCopyrightText: 2023 Inria
@@ -145,7 +145,7 @@ bitflags::bitflags! {
         const SEPARATOR = 1 << 5;
         /// Print fields in memory order (i.e., using the layout chosen by the
         /// compiler), rather than in declaration order.
-        const COMPILER_LAYOUT = 1 << 6;
+        const RUST_LAYOUT = 1 << 6;
     }
 }
 

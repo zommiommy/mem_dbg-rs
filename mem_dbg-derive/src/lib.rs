@@ -247,7 +247,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                         };
                         // Put the candle back unless the user requested otherwise
-                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::COMPILER_LAYOUT) {
+                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT) {
                             id_sizes.sort_by_key(|x| x.0);
                         }
 
@@ -289,11 +289,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .for_each(|(field_idx, field)| {
                                 let ident = field.ident.as_ref().unwrap();
                                 let field_name = format!("{}", ident);
-                                #[cfg(feature = "offset_of_enum")]
+                                #[cfg(feature = "enum_padding")]
                                 id_offset_pushes.push(quote!{
                                     id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #ident)));
                                 });
-                                #[cfg(not(feature = "offset_of_enum"))]
+                                #[cfg(not(feature = "enum_padding"))]
                                 id_offset_pushes.push(quote!{
                                     id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
                                 });
@@ -330,11 +330,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_name = format!("{}", field_idx);
                             
-                            #[cfg(feature = "offset_of_enum")]
+                            #[cfg(feature = "enum_padding")]
                             id_offset_pushes.push(quote!{
                                 id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #field_name)));
                             });
-                            #[cfg(not(feature = "offset_of_enum"))]
+                            #[cfg(not(feature = "enum_padding"))]
                             id_offset_pushes.push(quote!{
                                 id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
                             });
@@ -366,7 +366,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                     let mut id_sizes: Vec<(usize, usize)> = vec![];
                     let n;
-                    #[cfg(feature = "offset_of_enum")]
+                    #[cfg(feature = "enum_padding")]
                     {
                         // We use the offset_of information to build the real
                         // space occupied by a field.
@@ -380,18 +380,18 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                         };
                         // Put the candle back unless the user requested otherwise
-                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::COMPILER_LAYOUT) {
+                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT) {
                             id_sizes.sort_by_key(|x| x.0);
                         }
                     }
-                    #[cfg(not(feature = "offset_of_enum"))]
+                    #[cfg(not(feature = "enum_padding"))]
                     {
                         // Lacking offset_of for enums, here we obtain directly
                         // the size_of of each field which we use as a surrogate
                         // of the padded size.
                         #(#id_offset_pushes)*
                         n = id_sizes.len();
-                        assert!(!_memdbg_flags.contains(mem_dbg::DbgFlags::COMPILER_LAYOUT), "DbgFlags::COMPILER_LAYOUT for enums requires the offset_of_enum feature");
+                        assert!(!_memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT), "DbgFlags::RUST_LAYOUT for enums requires the offset_of_enum feature");
                     }
                     for (i, (field_idx, padded_size)) in id_sizes.iter().enumerate().take(n) {
                         match field_idx {

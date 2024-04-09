@@ -300,13 +300,8 @@ macro_rules! impl_tuples_muncher {
             #[inline(always)]
             fn mem_size(&self, flags: SizeFlags) -> usize {
                 let mut bytes = core::mem::size_of::<Self>();
-                dbg!(self.$idx.mem_size(flags), core::mem::size_of::<$ty>());
                 bytes += self.$idx.mem_size(flags) - core::mem::size_of::<$ty>();
-
-                $(
-                    dbg!(self.$nidx.mem_size(flags), core::mem::size_of::<$nty>());
-                    bytes += self.$nidx.mem_size(flags) - core::mem::size_of::<$nty>();
-                )*
+                $( bytes += self.$nidx.mem_size(flags) - core::mem::size_of::<$nty>(); )*
                 bytes
             }
         }
