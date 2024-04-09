@@ -134,6 +134,42 @@ s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
 The previous program prints:
 
+```test
+size:     807
+capacity: 1207
+
+807 B ⏺
+ 16 B ├╴a
+      │ ├╴Variant: Unnamed
+  8 B │ ├╴0
+  1 B │ ╰╴1
+783 B ├╴b
+724 B │ ├╴a
+ 24 B │ ├╴b
+ 35 B │ ╰╴c
+  1 B │   ├╴0 [7B]
+ 27 B │   ╰╴1
+  8 B ╰╴test
+
+size:     807
+capacity: 1207
+
+1.207 kB 100.00% ⏺: readme::main::Struct<readme::main::TestEnum, readme::main::Data<alloc::vec::Vec<u8>>>
+   16  B   1.33% ├╴a: readme::main::TestEnum
+                 │ ├╴Variant: Unnamed
+    8  B   0.66% │ ├╴0: usize
+    1  B   0.08% │ ╰╴1: u8
+1.183 kB  98.01% ├╴b: readme::main::Data<alloc::vec::Vec<u8>>
+  724  B  59.98% │ ├╴a: alloc::vec::Vec<u8>
+  424  B  35.13% │ ├╴b: alloc::vec::Vec<i32>
+   35  B   2.90% │ ╰╴c: (u8, alloc::string::String)
+    1  B   0.08% │   ├╴0: u8 [7B]
+   27  B   2.24% │   ╰╴1: alloc::string::String
+    8  B   0.66% ╰╴test: isize
+```
+
+If run with the feature `enum_padding`, it prints:
+
 ```text
 size:     807
 capacity: 1207
