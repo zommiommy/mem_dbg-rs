@@ -25,7 +25,8 @@ pub use mem_dbg_derive::{MemDbg, MemSize};
 
 mod impl_mem_dbg;
 mod impl_mem_size;
-pub mod utils;
+mod utils;
+pub use utils::*;
 
 /**
 

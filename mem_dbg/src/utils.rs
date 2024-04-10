@@ -36,7 +36,7 @@ pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
 /// Return the number of digits of a number.
 ///
 /// ```
-/// use mem_dbg::utils::n_of_digits;
+/// use mem_dbg::n_of_digits;
 ///
 /// assert_eq!(n_of_digits(0), 1);
 /// assert_eq!(n_of_digits(1), 1);

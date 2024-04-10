@@ -416,7 +416,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_is_last: bool,
                         _memdbg_flags: mem_dbg::DbgFlags,
                     ) -> core::fmt::Result {
-                        let mut _memdbg_digits_number = mem_dbg::utils::n_of_digits(_memdbg_total_size);
+                        let mut _memdbg_digits_number = mem_dbg::n_of_digits(_memdbg_total_size);
                         if _memdbg_flags.contains(mem_dbg::DbgFlags::SEPARATOR) {
                             _memdbg_digits_number += _memdbg_digits_number / 3;
                         }

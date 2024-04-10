@@ -12,9 +12,9 @@ Traits and associated procedural macros to display recursively the layout and
 memory usage of a value.
 
 The trait [`MemDbg`] can be used to display the recursive layout of a value,
-together with the size of each part. We provide implementations for most basic
-types and a derive macro for structs and enums whose fields implement
-[`MemDbg`].
+together with the size of each part and the associated padding bytes. We provide
+implementations for most basic types, a derive macro for structs and enums
+whose fields implement [`MemDbg`], and support for a few other crates.
 
 To compute the size, we provide the trait [`MemSize`] and a derive macro that
 can be used to compute the size of a value in bytes as the standard library
@@ -62,6 +62,17 @@ that given by declaration order.
 These features are also available for enums using the feature `enum_padding`,
 which however needs the nightly compiler, as it enables the unstable features
 `offset_of_enum` and `offset_of_nested`.
+
+## Features
+
+- `enum_padding`: support for padding and for the `DbgFlags::RUST_LAYOUT` flag
+  for enums. Requires the nightly compiling as it enables the unstable features
+  `offset_of_enum` and `offset_of_nested`. Calling `mem_dbg` with the flag
+  `DbgFlags::RUST_LAYOUT` without this feature enabled will result in a panic.
+- `half`: support for the [`half`] crate.
+- `maligned`: support for the [`maligned`] crate.
+- `mmap-rs`: support for the [`mmap-rs`] crate.
+- `rand`: support for the [`rand`] crate.
 
 ## Example
 
@@ -246,30 +257,34 @@ feature enabled.
 
 ## Caveats
 
-* We support out-of-the-box most basic types, and tuples up to size ten. The
+- We support out-of-the-box most basic types, and tuples up to size ten. The
   derive macros `MemSize`/`MemDbg` will generate implementations for structs and
   enums whose fields implement the associated interface: if this is not the case
   (e.g., because of the orphan rule) one can implement the traits manually.
 
-* Computation of the size of arrays, slices, and vectors will be performed by
+- Computation of the size of arrays, slices, and vectors will be performed by
   iterating over their elements unless the type is a copy type that does not
   contain references and it is declared as such using the attribute
   `#[copy_type]`. See [`CopyType`] for more details.
 
-* The content of vectors and slices is not expanded recursively as the output
+- The content of vectors and slices is not expanded recursively as the output
   might be too complex; this might change in the future (e.g., via a flag)
   should interesting use cases arise.
 
-* `BTreeMap`, and `BTreeSet`, are not currently supported as we still have to
+- `BTreeMap`, and `BTreeSet`, are not currently supported as we still have to
   figure out a way to precisely measure their memory size and capacity.
 
-[`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
-[`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html
-[`std::mem::size_of`]: https://doc.rust-lang.org/std/mem/fn.size_of.html
+[`MemDbg`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html>
+[`MemSize`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html>
+[`std::mem::size_of`]: <https://doc.rust-lang.org/std/mem/fn.size_of.html>
 [`DbgFlags::RUST_LAYOUT`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT>
-[`DbgFlags::empty()`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#method.empty
-[`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
-[`cap`]: (https:/crates.io/crates/cap)
-[`get-size`]: (https://crates.io/crates/get_size)
-[`deepsize`]: (https://crates.io/crates/deepsize)
-[`size-of`]: (https://crates.io/crates/size_of)
+[`DbgFlags::empty()`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#method.empty>
+[`CopyType`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html>
+[`cap`]: <https:/crates.io/crates/cap>
+[`get-size`]: <https://crates.io/crates/get_size>
+[`deepsize`]: <https://crates.io/crates/deepsize>
+[`size-of`]: <https://crates.io/crates/size_of>
+[`maligned`]: <https://crates.io/crates/maligned>
+[`mmap-rs`]: <https://crates.io/crates/mmap-rs>
+[`half`]: <https://crates.io/crates/half>
+[`rand`]: <https://crates.io/crates/rand>
