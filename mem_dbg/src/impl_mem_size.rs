@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
 /// A basic implementation using [`core::mem::size_of`] for non-[`Copy`] types,
-/// setting [`CopyType::Copy`] for [`False`].
+/// setting [`CopyType::Copy`] to [`False`].
 
 macro_rules! impl_size_of {
     ($($ty:ty),*) => {$(
@@ -33,7 +33,7 @@ macro_rules! impl_size_of {
 }
 
 /// A basic implementation using [`core::mem::size_of`] for [`Copy`] types,
-/// setting [`CopyType::Copy`] for [`True`].
+/// setting [`CopyType::Copy`] to [`True`].
 
 macro_rules! impl_copy_size_of {
     ($($ty:ty),*) => {$(
