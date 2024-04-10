@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-/// Given a float, return it in a human readable format using SI suffixes.
+/// Given a float, returns it in a human readable format using SI suffixes.
 pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
     const UOM: &[&str] = &[
         "qB", "rB", "yB", "zB", "aB", "fB", "pB", "nB", "μB", "mB", " B", "kB", "MB", "GB", "TB",
@@ -33,7 +33,7 @@ pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
     (x, UOM[uom_idx])
 }
 
-/// Return the number of digits of a number.
+/// Returns the number of digits of a number.
 ///
 /// ```
 /// use mem_dbg::n_of_digits;

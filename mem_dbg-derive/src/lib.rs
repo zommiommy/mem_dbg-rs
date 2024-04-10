@@ -55,6 +55,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         Data::Struct(s) => {
             let mut fields_ident = vec![];
             let mut fields_ty = vec![];
+
             for (field_idx, field) in s.fields.iter().enumerate() {
                 fields_ident.push(
                     field
@@ -91,6 +92,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         Data::Enum(e) => {
             let mut variants = Vec::new();
             let mut variants_size = Vec::new();
+
             for variant in e.variants {
                 let mut res = variant.ident.to_owned().to_token_stream();
                 let mut var_args_size = quote! {core::mem::size_of::<Self>()};
@@ -118,6 +120,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     }
                     syn::Fields::Unnamed(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
+
                         for (field_idx, field) in fields.unnamed.iter().enumerate() {
                             let ident = syn::Ident::new(
                                 &format!("v{}", field_idx),
@@ -328,13 +331,13 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             )
                             .to_token_stream();
                             let field_ident_str = format!("{}", field_idx);
-                            let field_idx_syn = syn::Index::from(field_idx);
+                            let field_tuple_idx = syn::Index::from(field_idx);
 
                             id_offset_pushes.push(quote!{
                                 // We push the offset of the field, which will
                                 // be used to compute the padded size.
                                 #[cfg(feature = "offset_of_enum")]
-                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_idx_syn)));
+                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_tuple_idx)));
                                 // We push the size of the field, which will be
                                 // used as a surrogate of the padded size.
                                 #[cfg(not(feature = "offset_of_enum"))]

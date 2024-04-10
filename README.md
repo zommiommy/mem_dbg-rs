@@ -66,7 +66,7 @@ which however needs the nightly compiler, as it enables the unstable features
 ## Features
 
 - `offset_of_enum`: support for padding and for the `DbgFlags::RUST_LAYOUT` flag
-  for enums. Requires the nightly compiling as it enables the unstable features
+  for enums. Requires the nightly compiler as it enables the unstable features
   `offset_of_enum` and `offset_of_nested`. Calling `mem_dbg` with the flag
   `DbgFlags::RUST_LAYOUT` without this feature enabled will result in a panic.
 - `half`: support for the [`half`] crate.
