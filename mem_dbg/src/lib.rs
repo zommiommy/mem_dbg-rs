@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "enum_offset_of", feature(offset_of_enum, offset_of_nested))]
+#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 /*
  * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  * SPDX-FileCopyrightText: 2023 Inria

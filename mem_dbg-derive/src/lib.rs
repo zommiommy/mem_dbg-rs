@@ -289,11 +289,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .for_each(|(field_idx, field)| {
                                 let ident = field.ident.as_ref().unwrap();
                                 let field_name = format!("{}", ident);
-                                #[cfg(feature = "enum_offset_of")]
+                                #[cfg(feature = "offset_of_enum")]
                                 id_offset_pushes.push(quote!{
                                     id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #ident)));
                                 });
-                                #[cfg(not(feature = "enum_offset_of"))]
+                                #[cfg(not(feature = "offset_of_enum"))]
                                 id_offset_pushes.push(quote!{
                                     id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
                                 });
@@ -330,11 +330,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_name = format!("{}", field_idx);
 
-                            #[cfg(feature = "enum_offset_of")]
+                            #[cfg(feature = "offset_of_enum")]
                             id_offset_pushes.push(quote!{
                                 id_sizes.push((#field_idx, core::mem::offset_of!(#name #ty_generics, #variant_ident . #field_name)));
                             });
-                            #[cfg(not(feature = "enum_offset_of"))]
+                            #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
                                 id_sizes.push((#field_idx, std::mem::size_of_val(#ident)));
                             });
@@ -366,7 +366,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                     let mut id_sizes: Vec<(usize, usize)> = vec![];
                     let n;
-                    #[cfg(feature = "enum_offset_of")]
+                    #[cfg(feature = "offset_of_enum")]
                     {
                         // We use the offset_of information to build the real
                         // space occupied by a field.
@@ -384,7 +384,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_sizes.sort_by_key(|x| x.0);
                         }
                     }
-                    #[cfg(not(feature = "enum_offset_of"))]
+                    #[cfg(not(feature = "offset_of_enum"))]
                     {
                         // Lacking offset_of for enums, here we obtain directly
                         // the size_of of each field which we use as a surrogate

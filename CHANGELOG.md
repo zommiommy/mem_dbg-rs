@@ -5,11 +5,11 @@
 ### New
 
 * Support for displaying padding using the new stable macro `offset_of`,
-  with an optional feature `enum_offset_of` for enums (the latter requires
+  with an optional feature `offset_of_enum` for enums (the latter requires
   nightly).
 
 * `MemDbgFlags::RUST_LAYOUT` flag displays structure in compiler layout;
-  needs feature `enum_offset_of` for enums (the latter requires nightly).
+  needs feature `offset_of_enum` for enums (the latter requires nightly).
 
 * Support for other crates such as maligned.
 
@@ -18,7 +18,6 @@
 * Fixed cfgs for mmap-rs because it could not be enabled.
 
 * Fixed size for tuples (it was not considering padding).
-
 
 ## [0.1.8] - 2024-04-07
 

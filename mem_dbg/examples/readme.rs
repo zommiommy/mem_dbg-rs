@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
-    #[cfg(feature = "enum_offset_of")]
+    #[cfg(feature = "offset_of_enum")]
     {
         println!();
 

@@ -59,13 +59,13 @@ brackets; moreover, the flag [`DbgFlags::RUST_LAYOUT`] makes it possible to
 display structures in the layout used by the Rust compiler, rather than
 that given by declaration order.
 
-These features are also available for enums using the feature `enum_offset_of`,
+These features are also available for enums using the feature `offset_of_enum`,
 which however needs the nightly compiler, as it enables the unstable features
 `offset_of_enum` and `offset_of_nested`.
 
 ## Features
 
-- `enum_offset_of`: support for padding and for the `DbgFlags::RUST_LAYOUT` flag
+- `offset_of_enum`: support for padding and for the `DbgFlags::RUST_LAYOUT` flag
   for enums. Requires the nightly compiling as it enables the unstable features
   `offset_of_enum` and `offset_of_nested`. Calling `mem_dbg` with the flag
   `DbgFlags::RUST_LAYOUT` without this feature enabled will result in a panic.
@@ -129,7 +129,7 @@ println!();
 
 s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
-#[cfg(feature = "enum_offset_of")]
+#[cfg(feature = "offset_of_enum")]
 {
     println!();
 
@@ -179,7 +179,7 @@ capacity: 1207
     8  B   0.66% ╰╴test: isize
 ```
 
-If run with the feature `enum_offset_of`, it prints:
+If run with the feature `offset_of_enum`, it prints:
 
 ```text
 size:     807
@@ -252,7 +252,7 @@ capacity: 1215
 138 B ╰╴s
 ```
 
-The last output happens only on the nightly compiler with the `enum_offset_of`
+The last output happens only on the nightly compiler with the `offset_of_enum`
 feature enabled.
 
 ## Caveats
