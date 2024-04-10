@@ -145,6 +145,7 @@ bitflags::bitflags! {
 }
 
 impl DbgFlags {
+    /// Translates flags that are in common with [`MemSize`] into [`SizeFlags`].
     pub fn to_size_flags(&self) -> SizeFlags {
         let mut flags = SizeFlags::empty();
         if self.contains(DbgFlags::FOLLOW_REFS) {
@@ -158,7 +159,8 @@ impl DbgFlags {
 }
 
 impl Default for DbgFlags {
-    /// The default set of flags contains [`DbgFlags::TYPE_NAME`], [`DbgFlags::SEPARATOR`], and [`DbgFlags::PERCENTAGE`].
+    /// The default set of flags contains [`DbgFlags::TYPE_NAME`],
+    /// [`DbgFlags::SEPARATOR`], and [`DbgFlags::PERCENTAGE`].
     #[inline(always)]
     fn default() -> Self {
         Self::TYPE_NAME | Self::SEPARATOR | Self::PERCENTAGE
