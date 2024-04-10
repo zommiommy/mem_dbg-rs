@@ -626,3 +626,8 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
             ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
     }
 }
+
+#[cfg(feature = "half")]
+impl MemDbgImpl for half::f16 {}
+#[cfg(feature = "half")]
+impl MemDbgImpl for half::bf16 {}

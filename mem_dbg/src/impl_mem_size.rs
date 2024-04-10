@@ -1051,3 +1051,18 @@ impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>() + self.deref().mem_size(flags)
     }
 }
+
+#[cfg(feature = "half")]
+impl MemSize for half::f16 {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+#[cfg(feature = "half")]
+impl MemSize for half::bf16 {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
