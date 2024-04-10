@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     s.mem_dbg(DbgFlags::empty())?;
 
-    #[cfg(feature = "enum_padding")]
+    #[cfg(feature = "enum_offset_of")]
     {
         println!();
         println!("DbgFlags::HUMANIZE | DbgFlags::RUST_LAYOUT:");

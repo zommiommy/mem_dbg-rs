@@ -22,5 +22,5 @@ maligned = {version="0.2.1", optional = true}
 default = ["std", "derive"]
 std = ["alloc"]
 derive = ["mem_dbg-derive"]
-enum_padding = []
+enum_offset_of = []
 alloc = []
