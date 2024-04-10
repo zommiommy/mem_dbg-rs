@@ -1,10 +1,11 @@
-//#![feature(offset_of_enum, offset_of_nested)]
 /*
  * SPDX-FileCopyrightText: 2023 Inria
  * SPDX-FileCopyrightText: 2023 Tommaso Fontana
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
+
+#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 #![allow(dead_code)]
 
 use mem_dbg::*;
@@ -31,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Unit,
         Unit2(),
         Unit3 {},
-        Unnamed(usize, u8),
+        Unnamed(usize, usize),
         Named { first: usize, second: u8 },
     }
 

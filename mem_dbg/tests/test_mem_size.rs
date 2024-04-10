@@ -6,6 +6,8 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
+#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
+
 use core::marker::PhantomData;
 use std::{fmt::Display, sync::atomic::AtomicU64};
 

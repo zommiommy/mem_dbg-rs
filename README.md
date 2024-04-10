@@ -77,6 +77,7 @@ which however needs the nightly compiler, as it enables the unstable features
 ## Example
 
 ```rust
+# #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 use mem_dbg::*;
 
