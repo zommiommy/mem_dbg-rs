@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use crate::impl_mem_size::MemSizeHelper2;
 use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbg, MemDbgImpl};
 
-// Primitive types, atomic types, ()
+/// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
 
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
@@ -32,16 +32,8 @@ impl_mem_dbg! {
     AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize,
     NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize,
     NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
-    PhantomPinned
+    PhantomPinned, str, String
 }
-
-// Strings
-
-impl MemDbgImpl for str {}
-
-impl MemDbgImpl for String {}
-
-// PhantomData
 
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
@@ -226,7 +218,8 @@ impl_tuples_muncher!(
     (0 => T0),
 );
 
-// function pointers cannot recourse
+// function pointers cannot recurse
+
 impl<R> MemDbgImpl for fn() -> R {}
 impl<A, R> MemDbgImpl for fn(A) -> R {}
 impl<A, B, R> MemDbgImpl for fn(A, B) -> R {}
@@ -241,11 +234,10 @@ impl<K: CopyType, V: CopyType> MemDbgImpl for HashMap<K, V> where
 {
 }
 
-#[cfg(feature = "mmap-rs")]
-impl MemDbgImpl for mmap_rs::Mmap {}
+// Hash stuff
 
 #[cfg(feature = "mmap-rs")]
-impl MemDbgImpl for mmap_rs::MmapMut {}
+impl_mem_dbg!(mmap_rs::Mmap, mmap_rs::MmapMut);
 
 impl<H> MemDbgImpl for core::hash::BuildHasherDefault<H> {
     // it's a phantom data so no recursion
@@ -256,11 +248,15 @@ impl MemDbgImpl for std::collections::hash_map::RandomState {
     // it's two u64s, but they are private so can't recurse
 }
 
+// alloc
+
 #[cfg(feature = "std")]
 impl MemDbgImpl for core::alloc::Layout {
     // Layout is size + align, but align is unstable so we can't recurse
     // on that, nor implement memdbg or memsize for that :)
 }
+
+// Ranges
 
 impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::Range<Idx> {
     fn _mem_dbg_rec_on(
@@ -345,10 +341,16 @@ impl<T: ?Sized> MemDbgImpl for core::ptr::NonNull<T> {
     // no recursion because we don't follow pointers
 }
 
+// Rand crate
+
 #[cfg(feature = "rand")]
-impl MemDbgImpl for rand::rngs::SmallRng {
-    // it's a struct with 4 u64, but it's private so we can't recurse
-}
+impl_mem_dbg!(
+    rand::rngs::SmallRng,
+    rand::rngs::StdRnd,
+    and::rngs::ThreadRng
+);
+
+// Cells
 
 impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
     fn _mem_dbg_rec_on(
@@ -396,6 +398,8 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
         }
     }
 }
+
+// Mutexes
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
@@ -507,43 +511,23 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
     }
 }
 
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::path::Path {
-    // cannot recourse
-}
+// Os stuff
 
 #[cfg(feature = "std")]
-impl MemDbgImpl for std::path::PathBuf {
-    // cannot recourse
-}
+impl_mem_dbg!(
+    std::path::Path,
+    std::path::PathBuf,
+    std::ffi::OsStr,
+    std::ffi::OsString,
+    std::fs::File,
+    std::fs::OpenOptions,
+    std::fs::Metadata,
+    std::fs::FileTimes,
+    std::fs::FileType,
+    std::fs::Permissions
+);
 
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::ffi::OsStr {
-    // cannot recourse
-}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::ffi::OsString {
-    // cannot recourse
-}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::fs::File {}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::fs::OpenOptions {}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::fs::Metadata {}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::fs::FileTimes {}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::fs::FileType {}
-
-#[cfg(feature = "std")]
-impl MemDbgImpl for std::fs::Permissions {}
+// I/O
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl + std::io::Read> MemDbgImpl for std::io::BufReader<T> {
@@ -593,24 +577,21 @@ impl<T: MemDbgImpl> MemDbgImpl for std::io::Cursor<T> {
     }
 }
 
+// maligned crate
+
 #[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A2 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A4 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A8 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A16 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A32 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A64 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A128 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A256 {}
-#[cfg(feature = "maligned")]
-impl MemDbgImpl for maligned::A512 {}
+impl_mem_dbg!(
+    maligned::A2,
+    maligned::A4,
+    maligned::A8,
+    maligned::A16,
+    maligned::A32,
+    maligned::A64,
+    maligned::A128,
+    maligned::A256,
+    maligned::A512
+);
+
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, T> {
     fn _mem_dbg_rec_on(
@@ -627,7 +608,7 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
     }
 }
 
+// half crate
+
 #[cfg(feature = "half")]
-impl MemDbgImpl for half::f16 {}
-#[cfg(feature = "half")]
-impl MemDbgImpl for half::bf16 {}
+impl_mem_dbg!(half::f16, half::bf16);
