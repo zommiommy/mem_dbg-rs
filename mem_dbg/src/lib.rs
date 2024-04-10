@@ -25,6 +25,7 @@ pub use mem_dbg_derive::{MemDbg, MemSize};
 
 mod impl_mem_dbg;
 mod impl_mem_size;
+
 mod utils;
 pub use utils::*;
 
@@ -85,25 +86,26 @@ bitflags::bitflags! {
     pub struct SizeFlags: u32 {
         /// Follow references.
         ///
-        /// By default [`MemSize::mem_size`] does not follow references
-        /// and computes only the size of the reference itself.
+        /// By default [`MemSize::mem_size`] does not follow references and
+        /// computes only the size of the reference itself.
         ///
         /// # Warning
         ///
-        /// Note that all references are followed independently. If the
-        /// same region of memory is reachable by two different paths,
-        /// it will be counted twice.
+        /// Note that all references are followed independently. If the same
+        /// region of memory is reachable by two different paths, it will be
+        /// counted twice.
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///
-        /// Size does not include memory allocated but not
-        /// used: for example, in the case of a vector
-        /// [`MemSize::mem_size`] calls [`Vec::len`] rather than [`Vec::capacity`].
+        /// Size does not include memory allocated but not used: for example, in
+        /// the case of a vector [`MemSize::mem_size`] calls [`Vec::len`] rather
+        /// than [`Vec::capacity`].
         ///
-        /// However, when this flag is specified [`MemSize::mem_size`]
-        /// will return the size of all memory allocated, even if it is not
-        /// used: for example, in the case of a vector this option
-        /// makes [`MemSize::mem_size`] call [`Vec::capacity`] rather than [`Vec::len`].
+        /// However, when this flag is specified [`MemSize::mem_size`] will
+        /// return the size of all memory allocated, even if it is not used: for
+        /// example, in the case of a vector this option makes
+        /// [`MemSize::mem_size`] call [`Vec::capacity`] rather than
+        /// [`Vec::len`].
         const CAPACITY = 1 << 1;
     }
 }
@@ -116,11 +118,11 @@ impl Default for SizeFlags {
     }
 }
 
-/// A trait to compute recursively the overall size or capacity of a structure, as opposed to the
-/// stack size returned by [`core::mem::size_of()`].
+/// A trait to compute recursively the overall size or capacity of a structure,
+/// as opposed to the stack size returned by [`core::mem::size_of()`].
 ///
-/// You can derive this trait with `#[derive(MemSize)]` if all the fields of your type
-/// implement [`MemSize`].
+/// You can derive this trait with `#[derive(MemSize)]` if all the fields of
+/// your type implement [`MemSize`].
 
 pub trait MemSize {
     /// Returns the (recursively computed) overall
@@ -171,13 +173,14 @@ impl Default for DbgFlags {
     }
 }
 
-/// A trait providing methods to display recursively the content
-/// and size of a structure.
+/// A trait providing methods to display recursively the content and size of a
+/// structure.
 ///
-/// You can derive this trait with `#[derive(MemDbg)]` if all the fields of your type
-/// implement [`MemDbg`]. Note that you will also need to derive [`MemSize`].
+/// You can derive this trait with `#[derive(MemDbg)]` if all the fields of your
+/// type implement [`MemDbg`]. Note that you will also need to derive
+/// [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
-    /// Write to stdout debug infos about the structure memory usage, expanding
+    /// Writes to stdout debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     #[inline(always)]
@@ -191,8 +194,8 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Write to a [`core::fmt::Write`] debug infos about the structure memory usage,
-    /// expanding all levels of nested structures.
+    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// usage, expanding all levels of nested structures.
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
@@ -208,8 +211,8 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Write to stdout debug infos about the structure memory usage, but expanding only
-    /// up to `max_depth` levels of nested structures.
+    /// Writes to stdout debug infos about the structure memory usage, but
+    /// expanding only up to `max_depth` levels of nested structures.
     #[cfg(feature = "std")]
     #[inline(always)]
     fn mem_dbg_depth(
@@ -243,8 +246,8 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Write to a [`core::fmt::Write`] debug infos about the structure memory usage,
-    /// but expanding only up to `max_depth` levels of nested structures.
+    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// usage, but expanding only up to `max_depth` levels of nested structures.
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     fn mem_dbg_depth_on(
@@ -358,7 +361,7 @@ pub trait MemDbg: MemDbgImpl {
     }
 }
 
-/// Implement [`MemDbg`] for all types that implement [`MemDbgImpl`].
+/// Implemens [`MemDbg`] for all types that implement [`MemDbgImpl`].
 ///
 /// This is done so that no one can change the implementation of [`MemDbg`],
 /// which ensures consistency in printing.
@@ -367,9 +370,10 @@ impl<T: MemDbgImpl> MemDbg for T {}
 /// Inner trait used to implement [`MemDbg`].
 ///
 /// This trait should not be implemented by users, which should use the
-/// `MemDbg` derive macro instead.
+/// [`MemDbg`](mem_dbg_derive::MemDbg) derive macro instead.
 ///
-/// The default no-op implementation is used by primitive types.
+/// The default no-op implementation is used by all types in which it does not
+/// make sense, or it is impossible, to recurse.
 pub trait MemDbgImpl: MemSize {
     #[inline(always)]
     fn _mem_dbg_rec_on(
