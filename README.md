@@ -232,30 +232,6 @@ capacity: 1207
   8 B ╰╴test
 ```
 
-If we use [`DbgFlags::empty()`] it prints:
-
-```text
-size:     815
-capacity: 1215
-
-985 B ⏺
- 16 B ├╴a
-      │ ├╴Variant: Unnamed
-  8 B │ ├╴0
-  1 B │ ╰╴1
-823 B ├╴b
-724 B │ ├╴a
- 64 B │ ├╴b
- 35 B │ ╰╴c
-  8 B │   ├╴0
- 27 B │   ╰╴1
-  8 B ├╴test
-138 B ╰╴s
-```
-
-The last output happens only on the nightly compiler with the `offset_of_enum`
-feature enabled.
-
 ## Caveats
 
 - We support out-of-the-box most basic types, and tuples up to size ten. The
@@ -279,7 +255,6 @@ feature enabled.
 [`MemSize`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html>
 [`std::mem::size_of`]: <https://doc.rust-lang.org/std/mem/fn.size_of.html>
 [`DbgFlags::RUST_LAYOUT`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT>
-[`DbgFlags::empty()`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#method.empty>
 [`CopyType`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html>
 [`cap`]: <https:/crates.io/crates/cap>
 [`get-size`]: <https://crates.io/crates/get_size>

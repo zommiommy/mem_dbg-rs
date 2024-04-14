@@ -180,7 +180,7 @@ pub trait MemDbg: MemDbgImpl {
     #[inline(always)]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
-        self.mem_dbg_depth(
+        self._mem_dbg_depth(
             self.mem_size(flags.to_size_flags()),
             usize::MAX,
             std::mem::size_of_val(self),
@@ -193,7 +193,7 @@ pub trait MemDbg: MemDbgImpl {
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
-        self.mem_dbg_depth_on(
+        self._mem_dbg_depth_on(
             writer,
             self.mem_size(flags.to_size_flags()),
             usize::MAX,
@@ -207,9 +207,19 @@ pub trait MemDbg: MemDbgImpl {
 
     /// Writes to stdout debug infos about the structure memory usage, but
     /// expanding only up to `max_depth` levels of nested structures.
+    fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
+        self._mem_dbg_depth(
+            self.mem_size(flags.to_size_flags()),
+            max_depth,
+            std::mem::size_of_val(self),
+            flags,
+        )
+    }
+
     #[cfg(feature = "std")]
+    #[doc(hidden)]
     #[inline(always)]
-    fn mem_dbg_depth(
+    fn _mem_dbg_depth(
         &self,
         total_size: usize,
         max_depth: usize,
@@ -228,7 +238,7 @@ pub trait MemDbg: MemDbgImpl {
                     .map(|_| ())
             }
         }
-        self.mem_dbg_depth_on(
+        self._mem_dbg_depth_on(
             &mut Wrapper(std::io::stdout()),
             total_size,
             max_depth,
@@ -242,9 +252,30 @@ pub trait MemDbg: MemDbgImpl {
 
     /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
     /// usage, but expanding only up to `max_depth` levels of nested structures.
+    fn mem_dbg_depth_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        max_depth: usize,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self._mem_dbg_depth_on(
+            writer,
+            self.mem_size(flags.to_size_flags()),
+            max_depth,
+            &mut String::new(),
+            None,
+            false,
+            std::mem::size_of_val(self),
+            flags,
+        )
+    }
+
+    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// usage, but expanding only up to `max_depth` levels of nested structures.
+    #[doc(hidden)]
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
-    fn mem_dbg_depth_on(
+    fn _mem_dbg_depth_on(
         &self,
         writer: &mut impl core::fmt::Write,
         total_size: usize,
