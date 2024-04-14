@@ -205,8 +205,9 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to stdout debug infos about the structure memory usage, but
-    /// expanding only up to `max_depth` levels of nested structures.
+    /// Writes to stdout debug infos about the structure memory usage as
+    /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
+    /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
         self._mem_dbg_depth(
             self.mem_size(flags.to_size_flags()),
@@ -251,7 +252,8 @@ pub trait MemDbg: MemDbgImpl {
     }
 
     /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
-    /// usage, but expanding only up to `max_depth` levels of nested structures.
+    /// usage as [`mem_dbg_on`](MemDbg::mem_dbg_on), but expanding only up to
+    /// `max_depth` levels of nested structures.
     fn mem_dbg_depth_on(
         &self,
         writer: &mut impl core::fmt::Write,
