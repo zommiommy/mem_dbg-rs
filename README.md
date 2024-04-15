@@ -241,7 +241,7 @@ capacity: 1207
 
 - Computation of the size of arrays, slices, and vectors will be performed by
   iterating over their elements unless the type is a copy type that does not
-  contain references and it is declared as such using the attribute
+  contain non-`'static` references and it is declared as such using the attribute
   `#[copy_type]`. See [`CopyType`] for more details.
 
 - The content of vectors and slices is not expanded recursively as the output

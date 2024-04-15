@@ -20,7 +20,7 @@ Generate a `mem_dbg::MemSize` implementation for custom types.
 
 Presently we do not support unions.
 
-The attribute `copy_type` can be used on [`Copy`] types that do not contain references
+The attribute `copy_type` can be used on [`Copy`] types that do not contain non-`'static` references
 to make `MemSize::mem_size` faster on arrays, vectors and slices. Note that specifying
 `copy_type` will add the bound that the type is `Copy + 'static`.
 
