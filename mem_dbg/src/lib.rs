@@ -217,6 +217,55 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
+    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// usage as [`mem_dbg_on`](MemDbg::mem_dbg_on), but expanding only up to
+    /// `max_depth` levels of nested structures.
+    fn mem_dbg_depth_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        max_depth: usize,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        self._mem_dbg_depth_on(
+            writer,
+            self.mem_size(flags.to_size_flags()),
+            max_depth,
+            &mut String::new(),
+            None,
+            false,
+            std::mem::size_of_val(self),
+            flags,
+        )
+    }
+}
+
+/// Implemens [`MemDbg`] for all types that implement [`MemDbgImpl`].
+///
+/// This is done so that no one can change the implementation of [`MemDbg`],
+/// which ensures consistency in printing.
+impl<T: MemDbgImpl> MemDbg for T {}
+
+/// Inner trait used to implement [`MemDbg`].
+///
+/// This trait should not be implemented by users, which should use the
+/// [`MemDbg`](mem_dbg_derive::MemDbg) derive macro instead.
+///
+/// The default no-op implementation is used by all types in which it does not
+/// make sense, or it is impossible, to recurse.
+pub trait MemDbgImpl: MemSize {
+    #[inline(always)]
+    fn _mem_dbg_rec_on(
+        &self,
+        _writer: &mut impl core::fmt::Write,
+        _total_size: usize,
+        _max_depth: usize,
+        _prefix: &mut String,
+        _is_last: bool,
+        _flags: DbgFlags,
+    ) -> core::fmt::Result {
+        Ok(())
+    }
+
     #[cfg(feature = "std")]
     #[doc(hidden)]
     #[inline(always)]
@@ -251,30 +300,6 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
-    /// usage as [`mem_dbg_on`](MemDbg::mem_dbg_on), but expanding only up to
-    /// `max_depth` levels of nested structures.
-    fn mem_dbg_depth_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        max_depth: usize,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        self._mem_dbg_depth_on(
-            writer,
-            self.mem_size(flags.to_size_flags()),
-            max_depth,
-            &mut String::new(),
-            None,
-            false,
-            std::mem::size_of_val(self),
-            flags,
-        )
-    }
-
-    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
-    /// usage, but expanding only up to `max_depth` levels of nested structures.
-    #[doc(hidden)]
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     fn _mem_dbg_depth_on(
@@ -384,34 +409,6 @@ pub trait MemDbg: MemDbgImpl {
         prefix.pop();
         prefix.pop();
 
-        Ok(())
-    }
-}
-
-/// Implemens [`MemDbg`] for all types that implement [`MemDbgImpl`].
-///
-/// This is done so that no one can change the implementation of [`MemDbg`],
-/// which ensures consistency in printing.
-impl<T: MemDbgImpl> MemDbg for T {}
-
-/// Inner trait used to implement [`MemDbg`].
-///
-/// This trait should not be implemented by users, which should use the
-/// [`MemDbg`](mem_dbg_derive::MemDbg) derive macro instead.
-///
-/// The default no-op implementation is used by all types in which it does not
-/// make sense, or it is impossible, to recurse.
-pub trait MemDbgImpl: MemSize {
-    #[inline(always)]
-    fn _mem_dbg_rec_on(
-        &self,
-        _writer: &mut impl core::fmt::Write,
-        _total_size: usize,
-        _max_depth: usize,
-        _prefix: &mut String,
-        _is_last: bool,
-        _flags: DbgFlags,
-    ) -> core::fmt::Result {
         Ok(())
     }
 }

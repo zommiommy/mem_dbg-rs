@@ -13,7 +13,7 @@ use core::{marker::PhantomData, sync::atomic::*};
 use std::collections::{HashMap, HashSet};
 
 use crate::impl_mem_size::MemSizeHelper2;
-use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbg, MemDbgImpl};
+use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
 
 /// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
 
