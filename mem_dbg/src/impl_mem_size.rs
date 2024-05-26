@@ -709,6 +709,15 @@ impl_copy_size_of!(
     std::net::SocketAddr
 );
 
+// Time
+#[cfg(feature = "std")]
+impl_copy_size_of!(
+    std::time::Duration,
+    std::time::Instant,
+    std::time::SystemTime,
+    std::time::SystemTimeError
+);
+
 // mmap-rs crate
 
 #[cfg(feature = "mmap-rs")]
