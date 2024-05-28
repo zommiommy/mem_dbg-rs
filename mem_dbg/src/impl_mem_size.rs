@@ -698,6 +698,26 @@ impl<T: MemSize> MemSize for std::io::Cursor<T> {
     }
 }
 
+// IpAddr
+#[cfg(feature = "std")]
+impl_copy_size_of!(
+    std::net::Ipv4Addr,
+    std::net::Ipv6Addr,
+    std::net::IpAddr,
+    std::net::SocketAddrV4,
+    std::net::SocketAddrV6,
+    std::net::SocketAddr
+);
+
+// Time
+#[cfg(feature = "std")]
+impl_copy_size_of!(
+    std::time::Duration,
+    std::time::Instant,
+    std::time::SystemTime,
+    std::time::SystemTimeError
+);
+
 // mmap-rs crate
 
 #[cfg(feature = "mmap-rs")]
