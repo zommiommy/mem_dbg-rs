@@ -9,7 +9,7 @@
 #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 
 use core::marker::PhantomData;
-use std::{fmt::Display, sync::atomic::AtomicU64};
+use std::sync::atomic::AtomicU64;
 
 use mem_dbg::*;
 
@@ -24,33 +24,6 @@ enum TestEnum {
         first: usize,
         second: PhantomData<u8>,
     },
-}
-
-#[derive(MemSize, MemDbg)]
-struct TestConst<const N: usize = 10>
-where
-    usize: Display,
-{
-    a: [u8; N],
-}
-
-#[derive(MemSize, MemDbg)]
-struct TestMarker;
-
-#[derive(MemSize, MemDbg)]
-struct TestTuple(usize, u8);
-
-#[derive(MemSize, MemDbg)]
-struct PersonVec<A, B = ()> {
-    a: A,
-    b: B,
-    test: isize,
-}
-
-#[derive(MemSize, MemDbg)]
-struct Data<A = usize> {
-    a: A,
-    b: Vec<i32>,
 }
 
 #[test]

@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.1] - 2024-05-28
+
+### New
+
+* Support for network and time structures.
+
+
 ## [0.2.0] - 2024-04-10
 
 ### New
