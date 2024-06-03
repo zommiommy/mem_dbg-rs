@@ -220,7 +220,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 // This is the arm of the match statement that invokes
                 // _mem_dbg_depth_on on the field.
                 match_code.push(quote!{
-                    #field_idx => self.#field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, *padded_size, _memdbg_flags)?,
+                    #field_idx => self.#field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                 });
             }
 
@@ -252,7 +252,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_sizes.sort_by_key(|x| x.0);
                         }
 
-                        for (i, (field_idx, padded_size)) in id_sizes.iter().enumerate().take(n) {
+                        for (i, (field_idx, padded_size)) in id_sizes.into_iter().enumerate().take(n) {
                             match field_idx {
                                 #(#match_code)*
                                 _ => unreachable!(),
@@ -302,7 +302,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => #field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, *padded_size, _memdbg_flags)?,
+                                #field_idx => #field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                             });
                             args.extend([field_ident.to_token_stream()]);
                             args.extend([quote! {,}]);
@@ -347,7 +347,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => #field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, *padded_size, _memdbg_flags)?,
+                                #field_idx => #field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                             });
 
                             args.extend([field_ident]);
@@ -397,7 +397,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         // the padded size.
                         assert!(!_memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT), "DbgFlags::RUST_LAYOUT for enums requires the offset_of_enum feature");
                     }
-                    for (i, (field_idx, padded_size)) in id_sizes.iter().enumerate().take(n) {
+                    for (i, (field_idx, padded_size)) in id_sizes.into_iter().enumerate().take(n) {
                         match field_idx {
                             #(#match_code)*
                             _ => unreachable!(),
