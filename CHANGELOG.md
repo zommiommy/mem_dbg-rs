@@ -5,7 +5,7 @@
 ### Fixed
 
 * Fixed a bug where the compiler that caused the error `usize cannot be dereferenced`
-  this happened because the doing `id_sizes.iter()` sometimes returns `&(usize, usize)`
+  this happened because doing `id_sizes.iter()` sometimes returns `&(usize, usize)`
   and other times `(usize, usize)`. Using `into_iter` gives us a consistent behavior
 
 
