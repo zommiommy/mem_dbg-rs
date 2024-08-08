@@ -352,3 +352,15 @@ fn test_indirect_call() {
 
     test(vec![1, 2, 3, 4, 5]);
 }
+
+#[test]
+fn test_slice_mut() {
+    let mut data = vec![1, 2, 3, 4, 5];
+
+    // A mutable slice should have the same size as a non mutable one
+
+    assert_eq!(
+        data.as_slice().mem_size(SizeFlags::default()),
+        data.as_mut_slice().mem_size(SizeFlags::default())
+    );
+}
