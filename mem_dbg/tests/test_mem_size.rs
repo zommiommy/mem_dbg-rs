@@ -384,6 +384,36 @@ fn test_array_slice_i64_mut() {
 }
 
 #[test]
+fn test_array_slice_i32_mut_following_ref() {
+    let mut data: [i32; 5] = [1, 2, 3, 4, 5];
+
+    // A mutable slice should have the same size as a non mutable one
+
+    assert_eq!(
+        data.as_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        data.as_mut_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        "A mutable slice should have the same size as a non mutable one, but we have {} != {}",
+        data.as_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        data.as_mut_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS)
+    );
+}
+
+#[test]
+fn test_array_slice_i64_mut_following_ref() {
+    let mut data: [i64; 5] = [1, 2, 3, 4, 5];
+
+    // A mutable slice should have the same size as a non mutable one
+
+    assert_eq!(
+        data.as_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        data.as_mut_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        "A mutable slice should have the same size as a non mutable one, but we have {} != {}",
+        data.as_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        data.as_mut_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS)
+    );
+}
+
+#[test]
 fn test_vec_slice_i32_mut() {
     let mut data: Vec<i32> = vec![1, 2, 3, 4, 5];
 
