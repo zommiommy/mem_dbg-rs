@@ -638,6 +638,18 @@ impl Default for TestEnumReprU8 {
     }
 }
 
+
+#[derive(MemSize)]
+union TestUnion {
+    a: u64,
+}
+
+impl Default for TestUnion {
+    fn default() -> Self {
+        TestUnion { a: 0 }
+    }
+}
+
 test_size!(
     (u8, 1, 1),
     (u16, 2, 2),
@@ -654,5 +666,82 @@ test_size!(
     (bool, 1, 1),
     (char, 4, 4),
     (TestEnum2, 32, 32),
-    (TestEnumReprU8, 40, 40)
+    (TestEnumReprU8, 40, 40),
+    (TestUnion, 8, 8)
 );
+
+#[derive(MemSize)]
+union TestUnionDeep<'a> {
+    b: &'a TestUnion,
+}
+
+#[derive(MemSize)]
+union TestUnionDeepMut<'a> {
+    b: &'a mut TestUnion,
+}
+
+#[test]
+fn test_single_field_union_follow_ref() {
+    let mut test_union = TestUnion::default();
+    let test_union_deep = TestUnionDeep { b: &test_union };
+
+    // We check that the shallow size of the test union deep is the
+    // size of a reference (i.e. an usize).
+    assert_eq!(
+        <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::default()),
+        size_of::<usize>(),
+    );
+
+    // We check that the deep size of the test union deep is the
+    // size of a reference plus the size of the test union.
+    assert_eq!(
+        <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::FOLLOW_REFS),
+        size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
+    );
+
+    let test_union_deep_mut = TestUnionDeepMut {b: &mut test_union};
+
+    // We check that the shallow size of the test union mut is the
+    // size of a reference (i.e. an usize)
+    assert_eq!(
+        <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::default()),
+        size_of::<usize>(),
+    );
+
+    // We check that the deep size of the test union deep mut is the
+    // size of a reference plus the size of the test union.
+    assert_eq!(
+        <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::FOLLOW_REFS),
+        size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
+    );
+}
+
+#[derive(MemSize)]
+union TestUnionMultiField {
+    a: u64,
+    _b: (u32, u64)
+}
+
+impl Default for TestUnionMultiField {
+    fn default() -> Self {
+        TestUnionMultiField { a: 0 }
+    }
+}
+
+#[test]
+fn test_multi_field_union_not_follow_ref() {
+    let test_union_multi_field = TestUnionMultiField::default();
+
+    assert_eq!(
+        <TestUnionMultiField as MemSize>::mem_size(&test_union_multi_field, SizeFlags::default()),
+        size_of::<(u32, u64)>()
+    );
+}
+
+#[test]
+#[should_panic]
+fn test_multi_field_union_follow_ref() {
+    let test_union_multi_field = TestUnionMultiField::default();
+
+    <TestUnionMultiField as MemSize>::mem_size(&test_union_multi_field, SizeFlags::FOLLOW_REFS);
+}

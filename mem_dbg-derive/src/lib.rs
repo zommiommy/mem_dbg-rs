@@ -168,7 +168,64 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             }
         }
 
-        Data::Union(_) => unimplemented!("Unions are not supported"),
+        Data::Union(u) => {
+            // We only support single-field unions completely or call to mem_size on unions
+            // without the FOLLOW_REFS flag, as we cannot know programmatically
+            // which field is initialized.
+
+            let fields = u.fields.named.iter().collect::<Vec<_>>();
+
+            match fields.len() {
+                0 => unreachable!("Empty unions are not supported by the Rust programming language."),
+                1 => {
+                    let field = fields[0];
+                    let field_ty = &field.ty;
+                    let ident = field.ident.as_ref().unwrap();
+                    where_clause
+                        .predicates
+                        .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemSize));
+                    quote! {
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                        {
+                            type Copy = #copy_type;
+                        }
+
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                                unsafe{<#field_ty as mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags)}
+                            }
+                        }
+                    }
+                }
+                number_of_fields => {
+                    quote! {
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                        {
+                            type Copy = #copy_type;
+                        }
+
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                                if _memsize_flags.contains(mem_dbg::SizeFlags::FOLLOW_REFS) {
+                                    unimplemented!(concat!(
+                                        "mem_dbg::MemSize for unions with more than one field ",
+                                        "does not support FOLLOW_REFS flag, as we cannot know ",
+                                        "at compile time which field is initialized. This union ",
+                                        "has {} fields."
+                                    ), #number_of_fields);
+                                } else {
+                                    core::mem::size_of::<Self>()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }.into()
 }
 
