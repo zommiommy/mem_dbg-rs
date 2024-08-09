@@ -656,3 +656,57 @@ test_size!(
     (TestEnum2, 32, 32),
     (TestEnumReprU8, 40, 40)
 );
+
+
+#[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
+/// Array representation container
+struct CustomArray<'a, const P: usize, const W: usize> {
+    /// Number of items stored in the array
+    len: usize,
+    /// Capacity of the array
+    cap: usize,
+    /// Array of items
+    arr: &'a mut [u32],
+}
+
+impl<'a, const P: usize, const W: usize> CustomArray<'a, P, W> {
+    /// Create new instance of `CustomArray` representation from vector
+    #[inline]
+    fn from_vec(mut arr: Vec<u32>, len: usize) -> CustomArray<'a, P, W> {
+        let cap = arr.len();
+        let ptr = arr.as_mut_ptr();
+        std::mem::forget(arr);
+        // SAFETY: valid pointer from vector being used to create slice reference
+        let arr = unsafe { core::slice::from_raw_parts_mut(ptr, cap) };
+        Self { len, cap, arr }
+    }
+}
+
+#[test]
+/// Check that the CustomArray used in CloudFlare crates is measured correctly.
+fn test_cloudflare_array() {
+    let custom_array: CustomArray<456, 56> = CustomArray::from_vec(vec![1, 2, 3, 4, 5], 5);
+
+    let shallow_size = <CustomArray<456, 56> as mem_dbg::MemSize>::mem_size(
+        &custom_array,
+        mem_dbg::SizeFlags::default(),
+    );
+
+    // The expected shallow size is 32:
+    // - 2 * usize (len and cap)
+    // - 1 * usize (pointer to the array)
+    // - 1 * usize (len of the array)
+
+    assert_eq!(shallow_size, 32);
+
+    let deep_size = <CustomArray<456, 56> as mem_dbg::MemSize>::mem_size(
+        &custom_array,
+        mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
+    );
+
+    // The expected deep size is:
+    // - The shallow size (32)
+    // - The size of the array (5 * 4 = 20)
+
+    assert_eq!(deep_size, shallow_size + 20);
+}
