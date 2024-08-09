@@ -508,6 +508,42 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             }
         }
 
-        Data::Union(_) => unimplemented!("Unions are not supported"),
+        Data::Union(u) => {
+            // We only support single-field unions for the MemDbg.
+
+            let fields = u.fields.named.iter().collect::<Vec<_>>();
+
+            match fields.len() {
+                0 => unreachable!("Empty unions are not supported by the Rust programming language."),
+                1 => {
+                    let field = fields[0];
+                    let field_ty = &field.ty;
+                    let ident = field.ident.as_ref().unwrap();
+                    where_clause
+                        .predicates
+                        .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemDbgImpl));
+                    quote! {
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
+                            #[inline(always)]
+                            fn _mem_dbg_rec_on(
+                                &self,
+                                _memdbg_writer: &mut impl core::fmt::Write,
+                                _memdbg_total_size: usize,
+                                _memdbg_max_depth: usize,
+                                _memdbg_prefix: &mut String,
+                                _memdbg_is_last: bool,
+                                _memdbg_flags: mem_dbg::DbgFlags,
+                            ) -> core::fmt::Result {
+                                unsafe{<#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, core::mem::size_of::<#field_ty>(), _memdbg_flags)}
+                            }
+                        }
+                    }
+                }
+                _ => unimplemented!(
+                    "mem_dbg::MemDbg for unions with more than one field is not supported."
+                )
+            }
+        }
     }.into()
 }

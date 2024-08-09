@@ -639,7 +639,7 @@ impl Default for TestEnumReprU8 {
 }
 
 
-#[derive(MemSize)]
+#[derive(MemSize, MemDbg)]
 union TestUnion {
     a: u64,
 }
@@ -670,12 +670,12 @@ test_size!(
     (TestUnion, 8, 8)
 );
 
-#[derive(MemSize)]
+#[derive(MemSize, MemDbg)]
 union TestUnionDeep<'a> {
     b: &'a TestUnion,
 }
 
-#[derive(MemSize)]
+#[derive(MemSize, MemDbg)]
 union TestUnionDeepMut<'a> {
     b: &'a mut TestUnion,
 }
