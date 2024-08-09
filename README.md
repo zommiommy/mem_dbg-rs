@@ -31,7 +31,7 @@ vector, etc.) when it is not necessary, making it possible to compute instantly
 the size of values occupying hundreds of gigabytes of heap memory.
 
 This is the result of the benchmark `bench_hash_map` contained in the `examples`
-directory. It builds a hash map with a hundred million entries and then measure
+directory. It builds a hash map with a hundred million entries and then measures
 its heap size:
 
 ```test
@@ -239,6 +239,34 @@ capacity: 1207
   enums whose fields implement the associated interface: if this is not the case
   (e.g., because of the orphan rule) one can implement the traits manually.
 
+- If you invoke the methods of this crate on a shared reference, the compiler
+  will automatically dereference it, and the method will be invoked on the
+  referenced type:
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use mem_dbg::*;
+
+let mut x: [i32; 4] = [0, 0, 0, 0];
+
+assert_eq!(
+    (&x).mem_size(SizeFlags::default()),
+    std::mem::size_of::<[i32; 4]>()
+);
+
+assert_eq!(
+    (&mut x).mem_size(SizeFlags::default()),
+    std::mem::size_of::<&mut [i32; 4]>()
+);
+
+assert_eq!(
+    <&[i32; 4] as MemSize>::mem_size(&&x, SizeFlags::default()),
+    std::mem::size_of::<&[i32; 4]>()
+);
+# Ok(())
+# }
+```
+
 - Computation of the size of arrays, slices, and vectors will be performed by
   iterating over their elements unless the type is a copy type that does not
   contain non-`'static` references and it is declared as such using the attribute
@@ -248,7 +276,7 @@ capacity: 1207
   might be too complex; this might change in the future (e.g., via a flag)
   should interesting use cases arise.
 
-- `BTreeMap`, and `BTreeSet`, are not currently supported as we still have to
+- `BTreeMap`/`BTreeSet` are not currently supported as we still have to
   figure out a way to precisely measure their memory size and capacity.
 
 [`MemDbg`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html>
