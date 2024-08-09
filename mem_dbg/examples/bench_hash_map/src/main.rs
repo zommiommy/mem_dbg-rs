@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 #[global_allocator]
-static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
+static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::MAX);
 
 fn main() {
     const N: usize = 100_000_000;
