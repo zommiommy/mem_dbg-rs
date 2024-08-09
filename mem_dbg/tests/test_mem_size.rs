@@ -718,7 +718,6 @@ fn test_cloudflare_mut_vector() {
     }
 }
 
-
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
 /// vector representation container
 struct CustomVector<'a> {
@@ -753,10 +752,12 @@ fn test_cloudflare_vector() {
     // - The shallow size (16)
     // - The size of the vector (5 * 4 = 20)
 
-    assert_eq!(size_of::<CustomVector>() + size_of_val(custom_vector.arr), 36);
+    assert_eq!(
+        size_of::<CustomVector>() + size_of_val(custom_vector.arr),
+        36
+    );
     assert_eq!(deep_size, 36);
 }
-
 
 #[test]
 /// Check that the CustomVector used in CloudFlare crates is measured correctly.
@@ -785,6 +786,9 @@ fn test_cloudflare_array() {
     // - The shallow size (16)
     // - The size of the vector (5 * 4 = 20)
 
-    assert_eq!(size_of::<CustomVector>() + size_of_val(custom_vector.arr), 36);
+    assert_eq!(
+        size_of::<CustomVector>() + size_of_val(custom_vector.arr),
+        36
+    );
     assert_eq!(deep_size, 36);
 }
