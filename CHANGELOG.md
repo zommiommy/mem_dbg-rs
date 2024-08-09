@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.2.4] - 2024-08-09
+
+### Fixed
+
+* The size of slices was off by 8 bytes.
+
 ## [0.2.3] - 2024-08-09
 
 ### Fixed
