@@ -209,10 +209,9 @@ use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        self
-                .iter()
-                .map(|x| <T as MemSize>::mem_size(x, flags))
-                .sum::<usize>()
+        self.iter()
+            .map(|x| <T as MemSize>::mem_size(x, flags))
+            .sum::<usize>()
     }
 }
 
