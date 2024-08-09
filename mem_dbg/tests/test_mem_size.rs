@@ -176,8 +176,8 @@ fn test_padding() {
 fn test_option() {
     let v = Some(1_usize);
     assert_eq!(
+        v.mem_size(SizeFlags::default()),
         2 * core::mem::size_of::<usize>(),
-        v.mem_size(SizeFlags::default())
     );
     assert_eq!(
         v.mem_size(SizeFlags::CAPACITY),
@@ -185,8 +185,8 @@ fn test_option() {
     );
     let v = Some(Some(1_usize));
     assert_eq!(
+        v.mem_size(SizeFlags::default()),
         2 * core::mem::size_of::<usize>(),
-        v.mem_size(SizeFlags::default())
     );
     assert_eq!(
         v.mem_size(SizeFlags::CAPACITY),
@@ -194,8 +194,8 @@ fn test_option() {
     );
     let v = Some(Some(Some(1_usize)));
     assert_eq!(
+        v.mem_size(SizeFlags::default()),
         2 * core::mem::size_of::<usize>(),
-        v.mem_size(SizeFlags::default())
     );
     assert_eq!(
         v.mem_size(SizeFlags::CAPACITY),
@@ -374,15 +374,13 @@ fn test_vec_slice_i64() {
     );
 
     assert_eq!(
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size,
+        "Expected mutable slice shallow size to be identical to non mutable slice shallow size"
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size, mutable_slice_deep_size,
-        "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size, mutable_slice_deep_size
+        mutable_slice_deep_size, non_mutable_slice_deep_size,
+        "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
 }
 
@@ -407,15 +405,13 @@ fn test_vec_slice_i32() {
     );
 
     assert_eq!(
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size,
+        "Expected mutable slice shallow size to be identical to non mutable slice shallow size"
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size, mutable_slice_deep_size,
-        "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size, mutable_slice_deep_size
+        mutable_slice_deep_size, non_mutable_slice_deep_size,
+        "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
 }
 
@@ -440,15 +436,13 @@ fn test_array_slice_i64() {
     );
 
     assert_eq!(
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size,
+        "Expected mutable slice shallow size to be identical to non mutable slice shallow size"
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size, mutable_slice_deep_size,
-        "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size, mutable_slice_deep_size
+        mutable_slice_deep_size, non_mutable_slice_deep_size,
+        "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
 }
 
@@ -470,15 +464,13 @@ fn test_array_slice_i64_without_specifications() {
         .mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS);
 
     assert_eq!(
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size,
+        "Expected mutable slice shallow size to be identical to non mutable slice shallow size"
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size, mutable_slice_deep_size,
-        "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size, mutable_slice_deep_size
+        mutable_slice_deep_size, non_mutable_slice_deep_size,
+        "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
 }
 
@@ -503,15 +495,13 @@ fn test_array_slice_i32() {
     );
 
     assert_eq!(
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size,
+        "Expected mutable slice shallow size to be identical to non mutable slice shallow size"
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size, mutable_slice_deep_size,
-        "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size, mutable_slice_deep_size
+        mutable_slice_deep_size, non_mutable_slice_deep_size,
+        "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
 }
 
@@ -549,14 +539,12 @@ fn test_compare_structs() {
 
     assert_eq!(
         mutable_slice_shallow_size, non_mutable_slice_shallow_size,
-        "Expected mutable slice shallow size {}, got {}",
-        mutable_slice_shallow_size, non_mutable_slice_shallow_size
+        "Expected mutable slice shallow size to be identical to non mutable slice shallow size"
     );
 
     assert_eq!(
         mutable_slice_deep_size, non_mutable_slice_deep_size,
-        "Expected mutable slice deep size {}, got {}",
-        mutable_slice_deep_size, non_mutable_slice_deep_size
+        "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
 }
 
@@ -574,9 +562,6 @@ macro_rules! test_size {
                     assert_eq!(
                         shallow_object_size,
                         $shallow_size,
-                        "{} - Expected shallow size {}, got {}",
-                        stringify!($object),
-                        $shallow_size, shallow_object_size
                     );
 
                     // We check that any pointer is always the size of a usize,
@@ -586,11 +571,7 @@ macro_rules! test_size {
 
                     assert_eq!(
                         reference_size,
-                        size_of::<usize>(),
-                        "{} - Expected pointer size {}, got {}",
-                        stringify!($object),
-                        size_of::<usize>(),
-                        reference_size
+                        size_of::<usize>()
                     );
 
                     // Next, we check that the deep size of the object is the expected one,
@@ -598,11 +579,7 @@ macro_rules! test_size {
                     let deep_object_size = <$object as MemSize>::mem_size(&data, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
                     assert_eq!(
                         deep_object_size,
-                        $deep_size,
-                        "{} - Expected deep size {}, got {}",
-                        stringify!($object),
-                        $deep_size,
-                        deep_object_size
+                        $deep_size
                     );
 
                     // We now  check that the deep size of the reference to this object is equal to the size of a pointer
@@ -610,11 +587,7 @@ macro_rules! test_size {
                     let deep_reference_size = <&'_ $object as MemSize>::mem_size(&reference, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
                     assert_eq!(
                         deep_reference_size,
-                        size_of::<usize>() + deep_object_size,
-                        "{} - Expected deep reference size {}, got {}",
-                        stringify!($object),
-                        size_of::<usize>() + deep_object_size,
-                        deep_reference_size
+                        size_of::<usize>() + deep_object_size
                     );
 
                     let mutable_reference = &mut data;
@@ -623,10 +596,6 @@ macro_rules! test_size {
                     assert_eq!(
                         mutable_reference_size,
                         size_of::<usize>(),
-                        "{} - Expected mutable reference size {}, got {}",
-                        stringify!($object),
-                        size_of::<usize>(),
-                        mutable_reference_size
                     );
 
                     // We check that the deep size of the mutable reference is the same as the deep size of the reference
@@ -635,10 +604,6 @@ macro_rules! test_size {
                     assert_eq!(
                         deep_mutable_reference_size,
                         deep_reference_size,
-                        "{} - Expected mutable reference deep size {}, got {}",
-                        stringify!($object),
-                        deep_reference_size,
-                        deep_mutable_reference_size
                     );
                 }
             }
