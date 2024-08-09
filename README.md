@@ -31,7 +31,7 @@ vector, etc.) when it is not necessary, making it possible to compute instantly
 the size of values occupying hundreds of gigabytes of heap memory.
 
 This is the result of the benchmark `bench_hash_map` contained in the `examples`
-directory. It builds a hash map with a hundred million entries and then measure
+directory. It builds a hash map with a hundred million entries and then measures
 its heap size:
 
 ```test
@@ -248,7 +248,7 @@ capacity: 1207
   might be too complex; this might change in the future (e.g., via a flag)
   should interesting use cases arise.
 
-- `BTreeMap`, and `BTreeSet`, are not currently supported as we still have to
+- `BTreeMap`/`BTreeSet` are not currently supported as we still have to
   figure out a way to precisely measure their memory size and capacity.
 
 [`MemDbg`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html>

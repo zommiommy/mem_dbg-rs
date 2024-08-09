@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.2.3] - 2024-08-09
+
+### Fixed
+
+* Mutable and non-mutable slices were returning different sizes within
+  structures. At the top level, this is however unavoidable due to
+  different autodeferentiation policies in the compiler.
+
 ## [0.2.2] - 2024-06-03
 
 ### Fixed
@@ -9,13 +17,11 @@
   returning sometimes `&(usize, usize)` and sometimes `(usize, usize)`.
   Using `into_iter` gives us a consistent behavior.
 
-
 ## [0.2.1] - 2024-05-28
 
 ### New
 
 * Support for network and time structures.
-
 
 ## [0.2.0] - 2024-04-10
 
@@ -36,13 +42,11 @@
 
 * Fixed size for tuples (it was not considering padding).
 
-
 ## [0.1.8] - 2024-04-07
 
 ### Improved
 
 * Fixed cfgs for mmap-rs because it could not be enabled.
-
 
 ## [0.1.7] - 2024-04-07
 
@@ -50,13 +54,11 @@
 
 * Added missing CopyTypes for maligned types.
 
-
 ## [0.1.6] - 2024-04-07
 
 ### Improved
 
 * Many new implementations for standard types such as RefCell.
-
 
 ## [0.1.4] - 2024-03-18
 

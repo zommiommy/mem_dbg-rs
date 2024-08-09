@@ -366,6 +366,7 @@ fn test_vec_slice_i64() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
+    eprintln!("{}", mutable_slice.mem_size(SizeFlags::empty()));
     let mutable_slice_shallow_size =
         <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(
