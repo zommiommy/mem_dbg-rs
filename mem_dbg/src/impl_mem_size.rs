@@ -113,7 +113,7 @@ impl<T: ?Sized + MemSize> MemSize for &'_ T {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() + (**self).mem_size(flags)
+            core::mem::size_of::<Self>() + <T as MemSize>::mem_size(*self, flags)
         } else {
             core::mem::size_of::<Self>()
         }

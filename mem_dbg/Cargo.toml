@@ -18,6 +18,9 @@ bitflags = "2.4.1"
 rand = {version = "0.8.5", optional = true, features = ["small_rng"]}
 maligned = {version="0.2.1", optional = true}
 
+[dev-dependencies]
+paste = "1.0.15"
+
 [features]
 default = ["std", "derive"]
 std = ["alloc"]
