@@ -660,52 +660,47 @@ test_size!(
 
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
 /// Array representation container
-struct CustomArray<'a, const P: usize, const W: usize> {
-    /// Number of items stored in the array
-    len: usize,
-    /// Capacity of the array
-    cap: usize,
+struct CustomArray<'a> {
     /// Array of items
     arr: &'a mut [u32],
 }
 
-impl<'a, const P: usize, const W: usize> CustomArray<'a, P, W> {
+impl<'a> CustomArray<'a> {
     /// Create new instance of `CustomArray` representation from vector
     #[inline]
-    fn from_vec(mut arr: Vec<u32>, len: usize) -> CustomArray<'a, P, W> {
+    fn from_vec(mut arr: Vec<u32>) -> Self {
         let cap = arr.len();
         let ptr = arr.as_mut_ptr();
         std::mem::forget(arr);
         // SAFETY: valid pointer from vector being used to create slice reference
         let arr = unsafe { core::slice::from_raw_parts_mut(ptr, cap) };
-        Self { len, cap, arr }
+        Self { arr }
     }
 }
 
 #[test]
 /// Check that the CustomArray used in CloudFlare crates is measured correctly.
 fn test_cloudflare_array() {
-    let custom_array: CustomArray<456, 56> = CustomArray::from_vec(vec![1, 2, 3, 4, 5], 5);
+    let custom_array: CustomArray = CustomArray::from_vec(vec![1, 2, 3, 4, 5]);
 
-    let shallow_size = <CustomArray<456, 56> as mem_dbg::MemSize>::mem_size(
+    let shallow_size = <CustomArray as mem_dbg::MemSize>::mem_size(
         &custom_array,
         mem_dbg::SizeFlags::default(),
     );
 
     // The expected shallow size is 32:
-    // - 2 * usize (len and cap)
     // - 1 * usize (pointer to the array)
     // - 1 * usize (len of the array)
 
-    assert_eq!(shallow_size, 32);
+    assert_eq!(shallow_size, 16);
 
-    let deep_size = <CustomArray<456, 56> as mem_dbg::MemSize>::mem_size(
+    let deep_size = <CustomArray as mem_dbg::MemSize>::mem_size(
         &custom_array,
         mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
     );
 
     // The expected deep size is:
-    // - The shallow size (32)
+    // - The shallow size (16)
     // - The size of the array (5 * 4 = 20)
 
     assert_eq!(deep_size, shallow_size + 20);
