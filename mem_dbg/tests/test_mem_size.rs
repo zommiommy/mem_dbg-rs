@@ -482,6 +482,14 @@ fn test_usize_mut() {
         data_not_mut_ref.mem_size(SizeFlags::default()),
         data_mut_ref.mem_size(SizeFlags::default())
     );
+
+    assert_eq!(
+        data_not_mut_ref.mem_size(SizeFlags::default()),
+        size_of::<usize>(),
+        "A usize should have the same size as a usize, but we have {} != {}",
+        data_not_mut_ref.mem_size(SizeFlags::default()),
+        size_of::<usize>()
+    );
 }
 
 #[test]
@@ -498,5 +506,14 @@ fn test_usize_mut_following_ref() {
         "A mutable usize should have the same size as a non mutable one, but we have {} != {}",
         data_not_mut_ref.mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
         data_mut_ref.mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+    );
+
+    // The expected size is the size of a reference to a usize, plus the size of a usize
+    assert_eq!(
+        data_not_mut_ref.mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        size_of::<&usize>() + size_of::<usize>(),
+        "A reference to a usize should have the same size as a usize, but we have {} != {}",
+        data_not_mut_ref.mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS),
+        size_of::<&usize>() + size_of::<usize>()
     );
 }
