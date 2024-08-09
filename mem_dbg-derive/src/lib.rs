@@ -220,7 +220,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 // This is the arm of the match statement that invokes
                 // _mem_dbg_depth_on on the field.
                 match_code.push(quote!{
-                    #field_idx => self.#field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                    #field_idx => <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                 });
             }
 
@@ -286,6 +286,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             arrow = '├';
                         }
                         for (field_idx, field) in fields.named.iter().enumerate() {
+                            let field_ty = &field.ty;
                             let field_ident = field.ident.as_ref().unwrap();
                             let field_ident_str = format!("{}", field_ident);
                             id_offset_pushes.push(quote!{
@@ -302,7 +303,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => #field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                                #field_idx => <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                             });
                             args.extend([field_ident.to_token_stream()]);
                             args.extend([quote! {,}]);
@@ -330,6 +331,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 proc_macro2::Span::call_site(),
                             )
                             .to_token_stream();
+                            let field_ty = &field.ty;
                             let field_ident_str = format!("{}", field_idx);
                             let field_tuple_idx = syn::Index::from(field_idx);
 
@@ -347,7 +349,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => #field_ident._mem_dbg_depth_on(_memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                                #field_idx => <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                             });
 
                             args.extend([field_ident]);
