@@ -701,6 +701,8 @@ fn test_cloudflare_mut_array() {
     // - The shallow size (16)
     // - The size of the array (5 * 4 = 20)
 
+    custom_array.mem_dbg(DbgFlags::default() | DbgFlags::FOLLOW_REFS).unwrap();
+
     assert_eq!(size_of::<CustomMutArray>() + size_of_val(custom_array.arr), 36);
     assert_eq!(deep_size, 36);
 }

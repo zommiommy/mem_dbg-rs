@@ -181,7 +181,7 @@ pub trait MemDbg: MemDbgImpl {
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
         self._mem_dbg_depth(
-            self.mem_size(flags.to_size_flags()),
+            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             usize::MAX,
             std::mem::size_of_val(self),
             flags,
@@ -195,7 +195,7 @@ pub trait MemDbg: MemDbgImpl {
         // TODO: fix padding
         self._mem_dbg_depth_on(
             writer,
-            self.mem_size(flags.to_size_flags()),
+            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             usize::MAX,
             &mut String::new(),
             Some("⏺"),
@@ -210,7 +210,7 @@ pub trait MemDbg: MemDbgImpl {
     /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
         self._mem_dbg_depth(
-            self.mem_size(flags.to_size_flags()),
+            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             max_depth,
             std::mem::size_of_val(self),
             flags,
@@ -228,7 +228,7 @@ pub trait MemDbg: MemDbgImpl {
     ) -> core::fmt::Result {
         self._mem_dbg_depth_on(
             writer,
-            self.mem_size(flags.to_size_flags()),
+            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             max_depth,
             &mut String::new(),
             None,
@@ -316,7 +316,7 @@ pub trait MemDbgImpl: MemSize {
         if prefix.len() > max_depth {
             return Ok(());
         }
-        let real_size = self.mem_size(flags.to_size_flags());
+        let real_size = <Self as MemSize>::mem_size(self, flags.to_size_flags());
         if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
