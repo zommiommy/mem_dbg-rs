@@ -682,8 +682,10 @@ impl<'a> CustomMutArray<'a> {
 fn test_cloudflare_mut_array() {
     let custom_array: CustomMutArray = CustomMutArray::from_vec(vec![1, 2, 3, 4, 5]);
 
-    let shallow_size =
-        <CustomMutArray as mem_dbg::MemSize>::mem_size(&custom_array, mem_dbg::SizeFlags::default());
+    let shallow_size = <CustomMutArray as mem_dbg::MemSize>::mem_size(
+        &custom_array,
+        mem_dbg::SizeFlags::default(),
+    );
 
     // The expected shallow size is 16:
     // - 1 * usize (pointer to the array)
@@ -701,12 +703,16 @@ fn test_cloudflare_mut_array() {
     // - The shallow size (16)
     // - The size of the array (5 * 4 = 20)
 
-    custom_array.mem_dbg(DbgFlags::default() | DbgFlags::FOLLOW_REFS).unwrap();
+    custom_array
+        .mem_dbg(DbgFlags::default() | DbgFlags::FOLLOW_REFS)
+        .unwrap();
 
-    assert_eq!(size_of::<CustomMutArray>() + size_of_val(custom_array.arr), 36);
+    assert_eq!(
+        size_of::<CustomMutArray>() + size_of_val(custom_array.arr),
+        36
+    );
     assert_eq!(deep_size, 36);
 }
-
 
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
 /// Array representation container

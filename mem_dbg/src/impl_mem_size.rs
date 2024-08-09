@@ -141,9 +141,9 @@ impl<T: MemSize> MemSize for Option<T> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
-            + self
-                .as_ref()
-                .map_or(0, |x| <T as MemSize>::mem_size(x, flags) - core::mem::size_of::<T>())
+            + self.as_ref().map_or(0, |x| {
+                <T as MemSize>::mem_size(x, flags) - core::mem::size_of::<T>()
+            })
     }
 }
 
@@ -167,7 +167,8 @@ use std::sync::Arc;
 impl<T: MemSize> MemSize for Arc<T> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(self.as_ref(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(self.as_ref(), flags)
     }
 }
 
@@ -208,7 +209,11 @@ use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + self.iter().map(|x| <T as MemSize>::mem_size(x, flags)).sum::<usize>()
+        core::mem::size_of::<usize>()
+            + self
+                .iter()
+                .map(|x| <T as MemSize>::mem_size(x, flags))
+                .sum::<usize>()
     }
 }
 
@@ -284,10 +289,17 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
             core::mem::size_of::<Self>()
-                + self.iter().map(|x| <T as MemSize>::mem_size(x, flags)).sum::<usize>()
+                + self
+                    .iter()
+                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .sum::<usize>()
                 + (self.capacity() - self.len()) * core::mem::size_of::<T>()
         } else {
-            core::mem::size_of::<Self>() + self.iter().map(|x| <T as MemSize>::mem_size(x, flags)).sum::<usize>()
+            core::mem::size_of::<Self>()
+                + self
+                    .iter()
+                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .sum::<usize>()
         }
     }
 }
@@ -408,7 +420,9 @@ impl<Idx: CopyType> CopyType for core::ops::Range<Idx> {
 impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.start, flags) + <Idx as MemSize>::mem_size(&self.end, flags)
+        core::mem::size_of::<Self>()
+            + <Idx as MemSize>::mem_size(&self.start, flags)
+            + <Idx as MemSize>::mem_size(&self.end, flags)
             - 2 * core::mem::size_of::<Idx>()
     }
 }
@@ -420,7 +434,8 @@ impl<Idx: CopyType> CopyType for core::ops::RangeFrom<Idx> {
 impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.start, flags) - core::mem::size_of::<Idx>()
+        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.start, flags)
+            - core::mem::size_of::<Idx>()
     }
 }
 
@@ -431,7 +446,9 @@ impl<Idx: CopyType> CopyType for core::ops::RangeInclusive<Idx> {
 impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.start(), flags) + <Idx as MemSize>::mem_size(&self.end(), flags)
+        core::mem::size_of::<Self>()
+            + <Idx as MemSize>::mem_size(&self.start(), flags)
+            + <Idx as MemSize>::mem_size(&self.end(), flags)
             - 2 * core::mem::size_of::<Idx>()
     }
 }
@@ -443,7 +460,8 @@ impl<Idx: CopyType> CopyType for core::ops::RangeTo<Idx> {
 impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.end, flags) - core::mem::size_of::<Idx>()
+        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.end, flags)
+            - core::mem::size_of::<Idx>()
     }
 }
 
@@ -454,7 +472,8 @@ impl<Idx: CopyType> CopyType for core::ops::RangeToInclusive<Idx> {
 impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.end, flags) - core::mem::size_of::<Idx>()
+        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.end, flags)
+            - core::mem::size_of::<Idx>()
     }
 }
 
@@ -475,7 +494,8 @@ impl<T: CopyType> CopyType for core::cell::RefCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(&self.borrow(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(&self.borrow(), flags)
     }
 }
 
@@ -496,7 +516,8 @@ impl<T: CopyType> CopyType for core::cell::OnceCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <Option<&T> as MemSize>::mem_size(&self.get(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <Option<&T> as MemSize>::mem_size(&self.get(), flags)
     }
 }
 
@@ -522,7 +543,7 @@ impl<T: CopyType> CopyType for std::sync::Mutex<T> {
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            +  <T as MemSize>::mem_size(&self.lock().unwrap(), flags)
+            + <T as MemSize>::mem_size(&self.lock().unwrap(), flags)
     }
 }
 
@@ -548,7 +569,8 @@ impl<T: CopyType> CopyType for std::sync::MutexGuard<'_, T> {
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(self.deref(), flags)
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size(self.deref(), flags)
         } else {
             0
         }
@@ -564,7 +586,8 @@ impl<T: CopyType> CopyType for std::sync::RwLockReadGuard<'_, T> {
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(self.deref(), flags)
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size(self.deref(), flags)
         } else {
             0
         }
@@ -580,7 +603,8 @@ impl<T: CopyType> CopyType for std::sync::RwLockWriteGuard<'_, T> {
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(self.deref(), flags)
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size(self.deref(), flags)
         } else {
             0
         }
@@ -672,7 +696,8 @@ impl<T: MemSize + std::io::Read> CopyType for std::io::BufReader<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(self.get_ref(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(self.get_ref(), flags)
     }
 }
 
@@ -684,7 +709,8 @@ impl<T: MemSize + std::io::Write> CopyType for std::io::BufWriter<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() +<T as MemSize>::mem_size(self.get_ref(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(self.get_ref(), flags)
     }
 }
 
@@ -696,7 +722,8 @@ impl<T> CopyType for std::io::Cursor<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::io::Cursor<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() +<T as MemSize>::mem_size(self.get_ref(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(self.get_ref(), flags)
     }
 }
 
@@ -831,7 +858,9 @@ impl<K: CopyType + MemSize> MemSizeHelper<False> for HashSet<K> {
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_set_for_capacity(
             self,
-            self.iter().map(|x| <K as MemSize>::mem_size(x, flags)).sum::<usize>(),
+            self.iter()
+                .map(|x| <K as MemSize>::mem_size(x, flags))
+                .sum::<usize>(),
             flags,
         )
     }
@@ -894,7 +923,10 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False> f
         fix_map_for_capacity(
             self,
             (std::mem::size_of::<K>()) * self.len()
-                + self.values().map(|v| <V as MemSize>::mem_size(v, flags)).sum::<usize>(),
+                + self
+                    .values()
+                    .map(|v| <V as MemSize>::mem_size(v, flags))
+                    .sum::<usize>(),
             flags,
         )
     }
@@ -906,7 +938,9 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True> f
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_map_for_capacity(
             self,
-            self.keys().map(|k| <K as MemSize>::mem_size(k, flags)).sum::<usize>()
+            self.keys()
+                .map(|k| <K as MemSize>::mem_size(k, flags))
+                .sum::<usize>()
                 + (std::mem::size_of::<V>()) * self.len(),
             flags,
         )
@@ -920,7 +954,9 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False> 
         fix_map_for_capacity(
             self,
             self.iter()
-                .map(|(k, v)| <K as MemSize>::mem_size(k, flags) + <V as MemSize>::mem_size(v, flags))
+                .map(|(k, v)| {
+                    <K as MemSize>::mem_size(k, flags) + <V as MemSize>::mem_size(v, flags)
+                })
                 .sum::<usize>(),
             flags,
         )
@@ -992,7 +1028,8 @@ impl<A: maligned::Alignment, T: MemSize> CopyType for maligned::Aligned<A, T> {
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>() + <T as MemSize>::mem_size(self.deref(), flags)
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(self.deref(), flags)
     }
 }
 
