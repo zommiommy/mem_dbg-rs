@@ -688,7 +688,7 @@ fn test_cloudflare_array() {
         mem_dbg::SizeFlags::default(),
     );
 
-    // The expected shallow size is 32:
+    // The expected shallow size is 16:
     // - 1 * usize (pointer to the array)
     // - 1 * usize (len of the array)
 
