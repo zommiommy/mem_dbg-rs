@@ -657,7 +657,6 @@ test_size!(
     (TestEnumReprU8, 40, 40)
 );
 
-
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
 /// Array representation container
 struct CustomArray<'a> {
@@ -683,10 +682,8 @@ impl<'a> CustomArray<'a> {
 fn test_cloudflare_array() {
     let custom_array: CustomArray = CustomArray::from_vec(vec![1, 2, 3, 4, 5]);
 
-    let shallow_size = <CustomArray as mem_dbg::MemSize>::mem_size(
-        &custom_array,
-        mem_dbg::SizeFlags::default(),
-    );
+    let shallow_size =
+        <CustomArray as mem_dbg::MemSize>::mem_size(&custom_array, mem_dbg::SizeFlags::default());
 
     // The expected shallow size is 16:
     // - 1 * usize (pointer to the array)
