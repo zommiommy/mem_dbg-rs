@@ -199,7 +199,7 @@ use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
+        std::mem::size_of_val(self)
     }
 }
 
@@ -209,8 +209,7 @@ use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>()
-            + self
+        self
                 .iter()
                 .map(|x| <T as MemSize>::mem_size(x, flags))
                 .sum::<usize>()
