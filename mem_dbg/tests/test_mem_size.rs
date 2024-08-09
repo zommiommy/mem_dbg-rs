@@ -659,13 +659,13 @@ test_size!(
 
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
 /// Array representation container
-struct CustomArray<'a> {
+struct CustomMutArray<'a> {
     /// Array of items
     arr: &'a mut [u32],
 }
 
-impl<'a> CustomArray<'a> {
-    /// Create new instance of `CustomArray` representation from vector
+impl<'a> CustomMutArray<'a> {
+    /// Create new instance of `CustomMutArray` representation from vector
     #[inline]
     fn from_vec(mut arr: Vec<u32>) -> Self {
         let cap = arr.len();
@@ -673,6 +673,55 @@ impl<'a> CustomArray<'a> {
         std::mem::forget(arr);
         // SAFETY: valid pointer from vector being used to create slice reference
         let arr = unsafe { core::slice::from_raw_parts_mut(ptr, cap) };
+        Self { arr }
+    }
+}
+
+#[test]
+/// Check that the CustomMutArray used in CloudFlare crates is measured correctly.
+fn test_cloudflare_mut_array() {
+    let custom_array: CustomMutArray = CustomMutArray::from_vec(vec![1, 2, 3, 4, 5]);
+
+    let shallow_size =
+        <CustomMutArray as mem_dbg::MemSize>::mem_size(&custom_array, mem_dbg::SizeFlags::default());
+
+    // The expected shallow size is 16:
+    // - 1 * usize (pointer to the array)
+    // - 1 * usize (len of the array)
+
+    assert_eq!(size_of::<CustomMutArray>(), 16);
+    assert_eq!(shallow_size, 16);
+
+    let deep_size = <CustomMutArray as mem_dbg::MemSize>::mem_size(
+        &custom_array,
+        mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
+    );
+
+    // The expected deep size is 36:
+    // - The shallow size (16)
+    // - The size of the array (5 * 4 = 20)
+
+    assert_eq!(size_of::<CustomMutArray>() + size_of_val(custom_array.arr), 36);
+    assert_eq!(deep_size, 36);
+}
+
+
+#[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
+/// Array representation container
+struct CustomArray<'a> {
+    /// Array of items
+    arr: &'a [u32],
+}
+
+impl<'a> CustomArray<'a> {
+    /// Create new instance of `CustomArray` representation from vector
+    #[inline]
+    fn from_vec(arr: Vec<u32>) -> Self {
+        let cap = arr.len();
+        let ptr = arr.as_ptr();
+        std::mem::forget(arr);
+        // SAFETY: valid pointer from vector being used to create slice reference
+        let arr = unsafe { core::slice::from_raw_parts(ptr, cap) };
         Self { arr }
     }
 }
