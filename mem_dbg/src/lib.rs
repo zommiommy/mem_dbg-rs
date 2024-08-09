@@ -390,7 +390,6 @@ pub trait MemDbgImpl: MemSize {
             writer.write_fmt(format_args!(": {:}", core::any::type_name::<Self>()))?;
         }
 
-        //dbg!(padded_size, std::mem::size_of_val(self));
         let padding = padded_size - std::mem::size_of_val(self);
         if padding != 0 {
             writer.write_fmt(format_args!(" [{}B]", padding))?;

@@ -445,8 +445,8 @@ impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
-            + <Idx as MemSize>::mem_size(&self.start(), flags)
-            + <Idx as MemSize>::mem_size(&self.end(), flags)
+            + <Idx as MemSize>::mem_size(self.start(), flags)
+            + <Idx as MemSize>::mem_size(self.end(), flags)
             - 2 * core::mem::size_of::<Idx>()
     }
 }

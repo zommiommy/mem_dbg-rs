@@ -755,12 +755,6 @@ fn test_cloudflare_mut_vector() {
         // - The shallow size (16)
         // - The size of the vector (vector_len.len() * 4 = 20)
 
-        <CustomMutVector as mem_dbg::MemDbg>::mem_dbg(
-            &custom_vector,
-            DbgFlags::default() | DbgFlags::FOLLOW_REFS,
-        )
-        .unwrap();
-
         assert_eq!(
             size_of_val(custom_vector.arr),
             length_of_vector * size_of::<u32>()
