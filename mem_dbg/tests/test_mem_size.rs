@@ -638,7 +638,6 @@ impl Default for TestEnumReprU8 {
     }
 }
 
-
 #[derive(MemSize, MemDbg)]
 union TestUnion {
     a: u64,
@@ -699,7 +698,7 @@ fn test_single_field_union_follow_ref() {
         size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
     );
 
-    let test_union_deep_mut = TestUnionDeepMut {b: &mut test_union};
+    let test_union_deep_mut = TestUnionDeepMut { b: &mut test_union };
 
     // We check that the shallow size of the test union mut is the
     // size of a reference (i.e. an usize)
@@ -719,7 +718,7 @@ fn test_single_field_union_follow_ref() {
 #[derive(MemSize)]
 union TestUnionMultiField {
     a: u64,
-    _b: (u32, u64)
+    _b: (u32, u64),
 }
 
 impl Default for TestUnionMultiField {
