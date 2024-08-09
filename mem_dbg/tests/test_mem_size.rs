@@ -359,26 +359,30 @@ fn test_vec_slice_i64() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let non_mutable_slice_shallow_size = <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
-    let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let non_mutable_slice_shallow_size =
+        <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
+    let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(
+        &non_mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
+    );
     let mutable_slice = data.as_mut_slice();
-    let mutable_slice_shallow_size = <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
-    let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-
-    assert_eq!(
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size
+    let mutable_slice_shallow_size =
+        <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
+    let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(
+        &mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size,
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
+        "Expected non mutable slice shallow size {}, got {}",
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+    );
+
+    assert_eq!(
+        non_mutable_slice_deep_size, mutable_slice_deep_size,
         "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size
+        non_mutable_slice_deep_size, mutable_slice_deep_size
     );
 }
 
@@ -388,26 +392,30 @@ fn test_vec_slice_i32() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let non_mutable_slice_shallow_size = <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
-    let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let non_mutable_slice_shallow_size =
+        <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
+    let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(
+        &non_mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
+    );
     let mutable_slice = data.as_mut_slice();
-    let mutable_slice_shallow_size = <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
-    let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-
-    assert_eq!(
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size
+    let mutable_slice_shallow_size =
+        <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
+    let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(
+        &mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size,
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
+        "Expected non mutable slice shallow size {}, got {}",
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+    );
+
+    assert_eq!(
+        non_mutable_slice_deep_size, mutable_slice_deep_size,
         "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size
+        non_mutable_slice_deep_size, mutable_slice_deep_size
     );
 }
 
@@ -417,26 +425,30 @@ fn test_array_slice_i64() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let non_mutable_slice_shallow_size = <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
-    let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let non_mutable_slice_shallow_size =
+        <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
+    let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(
+        &non_mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
+    );
     let mutable_slice = data.as_mut_slice();
-    let mutable_slice_shallow_size = <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
-    let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-
-    assert_eq!(
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size
+    let mutable_slice_shallow_size =
+        <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
+    let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(
+        &mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size,
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
+        "Expected non mutable slice shallow size {}, got {}",
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+    );
+
+    assert_eq!(
+        non_mutable_slice_deep_size, mutable_slice_deep_size,
         "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size
+        non_mutable_slice_deep_size, mutable_slice_deep_size
     );
 }
 
@@ -447,24 +459,26 @@ fn test_array_slice_i64_without_specifications() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice_shallow_size = data.as_slice().mem_size(SizeFlags::default());
-    let non_mutable_slice_deep_size = data.as_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-    let mutable_slice_shallow_size = data.as_mut_slice().mem_size(SizeFlags::default()| SizeFlags::FOLLOW_REFS);
-    let mutable_slice_deep_size = data.as_mut_slice().mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let non_mutable_slice_deep_size = data
+        .as_slice()
+        .mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let mutable_slice_shallow_size = data
+        .as_mut_slice()
+        .mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let mutable_slice_deep_size = data
+        .as_mut_slice()
+        .mem_size(SizeFlags::default() | SizeFlags::FOLLOW_REFS);
 
     assert_eq!(
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size,
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
         "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size,
+        non_mutable_slice_deep_size, mutable_slice_deep_size,
         "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size
+        non_mutable_slice_deep_size, mutable_slice_deep_size
     );
 }
 
@@ -474,26 +488,30 @@ fn test_array_slice_i32() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let non_mutable_slice_shallow_size = <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
-    let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
+    let non_mutable_slice_shallow_size =
+        <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
+    let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(
+        &non_mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
+    );
     let mutable_slice = data.as_mut_slice();
-    let mutable_slice_shallow_size = <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
-    let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-
-    assert_eq!(
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size,
-        "Expected non mutable slice shallow size {}, got {}",
-        non_mutable_slice_shallow_size,
-        mutable_slice_shallow_size
+    let mutable_slice_shallow_size =
+        <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
+    let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(
+        &mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
 
     assert_eq!(
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size,
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size,
+        "Expected non mutable slice shallow size {}, got {}",
+        non_mutable_slice_shallow_size, mutable_slice_shallow_size
+    );
+
+    assert_eq!(
+        non_mutable_slice_deep_size, mutable_slice_deep_size,
         "Expected non mutable slice deep size {}, got {}",
-        non_mutable_slice_deep_size,
-        mutable_slice_deep_size
+        non_mutable_slice_deep_size, mutable_slice_deep_size
     );
 }
 
@@ -508,29 +526,37 @@ struct NonMutableSliceWrapper<'a> {
 }
 
 #[test]
-fn test_compare_structs(){
+fn test_compare_structs() {
     let mut data: [i64; 5] = [1, 2, 3, 4, 5];
-    let mutable_slice = MutableSliceWrapper { data: data.as_mut_slice() };
-    let mutable_slice_shallow_size = <MutableSliceWrapper as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
-    let mutable_slice_deep_size = <MutableSliceWrapper as MemSize>::mem_size(&mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-    let non_mutable_slice = NonMutableSliceWrapper { data: data.as_slice() };
-    let non_mutable_slice_shallow_size = <NonMutableSliceWrapper as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
-    let non_mutable_slice_deep_size = <NonMutableSliceWrapper as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
-
-    assert_eq!(
-        mutable_slice_shallow_size,
-        non_mutable_slice_shallow_size,
-        "Expected mutable slice shallow size {}, got {}",
-        mutable_slice_shallow_size,
-        non_mutable_slice_shallow_size
+    let mutable_slice = MutableSliceWrapper {
+        data: data.as_mut_slice(),
+    };
+    let mutable_slice_shallow_size =
+        <MutableSliceWrapper as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
+    let mutable_slice_deep_size = <MutableSliceWrapper as MemSize>::mem_size(
+        &mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
+    );
+    let non_mutable_slice = NonMutableSliceWrapper {
+        data: data.as_slice(),
+    };
+    let non_mutable_slice_shallow_size =
+        <NonMutableSliceWrapper as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
+    let non_mutable_slice_deep_size = <NonMutableSliceWrapper as MemSize>::mem_size(
+        &non_mutable_slice,
+        SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
 
     assert_eq!(
-        mutable_slice_deep_size,
-        non_mutable_slice_deep_size,
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size,
+        "Expected mutable slice shallow size {}, got {}",
+        mutable_slice_shallow_size, non_mutable_slice_shallow_size
+    );
+
+    assert_eq!(
+        mutable_slice_deep_size, non_mutable_slice_deep_size,
         "Expected mutable slice deep size {}, got {}",
-        mutable_slice_deep_size,
-        non_mutable_slice_deep_size
+        mutable_slice_deep_size, non_mutable_slice_deep_size
     );
 }
 
