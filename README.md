@@ -239,6 +239,34 @@ capacity: 1207
   enums whose fields implement the associated interface: if this is not the case
   (e.g., because of the orphan rule) one can implement the traits manually.
 
+- If you invoke the methods of this crate on a shared reference, the compiler
+  will automatically dereference it, and the method will be invoked on the
+  referenced type:
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use mem_dbg::*;
+
+let mut x: [i32; 4] = [0, 0, 0, 0];
+
+assert_eq!(
+    (&x).mem_size(SizeFlags::default()),
+    std::mem::size_of::<[i32; 4]>()
+);
+
+assert_eq!(
+    (&mut x).mem_size(SizeFlags::default()),
+    std::mem::size_of::<&mut [i32; 4]>()
+);
+
+assert_eq!(
+    <&[i32; 4] as MemSize>::mem_size(&&x, SizeFlags::default()),
+    std::mem::size_of::<&[i32; 4]>()
+);
+# Ok(())
+# }
+```
+
 - Computation of the size of arrays, slices, and vectors will be performed by
   iterating over their elements unless the type is a copy type that does not
   contain non-`'static` references and it is declared as such using the attribute
