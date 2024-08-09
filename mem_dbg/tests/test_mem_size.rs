@@ -689,6 +689,7 @@ fn test_cloudflare_array() {
     // - 1 * usize (pointer to the array)
     // - 1 * usize (len of the array)
 
+    assert_eq!(size_of::<CustomArray>(), 16);
     assert_eq!(shallow_size, 16);
 
     let deep_size = <CustomArray as mem_dbg::MemSize>::mem_size(
@@ -696,9 +697,10 @@ fn test_cloudflare_array() {
         mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
     );
 
-    // The expected deep size is:
+    // The expected deep size is 36:
     // - The shallow size (16)
     // - The size of the array (5 * 4 = 20)
 
+    assert_eq!(size_of::<CustomArray>() + size_of_val(custom_array.arr), 36);
     assert_eq!(deep_size, shallow_size + 20);
 }
