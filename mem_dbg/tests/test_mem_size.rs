@@ -672,8 +672,9 @@ fn test_cloudflare_mut_array() {
         ("Even sized vector", vec![1, 2, 3, 4]),
         ("Odd sized vector", vec![1, 2, 3, 4, 5]),
     ] {
+        let length_of_vector = vector.len();
         let custom_array: CustomMutArray = CustomMutArray {
-            arr: vector.as_mut_slice()
+            arr: vector.as_mut_slice(),
         };
 
         let shallow_size = <CustomMutArray as mem_dbg::MemSize>::mem_size(
@@ -702,6 +703,11 @@ fn test_cloudflare_mut_array() {
             .unwrap();
 
         assert_eq!(
+            size_of_val(custom_array.arr),
+            length_of_vector * size_of::<u32>()
+        );
+
+        assert_eq!(
             deep_size,
             size_of::<CustomMutArray>() + size_of_val(custom_array.arr),
             "Failed for case: {}",
@@ -722,7 +728,7 @@ struct CustomArray<'a> {
 fn test_cloudflare_array() {
     let array = vec![1, 2, 3, 4, 5];
     let custom_array: CustomArray = CustomArray {
-        arr: array.as_slice()
+        arr: array.as_slice(),
     };
 
     let shallow_size =
