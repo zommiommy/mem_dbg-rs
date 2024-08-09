@@ -658,98 +658,133 @@ test_size!(
 );
 
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
-/// Array representation container
-struct CustomMutArray<'a> {
-    /// Array of items
+/// vector representation container
+struct CustomMutVector<'a> {
+    /// vector of items
     arr: &'a mut [u32],
 }
 
 #[test]
-/// Check that the CustomMutArray used in CloudFlare crates is measured correctly.
-fn test_cloudflare_mut_array() {
+/// Check that the CustomMutVector used in CloudFlare crates is measured correctly.
+fn test_cloudflare_mut_vector() {
     for (case_name, mut vector) in [
         ("Empty vector", vec![]),
         ("Even sized vector", vec![1, 2, 3, 4]),
         ("Odd sized vector", vec![1, 2, 3, 4, 5]),
     ] {
         let length_of_vector = vector.len();
-        let custom_array: CustomMutArray = CustomMutArray {
+        let custom_vector: CustomMutVector = CustomMutVector {
             arr: vector.as_mut_slice(),
         };
 
-        let shallow_size = <CustomMutArray as mem_dbg::MemSize>::mem_size(
-            &custom_array,
+        let shallow_size = <CustomMutVector as mem_dbg::MemSize>::mem_size(
+            &custom_vector,
             mem_dbg::SizeFlags::default(),
         );
 
         // The expected shallow size is 16:
-        // - 1 * usize (pointer to the array)
-        // - 1 * usize (len of the array)
+        // - 1 * usize (pointer to the vector)
+        // - 1 * usize (len of the vector)
 
-        assert_eq!(size_of::<CustomMutArray>(), 16);
+        assert_eq!(size_of::<CustomMutVector>(), 16);
         assert_eq!(shallow_size, 16);
 
-        let deep_size = <CustomMutArray as mem_dbg::MemSize>::mem_size(
-            &custom_array,
+        let deep_size = <CustomMutVector as mem_dbg::MemSize>::mem_size(
+            &custom_vector,
             mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
         );
 
         // The expected deep size is 36:
         // - The shallow size (16)
-        // - The size of the array (vector_len.len() * 4 = 20)
+        // - The size of the vector (vector_len.len() * 4 = 20)
 
-        custom_array
-            .mem_dbg(DbgFlags::default() | DbgFlags::FOLLOW_REFS)
-            .unwrap();
+        <CustomMutVector as mem_dbg::MemDbg>::mem_dbg(
+            &custom_vector,
+            DbgFlags::default() | DbgFlags::FOLLOW_REFS,
+        )
+        .unwrap();
 
         assert_eq!(
-            size_of_val(custom_array.arr),
+            size_of_val(custom_vector.arr),
             length_of_vector * size_of::<u32>()
         );
 
         assert_eq!(
             deep_size,
-            size_of::<CustomMutArray>() + size_of_val(custom_array.arr),
+            size_of::<CustomMutVector>() + size_of_val(custom_vector.arr),
             "Failed for case: {}",
             case_name
         );
     }
 }
 
+
 #[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
-/// Array representation container
-struct CustomArray<'a> {
-    /// Array of items
+/// vector representation container
+struct CustomVector<'a> {
+    /// vector of items
     arr: &'a [u32],
 }
 
 #[test]
-/// Check that the CustomArray used in CloudFlare crates is measured correctly.
-fn test_cloudflare_array() {
-    let array = vec![1, 2, 3, 4, 5];
-    let custom_array: CustomArray = CustomArray {
-        arr: array.as_slice(),
+/// Check that the CustomVector used in CloudFlare crates is measured correctly.
+fn test_cloudflare_vector() {
+    let vector = vec![1, 2, 3, 4, 5];
+    let custom_vector: CustomVector = CustomVector {
+        arr: vector.as_slice(),
     };
 
     let shallow_size =
-        <CustomArray as mem_dbg::MemSize>::mem_size(&custom_array, mem_dbg::SizeFlags::default());
+        <CustomVector as mem_dbg::MemSize>::mem_size(&custom_vector, mem_dbg::SizeFlags::default());
 
     // The expected shallow size is 16:
-    // - 1 * usize (pointer to the array)
-    // - 1 * usize (len of the array)
+    // - 1 * usize (pointer to the vector)
+    // - 1 * usize (len of the vector)
 
-    assert_eq!(size_of::<CustomArray>(), 16);
+    assert_eq!(size_of::<CustomVector>(), 16);
     assert_eq!(shallow_size, 16);
 
-    let deep_size = <CustomArray as mem_dbg::MemSize>::mem_size(
-        &custom_array,
+    let deep_size = <CustomVector as mem_dbg::MemSize>::mem_size(
+        &custom_vector,
         mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
     );
 
     // The expected deep size is 36:
     // - The shallow size (16)
-    // - The size of the array (5 * 4 = 20)
+    // - The size of the vector (5 * 4 = 20)
 
-    assert_eq!(size_of::<CustomArray>() + size_of_val(custom_array.arr), 36);
+    assert_eq!(size_of::<CustomVector>() + size_of_val(custom_vector.arr), 36);
+    assert_eq!(deep_size, 36);
+}
+
+
+#[test]
+/// Check that the CustomVector used in CloudFlare crates is measured correctly.
+fn test_cloudflare_array() {
+    let vector = [1, 2, 3, 4, 5];
+    let custom_vector: CustomVector = CustomVector {
+        arr: vector.as_slice(),
+    };
+
+    let shallow_size =
+        <CustomVector as mem_dbg::MemSize>::mem_size(&custom_vector, mem_dbg::SizeFlags::default());
+
+    // The expected shallow size is 16:
+    // - 1 * usize (pointer to the vector)
+    // - 1 * usize (len of the vector)
+
+    assert_eq!(size_of::<CustomVector>(), 16);
+    assert_eq!(shallow_size, 16);
+
+    let deep_size = <CustomVector as mem_dbg::MemSize>::mem_size(
+        &custom_vector,
+        mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
+    );
+
+    // The expected deep size is 36:
+    // - The shallow size (16)
+    // - The size of the vector (5 * 4 = 20)
+
+    assert_eq!(size_of::<CustomVector>() + size_of_val(custom_vector.arr), 36);
     assert_eq!(deep_size, 36);
 }
