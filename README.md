@@ -96,10 +96,16 @@ struct Data<A> {
 }
 
 #[derive(MemSize, MemDbg)]
+union SingletonUnion<A: Copy> {
+    a: A
+}
+
+#[derive(MemSize, MemDbg)]
 enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
+    Union(SingletonUnion<u8>),
     Unnamed(usize, u8),
     Named { first: usize, second: u8 },
 }

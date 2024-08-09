@@ -13,12 +13,18 @@ use std::sync::atomic::AtomicU64;
 
 use mem_dbg::*;
 
+#[derive(MemSize, MemDbg)]
+union SingletonUnion<A: Copy> {
+    a: A
+}
+
 #[allow(dead_code)]
 #[derive(MemSize, MemDbg)]
 enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
+    Union(SingletonUnion<u8>),
     Unnamed(usize, u8),
     Named {
         first: usize,
