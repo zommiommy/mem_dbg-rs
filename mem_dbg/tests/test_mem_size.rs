@@ -15,7 +15,7 @@ use mem_dbg::*;
 
 #[derive(MemSize, MemDbg)]
 union SingletonUnion<A: Copy> {
-    a: A
+    a: A,
 }
 
 #[allow(dead_code)]
