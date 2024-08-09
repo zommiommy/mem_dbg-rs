@@ -6,7 +6,8 @@
 
 * Mutable and non-mutable slices were returning different sizes within
   structures. At the top level, this is however unavoidable due to
-  different autodeferentiation policies in the compiler.
+  different autodeferentiation policies in the compiler, and this behavior
+  has been documented. The same problem was affecting `MemDbg`.
 
 ## [0.2.2] - 2024-06-03
 
