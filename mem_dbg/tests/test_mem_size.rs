@@ -702,5 +702,5 @@ fn test_cloudflare_array() {
     // - The size of the array (5 * 4 = 20)
 
     assert_eq!(size_of::<CustomArray>() + size_of_val(custom_array.arr), 36);
-    assert_eq!(deep_size, shallow_size + 20);
+    assert_eq!(deep_size, 36);
 }
