@@ -82,7 +82,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
                     fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
                         let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += <#fields_ty as MemSize>::mem_size(&self.#fields_ident, _memsize_flags) - core::mem::size_of::<#fields_ty>();)*
+                        #(bytes += <#fields_ty as mem_dbg::MemSize>::mem_size(&self.#fields_ident, _memsize_flags) - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
@@ -108,7 +108,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 let field_ident = &field.ident;
                                 let field_ty = field.ty.to_token_stream();
                                 var_args_size.extend([quote! {
-                                    + <#field_ty as MemSize>::mem_size(#field_ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
+                                    + <#field_ty as mem_dbg::MemSize>::mem_size(#field_ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
                                 }]);
                                 args.extend([field_ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -129,7 +129,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_ty = field.ty.to_token_stream();
                             var_args_size.extend([quote! {
-                                + <#field_ty as MemSize>::mem_size(#ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
+                                + <#field_ty as mem_dbg::MemSize>::mem_size(#ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
