@@ -381,6 +381,7 @@ fn test_vec_slice_i64() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
+    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(
@@ -388,6 +389,7 @@ fn test_vec_slice_i64() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
+    let size_of_mutable_slice = size_of_val(mutable_slice);
 
     let mutable_slice_shallow_size =
         <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
@@ -405,6 +407,20 @@ fn test_vec_slice_i64() {
         mutable_slice_deep_size, non_mutable_slice_deep_size,
         "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
+
+    assert_eq!(non_mutable_slice_shallow_size, size_of::<&[i64]>());
+
+    assert_eq!(mutable_slice_shallow_size, size_of::<&mut [i64]>());
+
+    assert_eq!(
+        non_mutable_slice_deep_size,
+        size_of::<&[i64]>() + size_of_non_mutable_slice
+    );
+
+    assert_eq!(
+        mutable_slice_deep_size,
+        size_of::<&mut [i64]>() + size_of_mutable_slice
+    );
 }
 
 #[test]
@@ -413,6 +429,7 @@ fn test_vec_slice_i32() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
+    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(
@@ -420,6 +437,7 @@ fn test_vec_slice_i32() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
+    let size_of_mutable_slice = size_of_val(mutable_slice);
     let mutable_slice_shallow_size =
         <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(
@@ -436,6 +454,20 @@ fn test_vec_slice_i32() {
         mutable_slice_deep_size, non_mutable_slice_deep_size,
         "Expected mutable slice deep size to be identical to non mutable slice deep size"
     );
+
+    assert_eq!(non_mutable_slice_shallow_size, size_of::<&[i64]>());
+
+    assert_eq!(mutable_slice_shallow_size, size_of::<&mut [i64]>());
+
+    assert_eq!(
+        non_mutable_slice_deep_size,
+        size_of::<&[i64]>() + size_of_non_mutable_slice
+    );
+
+    assert_eq!(
+        mutable_slice_deep_size,
+        size_of::<&mut [i64]>() + size_of_mutable_slice
+    );
 }
 
 #[test]
@@ -444,6 +476,7 @@ fn test_array_slice_i64() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
+    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(
@@ -451,6 +484,7 @@ fn test_array_slice_i64() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
+    let size_of_mutable_slice = size_of_val(mutable_slice);
     let mutable_slice_shallow_size =
         <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(
@@ -466,6 +500,16 @@ fn test_array_slice_i64() {
     assert_eq!(
         mutable_slice_deep_size, non_mutable_slice_deep_size,
         "Expected mutable slice deep size to be identical to non mutable slice deep size"
+    );
+
+    assert_eq!(
+        non_mutable_slice_deep_size,
+        size_of::<&[i64]>() + size_of_non_mutable_slice
+    );
+
+    assert_eq!(
+        mutable_slice_deep_size,
+        size_of::<&mut [i64]>() + size_of_mutable_slice
     );
 }
 
@@ -503,6 +547,7 @@ fn test_array_slice_i32() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
+    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(
@@ -510,6 +555,7 @@ fn test_array_slice_i32() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
+    let size_of_mutable_slice = size_of_val(mutable_slice);
     let mutable_slice_shallow_size =
         <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(
@@ -525,6 +571,16 @@ fn test_array_slice_i32() {
     assert_eq!(
         mutable_slice_deep_size, non_mutable_slice_deep_size,
         "Expected mutable slice deep size to be identical to non mutable slice deep size"
+    );
+
+    assert_eq!(
+        non_mutable_slice_deep_size,
+        size_of::<&[i64]>() + size_of_non_mutable_slice
+    );
+
+    assert_eq!(
+        mutable_slice_deep_size,
+        size_of::<&mut [i64]>() + size_of_mutable_slice
     );
 }
 
@@ -679,3 +735,133 @@ test_size!(
     (TestEnum2, 32, 32),
     (TestEnumReprU8, 40, 40)
 );
+
+#[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
+/// vector representation container
+struct CustomMutVector<'a> {
+    /// vector of items
+    arr: &'a mut [u32],
+}
+
+#[test]
+/// Check that the CustomMutVector used in CloudFlare crates is measured correctly.
+fn test_cloudflare_mut_vector() {
+    for (case_name, mut vector) in [
+        ("Empty vector", vec![]),
+        ("Even sized vector", vec![1, 2, 3, 4]),
+        ("Odd sized vector", vec![1, 2, 3, 4, 5]),
+    ] {
+        let length_of_vector = vector.len();
+        let custom_vector: CustomMutVector = CustomMutVector {
+            arr: vector.as_mut_slice(),
+        };
+
+        let shallow_size = <CustomMutVector as mem_dbg::MemSize>::mem_size(
+            &custom_vector,
+            mem_dbg::SizeFlags::default(),
+        );
+
+        // The expected shallow size is 16:
+        // - 1 * usize (pointer to the vector)
+        // - 1 * usize (len of the vector)
+
+        assert_eq!(size_of::<CustomMutVector>(), 16);
+        assert_eq!(shallow_size, 16);
+
+        let deep_size = <CustomMutVector as mem_dbg::MemSize>::mem_size(
+            &custom_vector,
+            mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
+        );
+
+        // The expected deep size is 36:
+        // - The shallow size (16)
+        // - The size of the vector (vector_len.len() * 4 = 20)
+
+        assert_eq!(
+            size_of_val(custom_vector.arr),
+            length_of_vector * size_of::<u32>()
+        );
+
+        assert_eq!(
+            deep_size,
+            size_of::<CustomMutVector>() + size_of_val(custom_vector.arr),
+            "Failed for case: {}",
+            case_name
+        );
+    }
+}
+
+#[derive(mem_dbg::MemDbg, mem_dbg::MemSize)]
+/// vector representation container
+struct CustomVector<'a> {
+    /// vector of items
+    arr: &'a [u32],
+}
+
+#[test]
+/// Check that the CustomVector used in CloudFlare crates is measured correctly.
+fn test_cloudflare_vector() {
+    let vector = vec![1, 2, 3, 4, 5];
+    let custom_vector: CustomVector = CustomVector {
+        arr: vector.as_slice(),
+    };
+
+    let shallow_size =
+        <CustomVector as mem_dbg::MemSize>::mem_size(&custom_vector, mem_dbg::SizeFlags::default());
+
+    // The expected shallow size is 16:
+    // - 1 * usize (pointer to the vector)
+    // - 1 * usize (len of the vector)
+
+    assert_eq!(size_of::<CustomVector>(), 16);
+    assert_eq!(shallow_size, 16);
+
+    let deep_size = <CustomVector as mem_dbg::MemSize>::mem_size(
+        &custom_vector,
+        mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
+    );
+
+    // The expected deep size is 36:
+    // - The shallow size (16)
+    // - The size of the vector (5 * 4 = 20)
+
+    assert_eq!(
+        size_of::<CustomVector>() + size_of_val(custom_vector.arr),
+        36
+    );
+    assert_eq!(deep_size, 36);
+}
+
+#[test]
+/// Check that the CustomVector used in CloudFlare crates is measured correctly.
+fn test_cloudflare_array() {
+    let vector = [1, 2, 3, 4, 5];
+    let custom_vector: CustomVector = CustomVector {
+        arr: vector.as_slice(),
+    };
+
+    let shallow_size =
+        <CustomVector as mem_dbg::MemSize>::mem_size(&custom_vector, mem_dbg::SizeFlags::default());
+
+    // The expected shallow size is 16:
+    // - 1 * usize (pointer to the vector)
+    // - 1 * usize (len of the vector)
+
+    assert_eq!(size_of::<CustomVector>(), 16);
+    assert_eq!(shallow_size, 16);
+
+    let deep_size = <CustomVector as mem_dbg::MemSize>::mem_size(
+        &custom_vector,
+        mem_dbg::SizeFlags::default() | mem_dbg::SizeFlags::FOLLOW_REFS,
+    );
+
+    // The expected deep size is 36:
+    // - The shallow size (16)
+    // - The size of the vector (5 * 4 = 20)
+
+    assert_eq!(
+        size_of::<CustomVector>() + size_of_val(custom_vector.arr),
+        36
+    );
+    assert_eq!(deep_size, 36);
+}
