@@ -325,15 +325,37 @@ fn test_vec_strings() {
 #[test]
 fn test_array_u8() {
     let data = [0_u8; 10];
+    assert_eq!(data.mem_size(SizeFlags::default()), 10);
     data.mem_dbg(DbgFlags::default()).unwrap();
 }
 
 #[test]
-fn test_array() {
+fn test_array_empty_struct() {
     #[derive(MemSize, MemDbg, Clone, Copy)]
     struct Dummy;
     let data = [Dummy; 10];
+    assert_eq!(data.mem_size(SizeFlags::default()), 0);
     data.mem_dbg(DbgFlags::default()).unwrap();
+}
+
+#[test]
+fn test_slice_u8() {
+    let data = [0_u8; 10].as_slice();
+    assert_eq!(
+        (*data).mem_size(SizeFlags::default()),
+        std::mem::size_of::<usize>() * 2 + 10
+    );
+}
+
+#[test]
+fn test_slice_empty_struct() {
+    #[derive(MemSize, MemDbg, Clone, Copy)]
+    struct Dummy;
+    let data = [Dummy; 10].as_slice();
+    assert_eq!(
+        (*data).mem_size(SizeFlags::default()),
+        0
+    );
 }
 
 #[test]
