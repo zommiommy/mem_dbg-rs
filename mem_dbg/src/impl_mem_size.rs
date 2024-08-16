@@ -632,7 +632,7 @@ impl CopyType for std::path::PathBuf {
 impl MemSize for std::path::PathBuf {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
-            core::mem::size_of::<Self>() + size_of::<usize>()
+            core::mem::size_of::<Self>() + core::mem::size_of::<usize>()
         } else {
             <std::ffi::OsStr as MemSize>::mem_size(self.as_os_str(), flags)
         }
@@ -666,10 +666,10 @@ impl MemSize for std::ffi::OsString {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 // Capacity is an usize
-                size_of::<usize>()
+                core::mem::size_of::<usize>()
             } else {
                 // Len is an usize
-                size_of::<usize>()
+                core::mem::size_of::<usize>()
             }
     }
 }
