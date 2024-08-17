@@ -1,6 +1,6 @@
 [package]
 name = "mem_dbg-derive"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 description = "Procedural macros for mem_dbg"
 repository = "https://github.com/zommiommy/mem_dbg/"
