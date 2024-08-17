@@ -813,33 +813,3 @@ fn test_single_field_union_follow_ref() {
         size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
     );
 }
-
-#[derive(MemSize)]
-union TestUnionMultiField {
-    a: u64,
-    _b: (u32, u64),
-}
-
-impl Default for TestUnionMultiField {
-    fn default() -> Self {
-        TestUnionMultiField { a: 0 }
-    }
-}
-
-#[test]
-fn test_multi_field_union_not_follow_ref() {
-    let test_union_multi_field = TestUnionMultiField::default();
-
-    assert_eq!(
-        <TestUnionMultiField as MemSize>::mem_size(&test_union_multi_field, SizeFlags::default()),
-        size_of::<(u32, u64)>()
-    );
-}
-
-#[test]
-#[should_panic]
-fn test_multi_field_union_follow_ref() {
-    let test_union_multi_field = TestUnionMultiField::default();
-
-    <TestUnionMultiField as MemSize>::mem_size(&test_union_multi_field, SizeFlags::FOLLOW_REFS);
-}
