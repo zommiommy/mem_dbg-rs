@@ -21,3 +21,24 @@ jobs:
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" ; done
       - name: Run clippy
         run: cargo clippy #-- -Dclippy::all -Dclippy::cargo
+        
+  coverage:
+    needs: build
+    name: coverage
+    runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate code coverage
+        run: |
+          cargo +nightly tarpaulin --verbose --engine llvm --all-features --workspace --out Lcov
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: "lcov.info"

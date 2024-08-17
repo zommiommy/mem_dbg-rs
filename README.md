@@ -7,6 +7,7 @@
 [![](https://tokei.rs/b1/github/zommiommy/mem_dbg-rs?type=Rust,Python)](https://github.com/zommiommy/mem_dbg-rs)
 [![Latest version](https://img.shields.io/crates/v/mem_dbg.svg)](https://crates.io/crates/mem_dbg)
 [![Documentation](https://docs.rs/mem_dbg/badge.svg)](https://docs.rs/mem_dbg)
+[![Coverage Status](https://coveralls.io/repos/github/zommiommy/mem_dbg-rs/badge.svg?branch=main)](https://coveralls.io/github/zommiommy/mem_dbg-rs?branch=main)
 
 Traits and associated procedural macros to display recursively the layout and
 memory usage of a value.
