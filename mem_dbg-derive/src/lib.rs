@@ -199,31 +199,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         }
                     }
                 }
-                number_of_fields => {
-                    quote! {
-                        #[automatically_derived]
-                        impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
-                        {
-                            type Copy = #copy_type;
-                        }
-
-                        #[automatically_derived]
-                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
-                                if _memsize_flags.contains(mem_dbg::SizeFlags::FOLLOW_REFS) {
-                                    unimplemented!(concat!(
-                                        "mem_dbg::MemSize for unions with more than one field ",
-                                        "does not support FOLLOW_REFS flag, as we cannot know ",
-                                        "at compile time which field is initialized. This union ",
-                                        "has {} fields."
-                                    ), #number_of_fields);
-                                } else {
-                                    core::mem::size_of::<Self>()
-                                }
-                            }
-                        }
-                    }
-                }
+                number_of_fields => unimplemented!(
+                    "mem_dbg::MemSize for unions with more than one field ({}) is not supported.", number_of_fields
+                )
             }
         }
     }.into()
