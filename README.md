@@ -96,10 +96,16 @@ struct Data<A> {
 }
 
 #[derive(MemSize, MemDbg)]
+union SingletonUnion<A: Copy> {
+    a: A
+}
+
+#[derive(MemSize, MemDbg)]
 enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
+    Union(SingletonUnion<u8>),
     Unnamed(usize, u8),
     Named { first: usize, second: u8 },
 }
@@ -278,6 +284,14 @@ assert_eq!(
 
 - `BTreeMap`/`BTreeSet` are not currently supported as we still have to
   figure out a way to precisely measure their memory size and capacity.
+
+- Regarding `union`s, we only support completely the special case of the single
+  field `union`, for which we implement both the derive macros `MemSize`/`MemDbg`.
+  For the more complex cases of unions with multiple fields, we only provide the
+  `MemSize` derive macro with partial support, excluding support for the
+  `SizeFlags::FOLLOW_REFS` flag. If full support for derive macros `MemSize`/`MemDbg`
+  in the case of an union with multiple fields, one can implement the traits manually.
+  
 
 [`MemDbg`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html>
 [`MemSize`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html>

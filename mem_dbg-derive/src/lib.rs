@@ -168,7 +168,64 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             }
         }
 
-        Data::Union(_) => unimplemented!("Unions are not supported"),
+        Data::Union(u) => {
+            // We only support single-field unions completely or call to mem_size on unions
+            // without the FOLLOW_REFS flag, as we cannot know programmatically
+            // which field is initialized.
+
+            let fields = u.fields.named.iter().collect::<Vec<_>>();
+
+            match fields.len() {
+                0 => unreachable!("Empty unions are not supported by the Rust programming language."),
+                1 => {
+                    let field = fields[0];
+                    let field_ty = &field.ty;
+                    let ident = field.ident.as_ref().unwrap();
+                    where_clause
+                        .predicates
+                        .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemSize));
+                    quote! {
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                        {
+                            type Copy = #copy_type;
+                        }
+
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                                unsafe{<#field_ty as mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags)}
+                            }
+                        }
+                    }
+                }
+                number_of_fields => {
+                    quote! {
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                        {
+                            type Copy = #copy_type;
+                        }
+
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                                if _memsize_flags.contains(mem_dbg::SizeFlags::FOLLOW_REFS) {
+                                    unimplemented!(concat!(
+                                        "mem_dbg::MemSize for unions with more than one field ",
+                                        "does not support FOLLOW_REFS flag, as we cannot know ",
+                                        "at compile time which field is initialized. This union ",
+                                        "has {} fields."
+                                    ), #number_of_fields);
+                                } else {
+                                    core::mem::size_of::<Self>()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }.into()
 }
 
@@ -451,6 +508,42 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             }
         }
 
-        Data::Union(_) => unimplemented!("Unions are not supported"),
+        Data::Union(u) => {
+            // We only support single-field unions for the MemDbg.
+
+            let fields = u.fields.named.iter().collect::<Vec<_>>();
+
+            match fields.len() {
+                0 => unreachable!("Empty unions are not supported by the Rust programming language."),
+                1 => {
+                    let field = fields[0];
+                    let field_ty = &field.ty;
+                    let ident = field.ident.as_ref().unwrap();
+                    where_clause
+                        .predicates
+                        .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemDbgImpl));
+                    quote! {
+                        #[automatically_derived]
+                        impl #impl_generics mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
+                            #[inline(always)]
+                            fn _mem_dbg_rec_on(
+                                &self,
+                                _memdbg_writer: &mut impl core::fmt::Write,
+                                _memdbg_total_size: usize,
+                                _memdbg_max_depth: usize,
+                                _memdbg_prefix: &mut String,
+                                _memdbg_is_last: bool,
+                                _memdbg_flags: mem_dbg::DbgFlags,
+                            ) -> core::fmt::Result {
+                                unsafe{<#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, core::mem::size_of::<#field_ty>(), _memdbg_flags)}
+                            }
+                        }
+                    }
+                }
+                _ => unimplemented!(
+                    "mem_dbg::MemDbg for unions with more than one field is not supported."
+                )
+            }
+        }
     }.into()
 }
