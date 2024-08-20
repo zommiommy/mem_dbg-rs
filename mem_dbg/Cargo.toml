@@ -24,6 +24,6 @@ paste = "1.0.15"
 [features]
 default = ["derive", "std"]
 std = ["alloc"]
-derive = ["mem_dbg-derive"]
+derive = ["mem_dbg-derive", "alloc"]
 offset_of_enum = []
 alloc = []
