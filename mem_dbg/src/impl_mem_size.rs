@@ -932,7 +932,9 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False> for std::collections::HashMap<K, V> {
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
+    for std::collections::HashMap<K, V>
+{
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_map_for_capacity(
