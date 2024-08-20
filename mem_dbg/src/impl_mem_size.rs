@@ -10,9 +10,11 @@ use core::marker::{PhantomData, PhantomPinned};
 use core::num::*;
 use core::ops::Deref;
 use core::sync::atomic::*;
-use std::collections::{HashMap, HashSet};
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::string::String;
 
 /// A basic implementation using [`core::mem::size_of`] for non-[`Copy`] types,
 /// setting [`CopyType::Copy`] to [`False`].
@@ -75,10 +77,12 @@ impl MemSize for str {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl CopyType for String {
     type Copy = False;
 }
 
+#[cfg(feature = "alloc")]
 impl MemSize for String {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
@@ -198,12 +202,10 @@ use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
-        core::mem::size_of::<usize>() + std::mem::size_of_val(self)
+        core::mem::size_of::<usize>() + core::mem::size_of_val(self)
     }
 }
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
 #[cfg(feature = "alloc")]
 impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
@@ -262,8 +264,6 @@ where
     }
 }
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
 #[cfg(feature = "alloc")]
 impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
     #[inline(always)]
@@ -276,8 +276,6 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
     }
 }
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
 #[cfg(feature = "alloc")]
 impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
     #[inline(always)]
@@ -786,45 +784,53 @@ fn capacity_to_buckets(cap: usize) -> Option<usize> {
     Some(adjusted_cap.next_power_of_two())
 }
 
-impl<T: CopyType> MemSize for HashSet<T>
+#[cfg(feature = "std")]
+impl<T: CopyType> MemSize for std::collections::HashSet<T>
 where
-    HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
+    std::collections::HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        <HashSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+        <std::collections::HashSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(
+            self, flags,
+        )
     }
 }
 
+#[cfg(feature = "std")]
 // Add to the given size the space occupied on the stack by the hash set, by the unused
 // but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
 // `SizeFlags::CAPACITY`, by empty buckets.
-fn fix_set_for_capacity<K>(hash_set: &HashSet<K>, size: usize, flags: SizeFlags) -> usize {
-    core::mem::size_of::<HashSet<K>>()
+fn fix_set_for_capacity<K>(
+    hash_set: &std::collections::HashSet<K>,
+    size: usize,
+    flags: SizeFlags,
+) -> usize {
+    core::mem::size_of::<std::collections::HashSet<K>>()
         + size
         + if flags.contains(SizeFlags::CAPACITY) {
             (capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX) - hash_set.len())
-                * std::mem::size_of::<K>()
+                * core::mem::size_of::<K>()
                 + capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX)
-                    * std::mem::size_of::<u8>()
+                    * core::mem::size_of::<u8>()
         } else {
             (capacity_to_buckets(hash_set.len()).unwrap_or(usize::MAX) - hash_set.len())
-                * std::mem::size_of::<K>()
+                * core::mem::size_of::<K>()
                 + capacity_to_buckets(hash_set.len()).unwrap_or(usize::MAX)
-                    * std::mem::size_of::<u8>()
+                    * core::mem::size_of::<u8>()
         }
 }
 
-#[cfg(feature = "alloc")]
-impl<K: CopyType + MemSize> MemSizeHelper<True> for HashSet<K> {
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        fix_set_for_capacity(self, std::mem::size_of::<K>() * self.len(), flags)
+        fix_set_for_capacity(self, core::mem::size_of::<K>() * self.len(), flags)
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<K: CopyType + MemSize> MemSizeHelper<False> for HashSet<K> {
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_set_for_capacity(
@@ -844,75 +850,90 @@ pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags) -> usize;
 }
 
-impl<K: CopyType, V: CopyType> MemSize for HashMap<K, V>
+#[cfg(feature = "std")]
+impl<K: CopyType, V: CopyType> MemSize for std::collections::HashMap<K, V>
 where
-    HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
+    std::collections::HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
 {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        <HashMap<K, V> as MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>>::mem_size_impl(self, flags)
+        <std::collections::HashMap<K, V> as MemSizeHelper2<
+            <K as CopyType>::Copy,
+            <V as CopyType>::Copy,
+        >>::mem_size_impl(self, flags)
     }
 }
 
+#[cfg(feature = "std")]
 // Add to the given size the space occupied on the stack by the hash map, by the unused
 // but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
 // `SizeFlags::CAPACITY`, by empty buckets.
-fn fix_map_for_capacity<K, V>(hash_map: &HashMap<K, V>, size: usize, flags: SizeFlags) -> usize {
-    core::mem::size_of::<HashSet<K>>()
+fn fix_map_for_capacity<K, V>(
+    hash_map: &std::collections::HashMap<K, V>,
+    size: usize,
+    flags: SizeFlags,
+) -> usize {
+    core::mem::size_of::<std::collections::HashSet<K>>()
         + size
         + if flags.contains(SizeFlags::CAPACITY) {
             (capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX) - hash_map.len())
-                * (std::mem::size_of::<K>() + std::mem::size_of::<V>())
+                * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
                 + capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX)
-                    * std::mem::size_of::<u8>()
+                    * core::mem::size_of::<u8>()
         } else {
             (capacity_to_buckets(hash_map.len()).unwrap_or(usize::MAX) - hash_map.len())
-                * (std::mem::size_of::<K>() + std::mem::size_of::<V>())
+                * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
                 + capacity_to_buckets(hash_map.len()).unwrap_or(usize::MAX)
-                    * std::mem::size_of::<u8>()
+                    * core::mem::size_of::<u8>()
         }
 }
 
-#[cfg(feature = "alloc")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True> for HashMap<K, V> {
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
+    for std::collections::HashMap<K, V>
+{
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_map_for_capacity(
             self,
-            (std::mem::size_of::<K>() + std::mem::size_of::<V>()) * self.len(),
+            (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * self.len(),
             flags,
         )
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False> for HashMap<K, V> {
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False> for std::collections::HashMap<K, V> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_map_for_capacity(
             self,
-            (std::mem::size_of::<K>()) * self.len()
+            (core::mem::size_of::<K>()) * self.len()
                 + self.values().map(|v| v.mem_size(flags)).sum::<usize>(),
             flags,
         )
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True> for HashMap<K, V> {
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
+    for std::collections::HashMap<K, V>
+{
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_map_for_capacity(
             self,
             self.keys().map(|k| k.mem_size(flags)).sum::<usize>()
-                + (std::mem::size_of::<V>()) * self.len(),
+                + (core::mem::size_of::<V>()) * self.len(),
             flags,
         )
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False> for HashMap<K, V> {
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
+    for std::collections::HashMap<K, V>
+{
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         fix_map_for_capacity(
