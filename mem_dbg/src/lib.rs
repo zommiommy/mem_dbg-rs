@@ -174,7 +174,7 @@ impl Default for DbgFlags {
 /// type implement [`MemDbg`]. Note that you will also need to derive
 /// [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
-    /// Writes to stdout debug infos about the structure memory usage, expanding
+    /// Writes to stderr debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     #[inline(always)]
@@ -205,7 +205,7 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to stdout debug infos about the structure memory usage as
+    /// Writes to stderr debug infos about the structure memory usage as
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
@@ -276,7 +276,7 @@ pub trait MemDbgImpl: MemSize {
         padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        struct Wrapper(std::io::Stdout);
+        struct Wrapper(std::io::Stderr);
         impl core::fmt::Write for Wrapper {
             #[inline(always)]
             fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -289,7 +289,7 @@ pub trait MemDbgImpl: MemSize {
             }
         }
         self._mem_dbg_depth_on(
-            &mut Wrapper(std::io::stdout()),
+            &mut Wrapper(std::io::stderr()),
             total_size,
             max_depth,
             &mut String::new(),
