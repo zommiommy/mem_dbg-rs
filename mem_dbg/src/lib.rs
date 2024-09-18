@@ -136,7 +136,7 @@ bitflags::bitflags! {
         const TYPE_NAME = 1 << 3;
         /// Display capacity instead of size. See [`SizeFlags::CAPACITY`].
         const CAPACITY = 1 << 4;
-        /// Add an underscore every 3 digits.
+        /// Add an underscore every 3 digits, when `HUMANIZE` is not set.
         const SEPARATOR = 1 << 5;
         /// Print fields in memory order (i.e., using the layout chosen by the
         /// compiler), rather than in declaration order.
