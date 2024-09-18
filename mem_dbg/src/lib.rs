@@ -141,6 +141,8 @@ bitflags::bitflags! {
         /// Print fields in memory order (i.e., using the layout chosen by the
         /// compiler), rather than in declaration order.
         const RUST_LAYOUT = 1 << 6;
+        /// Use colors to distinguish sizes.
+        const COLOR = 1 << 7;
     }
 }
 
@@ -317,6 +319,10 @@ pub trait MemDbgImpl: MemSize {
             return Ok(());
         }
         let real_size = <Self as MemSize>::mem_size(self, flags.to_size_flags());
+        if flags.contains(DbgFlags::COLOR) {
+            let color = utils::color(real_size);
+            writer.write_fmt(format_args!("{color}"))?;
+        };
         if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
@@ -372,6 +378,10 @@ pub trait MemDbgImpl: MemSize {
                 100.0 * real_size as f64 / total_size as f64
             ))?;
         }
+        if flags.contains(DbgFlags::COLOR) {
+            let reset_color = utils::reset_color();
+            writer.write_fmt(format_args!("{reset_color}"))?;
+        };
         if !prefix.is_empty() {
             writer.write_str(&prefix[2..])?;
             if is_last {
@@ -387,7 +397,13 @@ pub trait MemDbgImpl: MemSize {
         }
 
         if flags.contains(DbgFlags::TYPE_NAME) {
+            if flags.contains(DbgFlags::COLOR) {
+                writer.write_fmt(format_args!("{}", utils::type_color()))?;
+            }
             writer.write_fmt(format_args!(": {:}", core::any::type_name::<Self>()))?;
+            if flags.contains(DbgFlags::COLOR) {
+                writer.write_fmt(format_args!("{}", utils::reset_color()))?;
+            }
         }
 
         let padding = padded_size - std::mem::size_of_val(self);
