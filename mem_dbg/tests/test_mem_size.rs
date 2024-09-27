@@ -9,9 +9,9 @@
 #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 
 use core::marker::PhantomData;
-use std::sync::atomic::AtomicU64;
 use core::mem::size_of;
 use mem_dbg::*;
+use std::sync::atomic::AtomicU64;
 
 #[derive(MemSize, MemDbg)]
 union SingletonUnion<A: Copy> {
@@ -794,7 +794,8 @@ fn test_single_field_union_follow_ref() {
     // size of a reference plus the size of the test union.
     assert_eq!(
         <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::FOLLOW_REFS),
-        core::mem::size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
+        core::mem::size_of::<usize>()
+            + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
     );
 
     let test_union_deep_mut = TestUnionDeepMut { b: &mut test_union };
@@ -810,6 +811,7 @@ fn test_single_field_union_follow_ref() {
     // size of a reference plus the size of the test union.
     assert_eq!(
         <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::FOLLOW_REFS),
-        core::mem::size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
+        core::mem::size_of::<usize>()
+            + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
     );
 }
