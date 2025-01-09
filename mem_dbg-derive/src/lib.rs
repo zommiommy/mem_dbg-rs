@@ -6,6 +6,9 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
+// Clippy misreads the cfg's in quote! macros
+#![allow(unexpected_cfgs)]
+
 //! Derive procedural macros for the [`mem_dbg`](https://crates.io/crates/mem_dbg) crate.
 
 use proc_macro::TokenStream;
