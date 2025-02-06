@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.2.5] 2024-02-06
+
+### New
+
+* `COLOR` flag for colorized output.
+
+* We now print to standard error.
+
 ## [0.2.4] - 2024-08-09
 
 ### Fixed
