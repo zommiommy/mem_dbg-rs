@@ -710,31 +710,21 @@ macro_rules! test_size {
     };
 }
 
-#[derive(MemSize)]
+#[derive(MemSize, Default)]
 enum TestEnum2 {
+    #[default]
     A,
     _B(u64),
     _C(u64, Vec<usize>),
-}
-
-impl Default for TestEnum2 {
-    fn default() -> Self {
-        TestEnum2::A
-    }
 }
 
 #[repr(u8)]
-#[derive(MemSize)]
+#[derive(MemSize, Default)]
 enum TestEnumReprU8 {
+    #[default]
     A,
     _B(u64),
     _C(u64, Vec<usize>),
-}
-
-impl Default for TestEnumReprU8 {
-    fn default() -> Self {
-        TestEnumReprU8::A
-    }
 }
 
 #[derive(MemSize, MemDbg)]

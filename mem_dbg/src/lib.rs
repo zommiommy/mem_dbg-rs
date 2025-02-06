@@ -115,7 +115,6 @@ impl Default for SizeFlags {
 ///
 /// You can derive this trait with `#[derive(MemSize)]` if all the fields of
 /// your type implement [`MemSize`].
-
 pub trait MemSize {
     /// Returns the (recursively computed) overall
     /// memory size of the structure in bytes.
