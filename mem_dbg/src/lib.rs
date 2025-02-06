@@ -375,7 +375,11 @@ pub trait MemDbgImpl: MemSize {
         if flags.contains(DbgFlags::PERCENTAGE) {
             writer.write_fmt(format_args!(
                 "{:>6.2}% ",
-                100.0 * real_size as f64 / total_size as f64
+                if total_size == 0 {
+                    100.0
+                } else {
+                    100.0 * real_size as f64 / total_size as f64
+                }
             ))?;
         }
         if flags.contains(DbgFlags::COLOR) {

@@ -9,18 +9,21 @@
 [![Documentation](https://docs.rs/mem_dbg/badge.svg)](https://docs.rs/mem_dbg)
 [![Coverage Status](https://coveralls.io/repos/github/zommiommy/mem_dbg-rs/badge.svg?branch=main)](https://coveralls.io/github/zommiommy/mem_dbg-rs?branch=main)
 
-Traits and associated procedural macros to display recursively the layout and
-memory usage of a value.
+Traits and associated procedural macros to inspect recursively the memory usage
+and layout of a value.
 
-The trait [`MemDbg`] can be used to display the recursive layout of a value,
-together with the size of each part and the associated padding bytes. We provide
-implementations for most basic types, a derive macro for structs and enums
-whose fields implement [`MemDbg`], and support for a few other crates.
+The trait [`MemSize`] can be used to compute the overall memory usage of a value
+in bytes; the standard library function [`std::mem::size_of`] returns the
+*stack* size of a type in bytes, but it does not take into consideration heap
+memory. We provide implementations for most basic types, a derive macro for
+structs and enums whose fields implement [`MemSize`], and support for a few other
+crates.
 
-To compute the size, we provide the trait [`MemSize`] and a derive macro that
-can be used to compute the size of a value in bytes as the standard library
-function [`std::mem::size_of`] returns the stack size of a type in bytes, but it
-does not take into consideration heap memory.
+The trait [`MemDbg`], which depends on [`MemSize`], can be used to display the
+recursive layout of a value, together with the size of each part and the
+associated padding bytes. Also in this case we provide implementations for most
+basic types, a derive macro for structs and enums whose fields implement
+[`MemDbg`], and support for a few other crates.
 
 ## Why `MemSize`
 
@@ -293,7 +296,6 @@ assert_eq!(
   `SizeFlags::FOLLOW_REFS` flag. If full support for derive macros `MemSize`/`MemDbg`
   in the case of an union with multiple fields, one can implement the traits manually.
   
-
 [`MemDbg`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html>
 [`MemSize`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html>
 [`std::mem::size_of`]: <https://doc.rust-lang.org/std/mem/fn.size_of.html>

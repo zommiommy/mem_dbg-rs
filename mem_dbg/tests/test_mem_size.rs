@@ -9,9 +9,9 @@
 #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
 
 use core::marker::PhantomData;
-use std::sync::atomic::AtomicU64;
-
+use core::mem::size_of;
 use mem_dbg::*;
+use std::sync::atomic::AtomicU64;
 
 #[derive(MemSize, MemDbg)]
 union SingletonUnion<A: Copy> {
@@ -401,7 +401,7 @@ fn test_vec_slice_i64() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
+    let size_of_non_mutable_slice = core::mem::size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(
@@ -409,7 +409,7 @@ fn test_vec_slice_i64() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
-    let size_of_mutable_slice = size_of_val(mutable_slice);
+    let size_of_mutable_slice = core::mem::size_of_val(mutable_slice);
 
     let mutable_slice_shallow_size =
         <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
@@ -449,7 +449,7 @@ fn test_vec_slice_i32() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
+    let size_of_non_mutable_slice = core::mem::size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(
@@ -457,7 +457,7 @@ fn test_vec_slice_i32() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
-    let size_of_mutable_slice = size_of_val(mutable_slice);
+    let size_of_mutable_slice = core::mem::size_of_val(mutable_slice);
     let mutable_slice_shallow_size =
         <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(
@@ -496,7 +496,7 @@ fn test_array_slice_i64() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
+    let size_of_non_mutable_slice = core::mem::size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i64] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i64] as MemSize>::mem_size(
@@ -504,7 +504,7 @@ fn test_array_slice_i64() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
-    let size_of_mutable_slice = size_of_val(mutable_slice);
+    let size_of_mutable_slice = core::mem::size_of_val(mutable_slice);
     let mutable_slice_shallow_size =
         <&mut [i64] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i64] as MemSize>::mem_size(
@@ -524,12 +524,12 @@ fn test_array_slice_i64() {
 
     assert_eq!(
         non_mutable_slice_deep_size,
-        size_of::<&[i64]>() + size_of_non_mutable_slice
+        core::mem::size_of::<&[i64]>() + size_of_non_mutable_slice
     );
 
     assert_eq!(
         mutable_slice_deep_size,
-        size_of::<&mut [i64]>() + size_of_mutable_slice
+        core::mem::size_of::<&mut [i64]>() + size_of_mutable_slice
     );
 }
 
@@ -567,7 +567,7 @@ fn test_array_slice_i32() {
 
     // A mutable slice should have the same size as a non mutable one
     let non_mutable_slice = data.as_slice();
-    let size_of_non_mutable_slice = size_of_val(non_mutable_slice);
+    let size_of_non_mutable_slice = core::mem::size_of_val(non_mutable_slice);
     let non_mutable_slice_shallow_size =
         <&[i32] as MemSize>::mem_size(&non_mutable_slice, SizeFlags::default());
     let non_mutable_slice_deep_size = <&[i32] as MemSize>::mem_size(
@@ -575,7 +575,7 @@ fn test_array_slice_i32() {
         SizeFlags::default() | SizeFlags::FOLLOW_REFS,
     );
     let mutable_slice = data.as_mut_slice();
-    let size_of_mutable_slice = size_of_val(mutable_slice);
+    let size_of_mutable_slice = core::mem::size_of_val(mutable_slice);
     let mutable_slice_shallow_size =
         <&mut [i32] as MemSize>::mem_size(&mutable_slice, SizeFlags::default());
     let mutable_slice_deep_size = <&mut [i32] as MemSize>::mem_size(
@@ -595,12 +595,12 @@ fn test_array_slice_i32() {
 
     assert_eq!(
         non_mutable_slice_deep_size,
-        size_of::<&[i64]>() + size_of_non_mutable_slice
+        core::mem::size_of::<&[i64]>() + size_of_non_mutable_slice
     );
 
     assert_eq!(
         mutable_slice_deep_size,
-        size_of::<&mut [i64]>() + size_of_mutable_slice
+        core::mem::size_of::<&mut [i64]>() + size_of_mutable_slice
     );
 }
 
@@ -670,7 +670,7 @@ macro_rules! test_size {
 
                     assert_eq!(
                         reference_size,
-                        size_of::<usize>()
+                        core::mem::size_of::<usize>()
                     );
 
                     // Next, we check that the deep size of the object is the expected one,
@@ -686,7 +686,7 @@ macro_rules! test_size {
                     let deep_reference_size = <&'_ $object as MemSize>::mem_size(&reference, SizeFlags::default() | SizeFlags::FOLLOW_REFS);
                     assert_eq!(
                         deep_reference_size,
-                        size_of::<usize>() + deep_object_size
+                        core::mem::size_of::<usize>() + deep_object_size
                     );
 
                     let mutable_reference = &mut data;
@@ -694,7 +694,7 @@ macro_rules! test_size {
                     // We check that the mutable reference has the same size as the reference
                     assert_eq!(
                         mutable_reference_size,
-                        size_of::<usize>(),
+                        core::mem::size_of::<usize>(),
                     );
 
                     // We check that the deep size of the mutable reference is the same as the deep size of the reference
@@ -787,14 +787,15 @@ fn test_single_field_union_follow_ref() {
     // size of a reference (i.e. an usize).
     assert_eq!(
         <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::default()),
-        size_of::<usize>(),
+        core::mem::size_of::<usize>(),
     );
 
     // We check that the deep size of the test union deep is the
     // size of a reference plus the size of the test union.
     assert_eq!(
         <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::FOLLOW_REFS),
-        size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
+        core::mem::size_of::<usize>()
+            + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
     );
 
     let test_union_deep_mut = TestUnionDeepMut { b: &mut test_union };
@@ -803,13 +804,14 @@ fn test_single_field_union_follow_ref() {
     // size of a reference (i.e. an usize)
     assert_eq!(
         <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::default()),
-        size_of::<usize>(),
+        core::mem::size_of::<usize>(),
     );
 
     // We check that the deep size of the test union deep mut is the
     // size of a reference plus the size of the test union.
     assert_eq!(
         <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::FOLLOW_REFS),
-        size_of::<usize>() + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
+        core::mem::size_of::<usize>()
+            + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
     );
 }
