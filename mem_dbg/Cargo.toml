@@ -1,6 +1,6 @@
 [package]
 name = "mem_dbg"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 description = "Traits and associated procedural macros to display recursively the layout and memory usage of a value"
 repository = "https://github.com/zommiommy/mem_dbg/"
