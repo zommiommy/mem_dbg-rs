@@ -10,10 +10,12 @@ use core::marker::PhantomPinned;
 use core::num::*;
 use core::ops::Deref;
 use core::{marker::PhantomData, sync::atomic::*};
-use std::collections::{HashMap, HashSet};
 
 use crate::impl_mem_size::MemSizeHelper2;
 use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::string::String;
 
 /// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
 macro_rules! impl_mem_dbg {
@@ -37,7 +39,7 @@ impl_mem_dbg! {
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
 // References: we recurse only if FOLLOW_REFS is set
-
+#[cfg(feature = "alloc")]
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
     fn _mem_dbg_rec_on(
         &self,
@@ -56,6 +58,7 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
     fn _mem_dbg_rec_on(
         &self,
@@ -227,9 +230,14 @@ impl<A, B, C, D, R> MemDbgImpl for fn(A, B, C, D) -> R {}
 
 // Hash-based containers from the standard library
 
-impl<K: CopyType> MemDbgImpl for HashSet<K> where HashSet<K>: MemSizeHelper<<K as CopyType>::Copy> {}
-impl<K: CopyType, V: CopyType> MemDbgImpl for HashMap<K, V> where
-    HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
+#[cfg(feature = "std")]
+impl<K: CopyType> MemDbgImpl for std::collections::HashSet<K> where
+    std::collections::HashSet<K>: MemSizeHelper<<K as CopyType>::Copy>
+{
+}
+#[cfg(feature = "std")]
+impl<K: CopyType, V: CopyType> MemDbgImpl for std::collections::HashMap<K, V> where
+    std::collections::HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
 {
 }
 
