@@ -18,7 +18,6 @@ use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
 use alloc::string::String;
 
 /// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
-
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
  impl MemDbgImpl for $ty {}
@@ -221,7 +220,7 @@ impl_tuples_muncher!(
     (0 => T0),
 );
 
-// function pointers cannot recurse
+// Function pointers cannot recurse
 
 impl<R> MemDbgImpl for fn() -> R {}
 impl<A, R> MemDbgImpl for fn(A) -> R {}

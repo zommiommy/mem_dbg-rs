@@ -35,6 +35,32 @@ pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
     (x, UOM[uom_idx])
 }
 
+pub fn color(x: usize) -> &'static str {
+    const KB: usize = 1024;
+    const MB: usize = KB * KB;
+    const GB: usize = MB * KB;
+    #[allow(clippy::match_overlapping_arm)]
+    match x {
+        // white
+        ..KB => reset_color(),
+        // green
+        ..MB => "\x1B[32m",
+        // yellow
+        ..GB => "\x1B[33m",
+        // red
+        _ => "\x1B[31m",
+    }
+}
+
+pub fn type_color() -> &'static str {
+    // custom grey
+    "\x1B[38;2;128;128;128m"
+}
+
+pub fn reset_color() -> &'static str {
+    "\x1B[0m"
+}
+
 /// Returns the number of digits of a number.
 ///
 /// ```

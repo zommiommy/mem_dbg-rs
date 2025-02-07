@@ -118,7 +118,6 @@ impl Default for SizeFlags {
 ///
 /// You can derive this trait with `#[derive(MemSize)]` if all the fields of
 /// your type implement [`MemSize`].
-
 pub trait MemSize {
     /// Returns the (recursively computed) overall
     /// memory size of the structure in bytes.
@@ -139,11 +138,13 @@ bitflags::bitflags! {
         const TYPE_NAME = 1 << 3;
         /// Display capacity instead of size. See [`SizeFlags::CAPACITY`].
         const CAPACITY = 1 << 4;
-        /// Add an underscore every 3 digits.
+        /// Add an underscore every 3 digits, when `HUMANIZE` is not set.
         const SEPARATOR = 1 << 5;
         /// Print fields in memory order (i.e., using the layout chosen by the
         /// compiler), rather than in declaration order.
         const RUST_LAYOUT = 1 << 6;
+        /// Use colors to distinguish sizes.
+        const COLOR = 1 << 7;
     }
 }
 
@@ -177,7 +178,7 @@ impl Default for DbgFlags {
 /// type implement [`MemDbg`]. Note that you will also need to derive
 /// [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
-    /// Writes to stdout debug infos about the structure memory usage, expanding
+    /// Writes to stderr debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
     #[inline(always)]
     #[cfg(feature = "std")]
@@ -209,7 +210,7 @@ pub trait MemDbg: MemDbgImpl {
     }
 
     #[cfg(feature = "std")]
-    /// Writes to stdout debug infos about the structure memory usage as
+    /// Writes to stderr debug infos about the structure memory usage as
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
@@ -280,7 +281,7 @@ pub trait MemDbgImpl: MemSize {
         padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        struct Wrapper(std::io::Stdout);
+        struct Wrapper(std::io::Stderr);
         impl core::fmt::Write for Wrapper {
             #[inline(always)]
             fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -293,7 +294,7 @@ pub trait MemDbgImpl: MemSize {
             }
         }
         self._mem_dbg_depth_on(
-            &mut Wrapper(std::io::stdout()),
+            &mut Wrapper(std::io::stderr()),
             total_size,
             max_depth,
             &mut String::new(),
@@ -321,6 +322,10 @@ pub trait MemDbgImpl: MemSize {
             return Ok(());
         }
         let real_size = <Self as MemSize>::mem_size(self, flags.to_size_flags());
+        if flags.contains(DbgFlags::COLOR) {
+            let color = utils::color(real_size);
+            writer.write_fmt(format_args!("{color}"))?;
+        };
         if flags.contains(DbgFlags::HUMANIZE) {
             let (value, uom) = crate::utils::humanize_float(real_size as f64);
             if uom == " B" {
@@ -373,9 +378,17 @@ pub trait MemDbgImpl: MemSize {
         if flags.contains(DbgFlags::PERCENTAGE) {
             writer.write_fmt(format_args!(
                 "{:>6.2}% ",
-                100.0 * real_size as f64 / total_size as f64
+                if total_size == 0 {
+                    100.0
+                } else {
+                    100.0 * real_size as f64 / total_size as f64
+                }
             ))?;
         }
+        if flags.contains(DbgFlags::COLOR) {
+            let reset_color = utils::reset_color();
+            writer.write_fmt(format_args!("{reset_color}"))?;
+        };
         if !prefix.is_empty() {
             writer.write_str(&prefix[2..])?;
             if is_last {
@@ -391,7 +404,13 @@ pub trait MemDbgImpl: MemSize {
         }
 
         if flags.contains(DbgFlags::TYPE_NAME) {
+            if flags.contains(DbgFlags::COLOR) {
+                writer.write_fmt(format_args!("{}", utils::type_color()))?;
+            }
             writer.write_fmt(format_args!(": {:}", core::any::type_name::<Self>()))?;
+            if flags.contains(DbgFlags::COLOR) {
+                writer.write_fmt(format_args!("{}", utils::reset_color()))?;
+            }
         }
 
         //dbg!(padded_size, core::mem::size_of_val(self));

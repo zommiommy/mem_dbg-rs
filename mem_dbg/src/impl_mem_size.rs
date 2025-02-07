@@ -18,7 +18,6 @@ use alloc::string::String;
 
 /// A basic implementation using [`core::mem::size_of`] for non-[`Copy`] types,
 /// setting [`CopyType::Copy`] to [`False`].
-
 macro_rules! impl_size_of {
     ($($ty:ty),*) => {$(
         impl CopyType for $ty {
@@ -36,7 +35,6 @@ macro_rules! impl_size_of {
 
 /// A basic implementation using [`core::mem::size_of`] for [`Copy`] types,
 /// setting [`CopyType::Copy`] to [`True`].
-
 macro_rules! impl_copy_size_of {
     ($($ty:ty),*) => {$(
         impl CopyType for $ty {
