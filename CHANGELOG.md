@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.3.0] 2024-02-09
+
+### Fixed
+
+* The `offset_of_nested` feature has been stabilized, so the references to it
+  have been removed.
+
+* The check for the `offset_of_enum` feature was partly in the generated
+  code, which was problematic as it had to be set from the user crate
+  by adding an `offset_of_enum` feature. Now all checks are in the
+  code of the derive macro.
+  
 ## [0.2.5] 2024-02-06
 
 ### New

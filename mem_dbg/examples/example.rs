@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
+#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
 #![allow(dead_code)]
 
 use std::collections::HashSet;
