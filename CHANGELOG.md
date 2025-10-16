@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.3.1] 2025-10-16
+
+## Changed
+
+* Switched to the 2024 edition.
+
+* Updated all dependencies.
+
 ## [0.3.0] 2024-02-09
 
 ### Fixed
