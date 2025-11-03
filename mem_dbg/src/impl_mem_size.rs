@@ -979,6 +979,8 @@ impl CopyType for std::hash::DefaultHasher {
 }
 
 #[cfg(feature = "std")]
+// This implementation assumes that DefaultHasher is a fixed-size type
+// that does not allocate memory on the heap.
 impl MemSize for std::hash::DefaultHasher {
     #[inline(always)]
     fn mem_size(&self, _flags: SizeFlags) -> usize {

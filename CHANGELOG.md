@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.2] 2025-11-03
+
+* Added support for `std::hash::DefaultHasher`.
+
 ## [0.3.1] 2025-10-16
 
 ## Changed
