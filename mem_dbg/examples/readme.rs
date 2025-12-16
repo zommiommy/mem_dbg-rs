@@ -9,9 +9,6 @@
 #![allow(dead_code)]
 
 #[cfg(feature = "std")]
-use mem_dbg::*;
-
-#[cfg(feature = "std")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use mem_dbg::*;
 

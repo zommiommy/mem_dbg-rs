@@ -15,7 +15,7 @@ use crate::impl_mem_size::MemSizeHelper2;
 use crate::{CopyType, DbgFlags, MemDbgImpl, impl_mem_size::MemSizeHelper};
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::string::String;
+use alloc::{boxed::Box, string::String, vec, vec::Vec};
 
 /// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
 macro_rules! impl_mem_dbg {

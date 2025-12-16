@@ -2,7 +2,6 @@ use cap::Cap;
 use deepsize::*;
 use get_size::*;
 use mem_dbg::*;
-use size_of::*;
 use std::alloc;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -28,9 +27,9 @@ fn main() {
     let size = m.deep_size_of();
     println!("deep_size_of: {} {:?} ns", size, start.elapsed().as_nanos());
 
-    let start = Instant::now();
-    let size = m.size_of().total_bytes();
-    println!("size_of:      {} {:?} ns", size, start.elapsed().as_nanos());
+    // let start = Instant::now();
+    // let size = m.size_of().total_bytes();
+    // println!("size_of:      {} {:?} ns", size, start.elapsed().as_nanos());
 
     let start = Instant::now();
     let size = m.mem_size(SizeFlags::default());

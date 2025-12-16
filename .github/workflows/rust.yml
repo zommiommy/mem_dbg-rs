@@ -20,6 +20,8 @@ jobs:
         run: cargo test --verbose --no-default-features
       - name: Run tests with alloc feature
         run: cargo test --verbose --no-default-features --features alloc
+      - name: Run tests with alloc and derive feature
+        run: cargo test --verbose --no-default-features --features "alloc derive"
       - name: Run examples
         working-directory: ./mem_dbg
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" ; done

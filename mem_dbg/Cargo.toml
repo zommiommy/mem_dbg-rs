@@ -26,8 +26,8 @@ maligned = { version = "0.2.1", optional = true }
 paste = "1.0.15"
 
 [features]
-default = ["derive", "std"]
+default = ["derive"]
 std = ["alloc"]
 derive = ["mem_dbg-derive", "alloc"]
-offset_of_enum = ["mem_dbg-derive/offset_of_enum"]
+offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 alloc = []
