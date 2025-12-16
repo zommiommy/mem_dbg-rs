@@ -997,6 +997,21 @@ impl<H> MemSize for core::hash::BuildHasherDefault<H> {
 }
 
 #[cfg(feature = "std")]
+impl CopyType for std::hash::DefaultHasher {
+    type Copy = True;
+}
+
+#[cfg(feature = "std")]
+// This implementation assumes that DefaultHasher is a fixed-size type
+// that does not allocate memory on the heap.
+impl MemSize for std::hash::DefaultHasher {
+    #[inline(always)]
+    fn mem_size(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "std")]
 impl CopyType for std::collections::hash_map::RandomState {
     type Copy = True;
 }

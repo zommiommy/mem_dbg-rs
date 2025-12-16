@@ -12,7 +12,7 @@ use core::ops::Deref;
 use core::{marker::PhantomData, sync::atomic::*};
 
 use crate::impl_mem_size::MemSizeHelper2;
-use crate::{impl_mem_size::MemSizeHelper, CopyType, DbgFlags, MemDbgImpl};
+use crate::{CopyType, DbgFlags, MemDbgImpl, impl_mem_size::MemSizeHelper};
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::string::String;

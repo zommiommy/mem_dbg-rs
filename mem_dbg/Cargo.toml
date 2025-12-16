@@ -1,7 +1,7 @@
 [package]
 name = "mem_dbg"
-version = "0.2.5"
-edition = "2021"
+version = "0.3.2"
+edition = "2024"
 description = "Traits and associated procedural macros to display recursively the layout and memory usage of a value"
 repository = "https://github.com/zommiommy/mem_dbg/"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
@@ -11,11 +11,12 @@ authors = [
 	"Tommaso Fontana <tommaso.fontana.96@gmail.com>",
 	"Sebastiano Vigna <sebastiano.vigna@unimi.it>",
 ]
+rust-version = "1.85.0"
 
 [dependencies]
-mem_dbg-derive =  { version = "=0.1.7", optional = true }
-#mem_dbg-derive =  { path = "../mem_dbg-derive", optional = true }
-mmap-rs = { version = "0.6.0", optional = true }
+#mem_dbg-derive = { path = "../mem_dbg-derive", optional = true }
+mem_dbg-derive = { version = "=0.2.0", optional = true }
+mmap-rs = { version = "0.6.1", optional = true }
 half = { version = "2.0.4", optional = true }
 bitflags = "2.4.1"
 rand = { version = "0.9.0", optional = true, features = ["small_rng"] }
@@ -28,5 +29,5 @@ paste = "1.0.15"
 default = ["derive", "std"]
 std = ["alloc"]
 derive = ["mem_dbg-derive", "alloc"]
-offset_of_enum = []
+offset_of_enum = ["mem_dbg-derive/offset_of_enum"]
 alloc = []

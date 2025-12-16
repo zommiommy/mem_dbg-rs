@@ -1,13 +1,16 @@
 [package]
 name = "mem_dbg-derive"
-version = "0.1.7"
+version = "0.2.0"
 edition = "2021"
 description = "Procedural macros for mem_dbg"
 repository = "https://github.com/zommiommy/mem_dbg/"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
 readme = "README.md"
 keywords = ["allocation", "debug", "memory"]
-authors = ["Tommaso Fontana <tommaso.fontana.96@gmail.com>", "Sebastiano Vigna <sebastiano.vigna@unimi.it>"]
+authors = [
+	"Tommaso Fontana <tommaso.fontana.96@gmail.com>",
+	"Sebastiano Vigna <sebastiano.vigna@unimi.it>",
+]
 
 [lib]
 proc-macro = true
@@ -16,3 +19,6 @@ proc-macro = true
 quote = "1"
 proc-macro2 = "1.0"
 syn = "2.0"
+
+[features]
+offset_of_enum = []

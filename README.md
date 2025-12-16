@@ -64,24 +64,32 @@ display structures in the layout used by the Rust compiler, rather than
 that given by declaration order.
 
 These features are also available for enums using the feature `offset_of_enum`,
-which however needs the nightly compiler, as it enables the unstable features
-`offset_of_enum` and `offset_of_nested`.
+which however needs the nightly compiler, as it enables the unstable feature
+`offset_of_enum`.
 
 ## Features
 
 - `offset_of_enum`: support for padding and for the `DbgFlags::RUST_LAYOUT` flag
-  for enums. Requires the nightly compiler as it enables the unstable features
-  `offset_of_enum` and `offset_of_nested`. Calling `mem_dbg` with the flag
-  `DbgFlags::RUST_LAYOUT` without this feature enabled will result in a panic.
+  for enums. Requires the nightly compiler as it enables the unstable feature
+  `offset_of_enum`. Calling `mem_dbg` with the flag `DbgFlags::RUST_LAYOUT`
+  without this feature enabled will result in a panic.
+  
 - `half`: support for the [`half`] crate.
+
 - `maligned`: support for the [`maligned`] crate.
+
 - `mmap-rs`: support for the [`mmap-rs`] crate.
+
 - `rand`: support for the [`rand`] crate.
 
-## Example
+## Examples
+
+This is an example program using [`MemSize`] and [`MemDbg`]. Note that we cannot
+visualize the effect of the useful [`DbgFlags::COLOR`] flag, which colorizes
+sizes depending on their magnitude.
 
 ```rust
-# #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum, offset_of_nested))]
+# #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 use mem_dbg::*;
 
@@ -300,6 +308,7 @@ assert_eq!(
 [`MemSize`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html>
 [`std::mem::size_of`]: <https://doc.rust-lang.org/std/mem/fn.size_of.html>
 [`DbgFlags::RUST_LAYOUT`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT>
+[`DbgFlags::COLOR`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.COLOR>
 [`CopyType`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html>
 [`cap`]: <https:/crates.io/crates/cap>
 [`get-size`]: <https://crates.io/crates/get_size>
