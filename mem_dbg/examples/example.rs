@@ -43,6 +43,11 @@ struct Data<A> {
     c: (u8, String),
 }
 
+#[derive(MemSize, MemDbg)]
+struct Data2 {
+    array_of_boxed_slices: [Box<[usize]>; 4],
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut b = Vec::with_capacity(100);
     b.extend(0..10);
@@ -120,6 +125,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         b: 0_u8,
         test: 1,
         h: HashSet::new(),
+    };
+
+    println!();
+
+    println!("DbgFlags::empty()");
+    println!();
+    s.mem_dbg(DbgFlags::empty())?;
+
+    println!();
+
+    println!("DbgFlags::RUST_LAYOUT");
+    println!();
+    s.mem_dbg(DbgFlags::RUST_LAYOUT)?;
+
+    let s = Data2 {
+        array_of_boxed_slices: [
+            Box::new([0; 1024]),
+            Box::new([1; 2048]),
+            Box::new([2; 4096]),
+            Box::new([3; 8192]),
+        ],
     };
 
     println!();
