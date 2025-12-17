@@ -15,9 +15,11 @@ jobs:
       - name: Build
         run: cargo build
       - name: Run tests
-        run: cargo test
+        run: cargo test --all-features
       - name: Run no default features tests
         run: cargo test --no-default-features
+      - name: Run tests with maligned feature
+        run: cargo test --no-default-features --features maligned
       - name: Run tests with alloc and derive feature
         run: cargo test --no-default-features --features derive
       - name: Run examples

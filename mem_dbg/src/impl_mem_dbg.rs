@@ -608,6 +608,7 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        use core::ops::Deref;
         self.deref()
             ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
     }

@@ -32,6 +32,7 @@ get-size = "0.1.4"
 default = ["std", "derive"]
 std = []
 derive = ["dep:mem_dbg-derive"]
+maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
 [[example]]

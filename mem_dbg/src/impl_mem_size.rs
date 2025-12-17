@@ -1059,6 +1059,7 @@ impl<A: maligned::Alignment, T: MemSize> CopyType for maligned::Aligned<A, T> {
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
+        use core::ops::Deref;
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + <T as MemSize>::mem_size(self.deref(), flags)
     }
