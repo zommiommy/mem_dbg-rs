@@ -29,7 +29,7 @@ deepsize = "0.2.0"
 get-size = "0.1.4"
 
 [features]
-default = []
+default = ["std", "derive"]
 std = []
 derive = ["dep:mem_dbg-derive"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
