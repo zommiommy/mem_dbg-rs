@@ -165,8 +165,8 @@ use std::sync::Arc;
 impl<T: MemSize> MemSize for Arc<T> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(self.as_ref(), flags)
+        core::mem::size_of::<Self>() + <T as MemSize>::mem_size(self.as_ref(), flags)
+            - core::mem::size_of::<T>()
     }
 }
 
@@ -513,8 +513,8 @@ impl<T: CopyType> CopyType for core::cell::UnsafeCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + unsafe { <T as MemSize>::mem_size(&*self.get(), flags) }
+        core::mem::size_of::<Self>() + unsafe { <T as MemSize>::mem_size(&*self.get(), flags) }
+            - core::mem::size_of::<T>()
     }
 }
 
