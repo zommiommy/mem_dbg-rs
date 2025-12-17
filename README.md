@@ -75,11 +75,8 @@ which however needs the nightly compiler, as it enables the unstable feature
   without this feature enabled will result in a panic.
   
 - `half`: support for the [`half`] crate.
-
 - `maligned`: support for the [`maligned`] crate.
-
 - `mmap-rs`: support for the [`mmap-rs`] crate.
-
 - `rand`: support for the [`rand`] crate.
 
 ## Examples

@@ -6,7 +6,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-stable:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -14,12 +14,10 @@ jobs:
         run: cargo fmt -- --check
       - name: Build
         run: cargo build
-      - name: Run tests
-        run: cargo test --all-features
+      - name: Run tests on all non-nightly features
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand
       - name: Run no default features tests
         run: cargo test --no-default-features
-      - name: Run tests with maligned feature
-        run: cargo test --no-default-features --features maligned
       - name: Run tests with alloc and derive feature
         run: cargo test --no-default-features --features derive
       - name: Run examples
@@ -27,9 +25,20 @@ jobs:
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" ; done
       - name: Run clippy
         run: cargo clippy #-- -Dclippy::all -Dclippy::cargo
+
+  build-nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install nightly toolchain
+        run: rustup toolchain install nightly && rustup default nightly
+      - name: Build with all features
+        run: cargo build --all-features
+      - name: Run tests with all features (including offset_of_enum)
+        run: cargo test --all-features
         
   coverage:
-    needs: build
+    needs: [build-stable, build-nightly]
     name: coverage
     runs-on: ubuntu-latest
     container:
