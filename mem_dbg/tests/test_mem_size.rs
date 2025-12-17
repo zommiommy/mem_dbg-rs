@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
-
+#![cfg(feature = "derive")]
 #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
 
 use core::marker::PhantomData;
@@ -13,13 +13,15 @@ use core::mem::size_of;
 use mem_dbg::*;
 use std::sync::atomic::AtomicU64;
 
-#[derive(MemSize, MemDbg)]
+#[derive(MemSize)]
+#[cfg_attr(feature = "std", derive(MemDbg))]
 union SingletonUnion<A: Copy> {
     a: A,
 }
 
 #[allow(dead_code)]
-#[derive(MemSize, MemDbg)]
+#[derive(MemSize)]
+#[cfg_attr(feature = "std", derive(MemDbg))]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -46,7 +48,8 @@ fn test_vec_capacity() {
 
 #[test]
 fn test_vec_copy_or_not() {
-    #[derive(MemDbg, MemSize, Clone)]
+    #[derive(Clone, MemSize)]
+    #[cfg_attr(feature = "std", derive(MemDbg))]
     struct NewType(usize);
 
     assert_eq!(
@@ -57,7 +60,8 @@ fn test_vec_copy_or_not() {
 
 #[test]
 fn test_boxed_slice_copy_or_not() {
-    #[derive(MemDbg, MemSize, Clone)]
+    #[derive(Clone, MemSize)]
+    #[cfg_attr(feature = "std", derive(MemDbg))]
     struct NewType(usize);
 
     assert_eq!(
@@ -72,7 +76,8 @@ fn test_boxed_slice_copy_or_not() {
 
 #[test]
 fn test_slice_copy_or_not() {
-    #[derive(MemDbg, MemSize, Clone)]
+    #[derive(Clone, MemSize)]
+    #[cfg_attr(feature = "std", derive(MemDbg))]
     struct NewType(usize);
 
     assert_eq!(
@@ -89,7 +94,8 @@ fn test_slice_copy_or_not() {
 
 #[test]
 fn test_array_copy_or_not() {
-    #[derive(MemDbg, MemSize, Clone, Copy)]
+    #[derive(Clone, Copy, MemSize)]
+    #[cfg_attr(feature = "std", derive(MemDbg))]
     struct NewType(usize);
 
     assert_eq!(
@@ -162,17 +168,17 @@ fn test_tuple_struct() {
 #[test]
 fn test_padding() {
     assert_eq!((0_u8, 0_u64).mem_size(SizeFlags::default()), 16);
-    #[derive(MemSize)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
     struct TuplePadded((u8, u64));
     let v = TuplePadded((0, 0));
     assert_eq!(v.mem_size(SizeFlags::default()), 16);
 
-    #[derive(MemSize)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
     struct StructPadded(u8, u64);
     let v = StructPadded(0, 0);
     assert_eq!(v.mem_size(SizeFlags::default()), 16);
 
-    #[derive(MemSize)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
     struct StructStructPadded(StructPadded);
     let v = StructStructPadded(StructPadded(0, 0));
     assert_eq!(v.mem_size(SizeFlags::default()), 16);
@@ -211,7 +217,7 @@ fn test_option() {
 
 #[test]
 fn test_enum() {
-    #[derive(MemSize)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
     #[repr(u8)]
     enum Data {
         A,
@@ -261,12 +267,12 @@ fn test_exotic() {
         core::mem::size_of::<usize>()
     );
 
-    #[derive(MemSize)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
     enum Data1 {
         A,
         B,
     }
-    #[derive(MemSize)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
     enum Data2 {
         A,
         B(Data1),
@@ -315,7 +321,8 @@ fn test_unit() {
 #[cfg(feature = "std")]
 fn test_phantom() {
     struct Dummy();
-    #[derive(MemSize, MemDbg)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
+    #[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
     struct Example<A>(PhantomData<A>);
 
     Example::<Dummy>(PhantomData)
@@ -385,7 +392,8 @@ fn test_slice_empty_struct() {
 #[test]
 #[cfg(feature = "std")]
 fn test_indirect_call() {
-    #[derive(MemSize, MemDbg)]
+    #[cfg_attr(feature = "derive", derive(MemSize))]
+    #[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
     struct Dummy<T>(Vec<T>);
 
     fn test<T>(data: Vec<T>)
@@ -609,12 +617,12 @@ fn test_array_slice_i32() {
     );
 }
 
-#[derive(MemSize)]
+#[cfg_attr(feature = "derive", derive(MemSize))]
 struct MutableSliceWrapper<'a> {
     data: &'a mut [i64],
 }
 
-#[derive(MemSize)]
+#[cfg_attr(feature = "derive", derive(MemSize))]
 struct NonMutableSliceWrapper<'a> {
     data: &'a [i64],
 }
@@ -732,7 +740,8 @@ enum TestEnumReprU8 {
     _C(u64, Vec<usize>),
 }
 
-#[derive(MemSize, MemDbg)]
+#[cfg_attr(feature = "derive", derive(MemSize))]
+#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
 union TestUnion {
     a: u64,
 }
@@ -763,12 +772,14 @@ test_size!(
     (TestUnion, 8, 8)
 );
 
-#[derive(MemSize, MemDbg)]
+#[cfg_attr(feature = "derive", derive(MemSize))]
+#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
 union TestUnionDeep<'a> {
     b: &'a TestUnion,
 }
 
-#[derive(MemSize, MemDbg)]
+#[cfg_attr(feature = "derive", derive(MemSize))]
+#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
 union TestUnionDeepMut<'a> {
     b: &'a mut TestUnion,
 }

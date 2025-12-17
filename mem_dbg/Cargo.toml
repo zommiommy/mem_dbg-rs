@@ -24,10 +24,24 @@ maligned = { version = "0.2.1", optional = true }
 
 [dev-dependencies]
 paste = "1.0.15"
+cap = "0.1.2"
+deepsize = "0.2.0"
+get-size = "0.1.4"
 
 [features]
-default = ["derive", "std"]
-std = ["alloc"]
-derive = ["mem_dbg-derive", "alloc"]
+default = []
+std = []
+derive = ["dep:mem_dbg-derive"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
-alloc = []
+
+[[example]]
+name = "bench_hash_map"
+required-features = ["std", "derive"]
+
+[[example]]
+name = "example"
+required-features = ["std", "derive"]
+
+[[example]]
+name = "readme"
+required-features = ["std", "derive"]
