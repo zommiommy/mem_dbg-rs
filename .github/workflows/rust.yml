@@ -13,15 +13,13 @@ jobs:
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
       - name: Run no default features tests
-        run: cargo test --verbose --no-default-features
-      - name: Run tests with alloc feature
-        run: cargo test --verbose --no-default-features --features alloc
+        run: cargo test --no-default-features
       - name: Run tests with alloc and derive feature
-        run: cargo test --verbose --no-default-features --features "alloc derive"
+        run: cargo test --no-default-features --features derive
       - name: Run examples
         working-directory: ./mem_dbg
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" ; done
