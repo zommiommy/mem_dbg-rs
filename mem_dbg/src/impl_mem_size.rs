@@ -13,7 +13,7 @@ use core::sync::atomic::*;
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
 #[cfg(not(feature = "std"))]
-use alloc::string::String;
+use alloc::{boxed::Box, string::String, vec::Vec};
 
 #[cfg(feature = "std")]
 /// A basic implementation using [`core::mem::size_of`] for non-[`Copy`] types,
@@ -253,8 +253,6 @@ where
     }
 }
 
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
@@ -839,13 +837,13 @@ impl MemSize for mmap_rs::MmapMut {
     }
 }
 
-#[cfg(feature = "std")]
 // Hash-based containers from the standard library
-//
+
 // If the standard library changes load factor, this code will have to change
 // accordingly.
 
 // Straight from hashbrown
+#[cfg(feature = "std")]
 fn capacity_to_buckets(cap: usize) -> Option<usize> {
     // TODO: check that cap == 0 is handled correctly (we presently return 4)
 
