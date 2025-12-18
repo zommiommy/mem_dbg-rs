@@ -43,6 +43,11 @@ struct Data<A> {
     c: (u8, String),
 }
 
+#[derive(MemSize, MemDbg)]
+struct Data2 {
+    array_of_boxed_slices: [Box<[usize]>; 4],
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut b = Vec::with_capacity(100);
     b.extend(0..10);

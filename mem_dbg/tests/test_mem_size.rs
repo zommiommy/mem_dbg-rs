@@ -396,6 +396,41 @@ fn test_indirect_call() {
 }
 
 #[test]
+fn test_array_of_boxed_slices() {
+    #[derive(MemSize, MemDbg)]
+    struct Data {
+        array_of_boxed_slices: [Box<[usize]>; 4],
+    }
+
+    let data = Data {
+        array_of_boxed_slices: [
+            vec![1_usize, 2, 3].into_boxed_slice(),
+            vec![4_usize, 5, 6, 7].into_boxed_slice(),
+            vec![8_usize, 9].into_boxed_slice(),
+            Box::new([2; 4096]),
+        ],
+    };
+
+    assert_eq!(
+        data.mem_size(SizeFlags::default()),
+        core::mem::size_of::<[Box<[usize]>; 4]>()
+            + 3 * core::mem::size_of::<usize>()
+            + 4 * core::mem::size_of::<usize>()
+            + 2 * core::mem::size_of::<usize>()
+            + 4096 * core::mem::size_of::<usize>()
+    );
+
+    assert_eq!(
+        data.mem_size(SizeFlags::CAPACITY),
+        core::mem::size_of::<[Box<[usize]>; 4]>()
+            + 3 * core::mem::size_of::<usize>()
+            + 4 * core::mem::size_of::<usize>()
+            + 2 * core::mem::size_of::<usize>()
+            + 4096 * core::mem::size_of::<usize>()
+    );
+}
+
+#[test]
 fn test_vec_slice_i64() {
     let mut data: Vec<i64> = vec![1, 2, 3, 4, 5];
 
