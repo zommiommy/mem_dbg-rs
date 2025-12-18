@@ -10,6 +10,7 @@ keywords = ["allocation", "debug", "memory"]
 authors = [
 	"Tommaso Fontana <tommaso.fontana.96@gmail.com>",
 	"Sebastiano Vigna <sebastiano.vigna@unimi.it>",
+	"Luca Cappelletti <cappelletti.luca94@gmail.com>",
 ]
 rust-version = "1.85.0"
 
