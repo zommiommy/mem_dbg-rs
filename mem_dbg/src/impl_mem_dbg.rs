@@ -404,8 +404,9 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        // SAFETY: we temporarily take a shared reference to the inner value
         unsafe {
-            (*self.as_ptr())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            (&*self.as_ptr())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
         }
     }
 }
@@ -421,7 +422,8 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
         flags: DbgFlags,
     ) -> core::fmt::Result {
         unsafe {
-            (*self.get())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            // SAFETY: we temporarily take a shared reference to the inner value
+            (&*self.get())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
         }
     }
 }

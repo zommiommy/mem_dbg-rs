@@ -5,7 +5,7 @@ use core::cell::UnsafeCell;
 use mem_dbg::*;
 
 #[test]
-fn test_minimal_unsafecell_in_struct() {
+fn test_unsafe_cell_in_struct() {
     #[derive(MemSize, MemDbg)]
     struct Test {
         field: UnsafeCell<i32>,

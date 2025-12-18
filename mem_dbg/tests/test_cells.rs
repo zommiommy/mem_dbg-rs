@@ -108,7 +108,7 @@ fn test_refcell_with_memdbg() {
 }
 
 #[test]
-fn test_unsafecell_in_struct() {
+fn test_unsafe_cell_in_struct() {
     #[derive(MemSize)]
     struct Test {
         unsafe_cell: UnsafeCell<i32>,
@@ -123,7 +123,7 @@ fn test_unsafecell_in_struct() {
 }
 
 #[test]
-fn test_unsafecell_with_vec() {
+fn test_unsafe_cell_with_vec() {
     #[derive(MemSize)]
     struct Test {
         unsafe_cell: UnsafeCell<Vec<i32>>,
@@ -139,7 +139,7 @@ fn test_unsafecell_with_vec() {
 }
 
 #[test]
-fn test_unsafecell_with_memdbg() {
+fn test_unsafe_cell_with_memdbg() {
     #[derive(MemSize, MemDbg)]
     struct Test {
         value: UnsafeCell<u64>,

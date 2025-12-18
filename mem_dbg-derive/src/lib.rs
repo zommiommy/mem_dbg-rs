@@ -194,7 +194,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         #[automatically_derived]
                         impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
                             fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
-                                unsafe{<#field_ty as mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags)}
+                                unsafe{ <#field_ty as mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags) }
                             }
                         }
                     }
@@ -536,7 +536,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 _memdbg_is_last: bool,
                                 _memdbg_flags: mem_dbg::DbgFlags,
                             ) -> core::fmt::Result {
-                                unsafe{<#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, core::mem::size_of::<#field_ty>(), _memdbg_flags)}
+                                unsafe{ <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, core::mem::size_of::<#field_ty>(), _memdbg_flags) }
                             }
                         }
                     }

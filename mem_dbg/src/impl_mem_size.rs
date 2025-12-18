@@ -551,6 +551,7 @@ impl<T: CopyType> CopyType for core::cell::Cell<T> {
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
+        // SAFETY: we temporarily take a shared reference to the inner value
         unsafe { <T as MemSize>::mem_size(&*self.as_ptr(), flags) }
     }
 }
@@ -575,6 +576,7 @@ impl<T: CopyType> CopyType for core::cell::UnsafeCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
+        // SAFETY: we temporarily take a shared reference to the inner value
         unsafe { <T as MemSize>::mem_size(&*self.get(), flags) }
     }
 }
