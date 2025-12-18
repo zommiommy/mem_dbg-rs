@@ -22,7 +22,7 @@ jobs:
         run: cargo test --no-default-features --features derive
       - name: Run examples
         working-directory: ./mem_dbg
-        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" ; done
+        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --features cap,deepsize,get-size; done
       - name: Run clippy
         run: cargo clippy #-- -Dclippy::all -Dclippy::cargo
 
@@ -30,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install nightly toolchain
-        run: rustup toolchain install nightly && rustup default nightly
+      - name: Install nightly toolchain + miri
+        run: rustup toolchain install nightly && rustup default nightly && rustup component add miri
       - name: Build with all features
         run: cargo build --all-features
       - name: Run tests with all features (including offset_of_enum)
