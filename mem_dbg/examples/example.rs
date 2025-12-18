@@ -139,26 +139,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     s.mem_dbg(DbgFlags::RUST_LAYOUT)?;
 
-    let s = Data2 {
-        array_of_boxed_slices: [
-            Box::new([0; 1024]),
-            Box::new([1; 2048]),
-            Box::new([2; 4096]),
-            Box::new([3; 8192]),
-        ],
-    };
-
-    println!();
-
-    println!("DbgFlags::empty()");
-    println!();
-    s.mem_dbg(DbgFlags::empty())?;
-
-    println!();
-
-    println!("DbgFlags::RUST_LAYOUT");
-    println!();
-    s.mem_dbg(DbgFlags::RUST_LAYOUT)?;
-
     Ok(())
 }

@@ -146,13 +146,13 @@ impl<T: MemSize> MemSize for Option<T> {
 }
 
 // Box
-
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
 impl<T: ?Sized> CopyType for Box<T> {
     type Copy = False;
 }
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::boxed::Box;
 #[cfg(feature = "alloc")]
 impl<T: ?Sized + MemSize> MemSize for Box<T> {
     #[inline(always)]
