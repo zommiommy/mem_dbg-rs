@@ -14,8 +14,7 @@ authors = [
 rust-version = "1.85.0"
 
 [dependencies]
-#mem_dbg-derive = { path = "../mem_dbg-derive", optional = true }
-mem_dbg-derive = { version = "=0.2.0", optional = true }
+mem_dbg-derive = { version = "=0.2.0", path = "../mem_dbg-derive", optional = true }
 mmap-rs = { version = "0.6.1", optional = true }
 half = { version = "2.0.4", optional = true }
 bitflags = "2.4.1"

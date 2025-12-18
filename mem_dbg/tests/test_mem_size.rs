@@ -752,24 +752,37 @@ impl Default for TestUnion {
     }
 }
 
+type Unit = ();
+
 test_size!(
     (u8, 1, 1),
     (u16, 2, 2),
     (u32, 4, 4),
     (u64, 8, 8),
     (u128, 16, 16),
+    (
+        usize,
+        core::mem::size_of::<usize>(),
+        core::mem::size_of::<usize>()
+    ),
     (i8, 1, 1),
     (i16, 2, 2),
     (i32, 4, 4),
     (i64, 8, 8),
     (i128, 16, 16),
+    (
+        isize,
+        core::mem::size_of::<isize>(),
+        core::mem::size_of::<isize>()
+    ),
     (f32, 4, 4),
     (f64, 8, 8),
     (bool, 1, 1),
     (char, 4, 4),
     (TestEnum2, 32, 32),
     (TestEnumReprU8, 40, 40),
-    (TestUnion, 8, 8)
+    (TestUnion, 8, 8),
+    (Unit, 0, 0)
 );
 
 #[cfg_attr(feature = "derive", derive(MemSize))]
