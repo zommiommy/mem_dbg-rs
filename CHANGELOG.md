@@ -1,12 +1,28 @@
 # Change Log
 
+## [0.3.3]
+
+### New
+
+* Support for `std::rc::Rc`.
+
+* New `FOLLOW_RC` flag for following reference-counted pointers.
+
+### Fixed
+
+* Completed support for `std::hash::DefaultHasher`.
+
+* Extensive tests uncovered a series of bugs that have been fixed.
+
 ## [0.3.2] 2025-11-03
+
+### New
 
 * Added support for `std::hash::DefaultHasher`.
 
 ## [0.3.1] 2025-10-16
 
-## Changed
+### Changed
 
 * Switched to the 2024 edition.
 

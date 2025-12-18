@@ -320,6 +320,7 @@ fn test_all_types() {
         DbgFlags::HUMANIZE,
         DbgFlags::CAPACITY | DbgFlags::COLOR,
     ] {
+        dbg!(flags);
         assert!(
             all_types.mem_dbg(flags).is_ok(),
             "mem_dbg with flags {:?} should succeed",

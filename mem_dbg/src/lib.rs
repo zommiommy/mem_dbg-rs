@@ -102,6 +102,19 @@ bitflags::bitflags! {
         /// [`MemSize::mem_size`] call [`Vec::capacity`] rather than
         /// [`Vec::len`].
         const CAPACITY = 1 << 1;
+        /// Follow counted references (i.e., [`Rc`](std::rc::Rc) and
+        /// [`Arc`](std::sync::Arc)).
+        ///
+        /// By default [`MemSize::mem_size`] does not follow counted references
+        /// and computes only the size of the reference itself.
+        ///
+        /// # Warning
+        ///
+        /// Note that all counted references are followed independently. If the same
+        /// region of memory is reachable by two different paths, it will be
+        /// counted twice. In this case, this might happen also because the
+        /// reference exists in other structures.
+        const FOLLOW_RC = 1 << 2;
     }
 }
 
@@ -145,6 +158,8 @@ bitflags::bitflags! {
         const RUST_LAYOUT = 1 << 6;
         /// Use colors to distinguish sizes.
         const COLOR = 1 << 7;
+        /// Follow counted references. See [`SizeFlags::FOLLOW_RC`].
+        const FOLLOW_RC = 1 << 8;
     }
 }
 
@@ -390,7 +405,13 @@ pub trait MemDbgImpl: MemSize {
             writer.write_fmt(format_args!("{reset_color}"))?;
         };
         if !prefix.is_empty() {
-            writer.write_str(&prefix[2..])?;
+            // Find the byte index of the 3rd character
+            let start_byte = prefix
+                .char_indices()
+                .nth(2) // Skip 2 characters to get to the 3rd
+                .map(|(idx, _)| idx)
+                .unwrap_or(0);
+            writer.write_str(&prefix[start_byte..])?;
             if is_last {
                 writer.write_char('╰')?;
             } else {
@@ -413,7 +434,6 @@ pub trait MemDbgImpl: MemSize {
             }
         }
 
-        //dbg!(padded_size, core::mem::size_of_val(self));
         let padding = padded_size - core::mem::size_of_val(self);
 
         if padding != 0 {

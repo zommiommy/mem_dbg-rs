@@ -160,6 +160,78 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
     }
 }
 
+// Structure used to occupy the equivalent space of RcInner/ArcInner in std
+#[doc(hidden)]
+#[cfg(feature = "std")]
+struct RcInner<T: ?Sized> {
+    _strong: std::cell::Cell<usize>,
+    _weak: std::cell::Cell<usize>,
+    _data: T,
+}
+
+// Rc
+
+/// This implementation is based on the assumption that `Rc<T>` is
+/// implemented as follows:
+/// ```ignore
+/// pub struct Rc<T: ?Sized, A: Allocator = Global> {
+///     ptr: NonNull<RcInner<T>>,
+///     phantom: PhantomData<RcInner<T>>,
+///     alloc: A,
+/// }
+///
+/// struct RcInner<T: ?Sized> {
+///     strong: Cell<usize>,
+///     weak: Cell<usize>,
+///     data: T,
+/// }
+/// ```
+#[cfg(feature = "std")]
+impl<T: MemSize> MemSize for std::rc::Rc<T> {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+            + core::mem::size_of::<RcInner<T>>()
+            + if flags.contains(SizeFlags::FOLLOW_RC) {
+                <T as MemSize>::mem_size(self.as_ref(), flags) - core::mem::size_of::<T>()
+            } else {
+                0
+            }
+    }
+}
+
+// Arc
+
+/// This implementation is based on the assumption that `Arc<T>` is
+/// implemented as follows:
+/// ```ignore
+///
+/// pub struct Arc<T: ?Sized, A: Allocator = Global> {
+///     ptr: NonNull<ArcInner<T>>,
+///     phantom: PhantomData<ArcInner<T>>,
+///     alloc: A,
+/// }
+///
+/// struct ArcInner<T: ?Sized> {
+///     strong: Atomic<usize>,
+///     weak: Atomic<usize>,
+///     data: T,
+/// }
+/// ```
+#[cfg(feature = "std")]
+impl<T: MemSize> MemSize for std::sync::Arc<T> {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<Self>()
+            + core::mem::size_of::<RcInner<T>>()
+            + if flags.contains(SizeFlags::FOLLOW_RC) {
+                <T as MemSize>::mem_size(self.as_ref(), flags) - core::mem::size_of::<T>()
+            } else {
+                0
+            }
+    }
+}
+
 /// A helper trait that makes it possible to implement differently
 /// the size computation for arrays, vectors, and slices of
 /// [`Copy`] types.
@@ -470,8 +542,8 @@ impl<T: CopyType> CopyType for core::cell::RefCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <T as MemSize>::mem_size(&self.borrow(), flags)
-            - core::mem::size_of::<T>()
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(&self.borrow(), flags)
     }
 }
 
@@ -481,8 +553,7 @@ impl<T: CopyType> CopyType for core::cell::Cell<T> {
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + unsafe { <T as MemSize>::mem_size(&*self.as_ptr(), flags) }
-            - core::mem::size_of::<T>()
+        unsafe { <T as MemSize>::mem_size(&*self.as_ptr(), flags) }
     }
 }
 
@@ -492,8 +563,11 @@ impl<T: CopyType> CopyType for core::cell::OnceCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Option<&T> as MemSize>::mem_size(&self.get(), flags)
-            - core::mem::size_of::<T>()
+        let mut size = core::mem::size_of::<Self>();
+        if let Some(t) = self.get() {
+            size += <T as MemSize>::mem_size(t, flags) - core::mem::size_of::<T>();
+        }
+        size
     }
 }
 
@@ -503,8 +577,7 @@ impl<T: CopyType> CopyType for core::cell::UnsafeCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + unsafe { <T as MemSize>::mem_size(&*self.get(), flags) }
-            - core::mem::size_of::<T>()
+        unsafe { <T as MemSize>::mem_size(&*self.get(), flags) }
     }
 }
 
@@ -518,8 +591,8 @@ impl<T: CopyType> CopyType for std::sync::Mutex<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <T as MemSize>::mem_size(&self.lock().unwrap(), flags)
-            - core::mem::size_of::<T>()
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(&self.lock().unwrap(), flags)
     }
 }
 
@@ -531,8 +604,8 @@ impl<T: CopyType> CopyType for std::sync::RwLock<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <T as MemSize>::mem_size(&self.read().unwrap(), flags)
-            - core::mem::size_of::<T>()
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size(&self.read().unwrap(), flags)
     }
 }
 
@@ -546,8 +619,8 @@ impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         use core::ops::Deref;
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() + <T as MemSize>::mem_size(self.deref(), flags)
-                - core::mem::size_of::<T>()
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size(self.deref(), flags)
         } else {
             0
         }
@@ -564,8 +637,8 @@ impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         use core::ops::Deref;
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() + <T as MemSize>::mem_size(self.deref(), flags)
-                - core::mem::size_of::<T>()
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size(self.deref(), flags)
         } else {
             0
         }
@@ -582,8 +655,8 @@ impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         use core::ops::Deref;
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() + <T as MemSize>::mem_size(self.deref(), flags)
-                - core::mem::size_of::<T>()
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size(self.deref(), flags)
         } else {
             0
         }

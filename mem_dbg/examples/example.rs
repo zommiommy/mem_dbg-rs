@@ -42,7 +42,6 @@ struct Data<A> {
     c: (u8, String),
 }
 
-
 #[derive(MemSize, MemDbg)]
 struct Data2 {
     array_of_boxed_slices: [Box<[usize]>; 4],
@@ -140,9 +139,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     s.mem_dbg(DbgFlags::RUST_LAYOUT)?;
 
     Ok(())
-}
-
-#[cfg(not(feature = "std"))]
-fn main() {
-    println!("This example requires the 'std' feature.");
 }
