@@ -15,8 +15,7 @@ authors = [
 rust-version = "1.85.0"
 
 [dependencies]
-#mem_dbg-derive = { path = "../mem_dbg-derive", optional = true }
-mem_dbg-derive = { version = "=0.2.0", optional = true }
+mem_dbg-derive = { version = "=0.2.0", path = "../mem_dbg-derive", optional = true }
 mmap-rs = { version = "0.6.1", optional = true }
 half = { version = "2.0.4", optional = true }
 bitflags = "2.4.1"
@@ -25,10 +24,25 @@ maligned = { version = "0.2.1", optional = true }
 
 [dev-dependencies]
 paste = "1.0.15"
+cap = "0.1.2"
+deepsize = "0.2.0"
+get-size = "0.1.4"
 
 [features]
 default = ["std", "derive"]
-std = ["alloc"]
-derive = ["mem_dbg-derive"]
-offset_of_enum = ["mem_dbg-derive/offset_of_enum"]
-alloc = []
+std = []
+derive = ["dep:mem_dbg-derive"]
+maligned = ["dep:maligned"]
+offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
+
+[[example]]
+name = "bench_hash_map"
+required-features = ["std", "derive"]
+
+[[example]]
+name = "example"
+required-features = ["std", "derive"]
+
+[[example]]
+name = "readme"
+required-features = ["std", "derive"]

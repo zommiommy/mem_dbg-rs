@@ -8,12 +8,12 @@
 
 use core::marker::PhantomPinned;
 use core::num::*;
-use core::ops::Deref;
 use core::{marker::PhantomData, sync::atomic::*};
-use std::collections::{HashMap, HashSet};
 
-use crate::impl_mem_size::MemSizeHelper2;
 use crate::{CopyType, DbgFlags, MemDbgImpl, impl_mem_size::MemSizeHelper};
+
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, string::String, vec, vec::Vec};
 
 /// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
 macro_rules! impl_mem_dbg {
@@ -37,7 +37,6 @@ impl_mem_dbg! {
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
 // References: we recurse only if FOLLOW_REFS is set
-
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
     fn _mem_dbg_rec_on(
         &self,
@@ -80,28 +79,7 @@ impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
 // Box
 
-#[cfg(feature = "alloc")]
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        self.as_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
-    }
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::sync::Arc;
-#[cfg(feature = "std")]
-use std::sync::Arc;
-#[cfg(feature = "alloc")]
-impl<T: MemDbgImpl> MemDbgImpl for Arc<T> {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
@@ -129,7 +107,6 @@ impl<T: CopyType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
 
 // Vectors
 
-#[cfg(feature = "alloc")]
 impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where
     Vec<T>: MemSizeHelper<<T as CopyType>::Copy>
 {
@@ -227,9 +204,15 @@ impl<A, B, C, D, R> MemDbgImpl for fn(A, B, C, D) -> R {}
 
 // Hash-based containers from the standard library
 
-impl<K: CopyType> MemDbgImpl for HashSet<K> where HashSet<K>: MemSizeHelper<<K as CopyType>::Copy> {}
-impl<K: CopyType, V: CopyType> MemDbgImpl for HashMap<K, V> where
-    HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
+#[cfg(feature = "std")]
+impl<K: CopyType> MemDbgImpl for std::collections::HashSet<K> where
+    std::collections::HashSet<K>: MemSizeHelper<<K as CopyType>::Copy>
+{
+}
+#[cfg(feature = "std")]
+impl<K: CopyType, V: CopyType> MemDbgImpl for std::collections::HashMap<K, V> where
+    std::collections::HashMap<K, V>:
+        crate::impl_mem_size::MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
 {
 }
 
@@ -466,6 +449,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             self.deref()
                 ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
@@ -486,6 +470,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockReadGuard<'_, T> {
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             self.deref()
                 ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
@@ -506,6 +491,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             self.deref()
                 ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
@@ -607,6 +593,7 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
         is_last: bool,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        use core::ops::Deref;
         self.deref()
             ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
     }

@@ -9,8 +9,11 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
-#[cfg(all(feature = "alloc", not(feature = "std")))]
+#[cfg(not(feature = "std"))]
 extern crate alloc;
+
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
 
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
@@ -177,14 +180,14 @@ impl Default for DbgFlags {
 pub trait MemDbg: MemDbgImpl {
     /// Writes to stderr debug infos about the structure memory usage, expanding
     /// all levels of nested structures.
-    #[cfg(feature = "std")]
     #[inline(always)]
+    #[cfg(feature = "std")]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
         self._mem_dbg_depth(
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             usize::MAX,
-            std::mem::size_of_val(self),
+            core::mem::size_of_val(self),
             flags,
         )
     }
@@ -201,11 +204,12 @@ pub trait MemDbg: MemDbgImpl {
             &mut String::new(),
             Some("⏺"),
             true,
-            std::mem::size_of_val(self),
+            core::mem::size_of_val(self),
             flags,
         )
     }
 
+    #[cfg(feature = "std")]
     /// Writes to stderr debug infos about the structure memory usage as
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
@@ -213,7 +217,7 @@ pub trait MemDbg: MemDbgImpl {
         self._mem_dbg_depth(
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             max_depth,
-            std::mem::size_of_val(self),
+            core::mem::size_of_val(self),
             flags,
         )
     }
@@ -234,7 +238,7 @@ pub trait MemDbg: MemDbgImpl {
             &mut String::new(),
             None,
             false,
-            std::mem::size_of_val(self),
+            core::mem::size_of_val(self),
             flags,
         )
     }
@@ -328,7 +332,7 @@ pub trait MemDbgImpl: MemSize {
                 writer.write_fmt(format_args!("{:>5}  B ", real_size))?;
             } else {
                 let mut precision = 4;
-                let a = value.abs();
+                let a = if value < 0.0 { -value } else { value };
                 if a >= 100.0 {
                     precision = 1;
                 } else if a >= 10.0 {
@@ -409,7 +413,9 @@ pub trait MemDbgImpl: MemSize {
             }
         }
 
-        let padding = padded_size - std::mem::size_of_val(self);
+        //dbg!(padded_size, core::mem::size_of_val(self));
+        let padding = padded_size - core::mem::size_of_val(self);
+
         if padding != 0 {
             writer.write_fmt(format_args!(" [{}B]", padding))?;
         }

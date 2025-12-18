@@ -75,11 +75,8 @@ which however needs the nightly compiler, as it enables the unstable feature
   without this feature enabled will result in a panic.
   
 - `half`: support for the [`half`] crate.
-
 - `maligned`: support for the [`maligned`] crate.
-
 - `mmap-rs`: support for the [`mmap-rs`] crate.
-
 - `rand`: support for the [`rand`] crate.
 
 ## Examples
@@ -89,8 +86,11 @@ visualize the effect of the useful [`DbgFlags::COLOR`] flag, which colorizes
 sizes depending on their magnitude.
 
 ```rust
-# #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+# #[cfg(all(feature = "std", feature = "derive"))]
+# #[cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
+# {
 use mem_dbg::*;
 
 #[derive(MemSize, MemDbg)]
@@ -158,6 +158,7 @@ s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
     s.mem_dbg(DbgFlags::empty() | DbgFlags::RUST_LAYOUT)?;
 }
+# }
 # Ok(())
 # }
 ```
