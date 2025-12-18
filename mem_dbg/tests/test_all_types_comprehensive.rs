@@ -81,8 +81,8 @@ struct AllTypesStruct<'a> {
     string: String,
 
     // References
-    reference: &'static str,
-    mut_reference: &'static mut i32,
+    reference: &'a str,
+    mut_reference: &'a mut i32,
 
     // Option
     opt_some: Option<i32>,
@@ -173,9 +173,6 @@ fn fn_ptr_4(_a: u32, _b: u64, _c: i32, _d: f64) -> bool {
 
 #[test]
 fn test_all_types() {
-    let leaked_mut: &'static mut i32 = Box::leak(Box::new(999));
-    let leaked_for_nonnull: &'static mut i32 = Box::leak(Box::new(888));
-
     let mut hash_set = HashSet::new();
     hash_set.insert(1);
     hash_set.insert(2);
@@ -191,6 +188,10 @@ fn test_all_types() {
 
     let path_buf = PathBuf::from("/tmp/test");
     let path = path_buf.as_path();
+    let mut data0 = 0;
+    let mut_ref0 = &mut data0;
+    let mut data1 = 0;
+    let mut_ref1 = &mut data1;
 
     let all_types = AllTypesStruct {
         unit: (),
@@ -244,7 +245,7 @@ fn test_all_types() {
         string: "Hello".to_string(),
 
         reference: STATIC_STR,
-        mut_reference: leaked_mut,
+        mut_reference: mut_ref0,
 
         opt_some: Some(42),
         opt_none: None,
@@ -294,7 +295,7 @@ fn test_all_types() {
 
         layout: Layout::from_size_align(128, 8).unwrap(),
 
-        non_null: NonNull::from(leaked_for_nonnull),
+        non_null: NonNull::from(mut_ref1),
 
         buf_reader: BufReader::new(File::open("/dev/null").unwrap()),
         buf_writer: BufWriter::new(File::create("/tmp/test_all_types_buf_writer").unwrap()),

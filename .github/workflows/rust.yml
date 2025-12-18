@@ -20,6 +20,8 @@ jobs:
         run: cargo test --no-default-features
       - name: Run tests with alloc and derive feature
         run: cargo test --no-default-features --features derive
+      - name: Run miri with all features except half (because of ASM code)
+        run: MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features std,derive,mmap-rs,rand,maligned,offset_of_enum
       - name: Run examples
         working-directory: ./mem_dbg
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" ; done
