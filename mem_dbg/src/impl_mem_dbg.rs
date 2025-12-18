@@ -243,6 +243,11 @@ impl<H> MemDbgImpl for core::hash::BuildHasherDefault<H> {
 }
 
 #[cfg(feature = "std")]
+impl MemDbgImpl for std::hash::DefaultHasher {
+    // Opaque internal state, so no recursion
+}
+
+#[cfg(feature = "std")]
 impl MemDbgImpl for std::collections::hash_map::RandomState {
     // it's two u64s, but they are private so can't recurse
 }
