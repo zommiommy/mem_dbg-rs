@@ -14,7 +14,7 @@ and layout of a value.
 
 The trait [`MemSize`] can be used to compute the overall memory usage of a value
 in bytes; the standard library function [`std::mem::size_of`] returns the
-*stack* size of a type in bytes, but it does not take into consideration heap
+_stack_ size of a type in bytes, but it does not take into consideration heap
 memory. We provide implementations for most basic types, a derive macro for
 structs and enums whose fields implement [`MemSize`], and support for a few other
 crates.
@@ -76,11 +76,13 @@ which however needs the nightly compiler, as it enables the unstable feature
 
 ## Features
 
-- `offset_of_enum`: support for padding and for the `DbgFlags::RUST_LAYOUT` flag
+- `std`: enables the use of the standard library; this is enabled by default.
+- `derive`: enables the derive macros [`MemSize`] and [`MemDbg`]; this is enabled by
+  default.
+- `offset_of_enum`: support for padding and for the [`DbgFlags::RUST_LAYOUT`] flag
   for enums. Requires the nightly compiler as it enables the unstable feature
-  `offset_of_enum`. Calling `mem_dbg` with the flag `DbgFlags::RUST_LAYOUT`
+  `offset_of_enum`. Calling `mem_dbg` with the flag [`DbgFlags::RUST_LAYOUT`]
   without this feature enabled will result in a panic.
-  
 - `half`: support for the [`half`] crate.
 - `maligned`: support for the [`maligned`] crate.
 - `mmap-rs`: support for the [`mmap-rs`] crate.
@@ -311,24 +313,24 @@ assert_eq!(
   `MemSize` derive macro with partial support, excluding support for the
   `SizeFlags::FOLLOW_REFS` flag. If full support for derive macros `MemSize`/`MemDbg`
   in the case of an union with multiple fields, one can implement the traits manually.
-  
-[`MemDbg`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html>
-[`MemSize`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html>
-[`std::mem::size_of`]: <https://doc.rust-lang.org/std/mem/fn.size_of.html>
-[`DbgFlags::RUST_LAYOUT`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT>
-[`DbgFlags::COLOR`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.COLOR>
-[`CopyType`]: <https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html>
-[`cap`]: <https:/crates.io/crates/cap>
-[`get-size`]: <https://crates.io/crates/get_size>
-[`deepsize`]: <https://crates.io/crates/deepsize>
-[`size-of`]: <https://crates.io/crates/size_of>
-[`maligned`]: <https://crates.io/crates/maligned>
-[`mmap-rs`]: <https://crates.io/crates/mmap-rs>
-[`half`]: <https://crates.io/crates/half>
-[`rand`]: <https://crates.io/crates/rand>
-[`Rc`]: <https://doc.rust-lang.org/std/rc/struct.Rc.html>
-[`Arc`]: <https://doc.rust-lang.org/std/sync/struct.Arc.html>
-[`DbgFlags::FOLLOW_REFS`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS>
-[`DbgFlags::FOLLOW_RC`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RC>
-[`SizeFlags::FOLLOW_REFS`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_REFS>
-[`SizeFlags::FOLLOW_RC`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RC>
+
+[`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
+[`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html
+[`std::mem::size_of`]: https://doc.rust-lang.org/std/mem/fn.size_of.html
+[`DbgFlags::RUST_LAYOUT`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT
+[`DbgFlags::COLOR`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.COLOR
+[`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
+[`cap`]: https:/crates.io/crates/cap
+[`get-size`]: https://crates.io/crates/get_size
+[`deepsize`]: https://crates.io/crates/deepsize
+[`size-of`]: https://crates.io/crates/size_of
+[`maligned`]: https://crates.io/crates/maligned
+[`mmap-rs`]: https://crates.io/crates/mmap-rs
+[`half`]: https://crates.io/crates/half
+[`rand`]: https://crates.io/crates/rand
+[`Rc`]: https://doc.rust-lang.org/std/rc/struct.Rc.html
+[`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
+[`DbgFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS
+[`DbgFlags::FOLLOW_RC`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RC
+[`SizeFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_REFS
+[`SizeFlags::FOLLOW_RC`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RC
