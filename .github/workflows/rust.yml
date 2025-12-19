@@ -37,7 +37,7 @@ jobs:
       - name: Run tests with all features (including offset_of_enum)
         run: cargo test --all-features
       - name: Run miri with all features except half (because of ASM code)
-        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test --features std,derive,mmap-rs,rand,maligned,offset_of_enum
+        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test --features std,derive,rand,maligned,offset_of_enum
         
   coverage:
     needs: [build-stable, build-nightly]
