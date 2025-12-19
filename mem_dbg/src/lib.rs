@@ -76,7 +76,7 @@ pub trait CopyType {
 }
 
 bitflags::bitflags! {
-    /// Flags for [`MemDbg`].
+    /// Flags for [`MemSize`].
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct SizeFlags: u32 {
         /// Follow references.
@@ -112,8 +112,7 @@ bitflags::bitflags! {
         ///
         /// Note that all counted references are followed independently. If the same
         /// region of memory is reachable by two different paths, it will be
-        /// counted twice. In this case, this might happen also because the
-        /// reference exists in other structures.
+        /// counted twice.
         const FOLLOW_RC = 1 << 2;
     }
 }

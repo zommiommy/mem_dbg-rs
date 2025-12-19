@@ -54,6 +54,13 @@ taking into account the load factor and the power-of-two size constraint of the
 hash map). Moreover, all other crates are about six orders of magnitude slower
 than our implementation, due to the necessity to iterate over all elements.
 
+## References
+
+Two flags, [`SizeFlags::FOLLOW_REFS`] and [`DbgFlags::FOLLOW_REFS`], make it
+possible to follow references when computing the size or displaying the layout
+of a value. Analogously, [`SizeFlags::FOLLOW_RC`] and [`DbgFlags::FOLLOW_RC`]
+make it possible to follow [`Rc`]/[`Arc`] smart pointers.
+
 ## Padding
 
 The trait [`MemDbg`] is useful to display the layout of a value and understand
@@ -319,3 +326,9 @@ assert_eq!(
 [`mmap-rs`]: <https://crates.io/crates/mmap-rs>
 [`half`]: <https://crates.io/crates/half>
 [`rand`]: <https://crates.io/crates/rand>
+[`Rc`]: <https://doc.rust-lang.org/std/rc/struct.Rc.html>
+[`Arc`]: <https://doc.rust-lang.org/std/sync/struct.Arc.html>
+[`DbgFlags::FOLLOW_REFS`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS>
+[`DbgFlags::FOLLOW_RC`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RC>
+[`SizeFlags::FOLLOW_REFS`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_REFS>
+[`SizeFlags::FOLLOW_RC`]: <https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RC>
