@@ -29,7 +29,7 @@ get-size = { version = "0.1.4", optional = true }
 paste = "1.0.15"
 
 [features]
-default = ["std", "derive"]
+default = ["std", "alloc", "derive"]
 std = []
 alloc = [] # No-op for backward compatibility
 derive = ["dep:mem_dbg-derive"]
