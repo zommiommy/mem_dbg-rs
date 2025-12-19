@@ -1,6 +1,6 @@
 [package]
 name = "mem_dbg"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 description = "Traits and associated procedural macros to display recursively the layout and memory usage of a value"
 repository = "https://github.com/zommiommy/mem_dbg/"
@@ -31,6 +31,7 @@ paste = "1.0.15"
 [features]
 default = ["std", "derive"]
 std = []
+alloc = [] # No-op for backward compatibility
 derive = ["dep:mem_dbg-derive"]
 maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]

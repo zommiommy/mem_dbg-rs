@@ -12,7 +12,11 @@
 
 * Completed support for `std::hash::DefaultHasher`.
 
-* Extensive tests uncovered a series of bugs that have been fixed.
+* Extensive tests uncovered a series of bugs (in particular, in `PathBuf` and
+  `OnceCell`) that have been fixed.
+
+* The `std` feature now work as expected. The `alloc` feature is no longer
+  supported.
 
 ## [0.3.2] 2025-11-03
 
