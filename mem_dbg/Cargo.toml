@@ -32,7 +32,7 @@ paste = "1.0.15"
 default = ["std", "alloc", "derive"]
 std = []
 alloc = [] # No-op for backward compatibility
-derive = ["dep:mem_dbg-derive"]
+derive = ["mem_dbg-derive"]
 maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
