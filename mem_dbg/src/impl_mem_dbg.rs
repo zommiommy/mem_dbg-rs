@@ -15,7 +15,8 @@ use crate::{CopyType, DbgFlags, MemDbgImpl, impl_mem_size::MemSizeHelper};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
 
-/// Implements [`MemDbg`] using the default implementation of [`MemDbgImpl`].
+/// Implements [`MemDbg`](crate::MemDbg) using the default implementation of
+/// [`MemDbgImpl`].
 macro_rules! impl_mem_dbg {
      ($($ty:ty),*) => {$(
  impl MemDbgImpl for $ty {}
