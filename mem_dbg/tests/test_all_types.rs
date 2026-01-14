@@ -12,7 +12,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::*;
 use mem_dbg::*;
 use std::collections::hash_map::{DefaultHasher, RandomState};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor};
@@ -124,6 +124,7 @@ struct AllTypesStruct<'a> {
     // Collections
     hash_set: HashSet<i32>,
     hash_map: HashMap<String, i32>,
+    vec_deque: VecDeque<u32>,
 
     // Hash builders
     build_hasher: BuildHasherDefault<DefaultHasher>,
@@ -180,6 +181,9 @@ fn test_all_types() {
     let mut hash_map = HashMap::new();
     hash_map.insert("key1".to_string(), 100);
 
+    let mut vec_deque: VecDeque<u32> = VecDeque::new();
+    vec_deque.push_back(10);
+
     let once_cell = OnceCell::new();
     once_cell.set("initialized".to_string()).unwrap();
 
@@ -197,8 +201,8 @@ fn test_all_types() {
         unit: (),
         boolean: true,
         character: 'A',
-        f32_val: 3.14,
-        f64_val: 2.718,
+        f32_val: 3.78,
+        f64_val: 9.81,
 
         u8_val: 8,
         u16_val: 16,
@@ -278,6 +282,7 @@ fn test_all_types() {
 
         hash_set,
         hash_map,
+        vec_deque,
 
         build_hasher: BuildHasherDefault::<DefaultHasher>::default(),
         random_state: RandomState::new(),

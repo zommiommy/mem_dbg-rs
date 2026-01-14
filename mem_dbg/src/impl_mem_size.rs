@@ -13,7 +13,11 @@ use core::sync::atomic::*;
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
 #[cfg(not(feature = "std"))]
+use alloc::collections::VecDeque;
+#[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
+#[cfg(feature = "std")]
+use std::collections::VecDeque;
 
 #[cfg(feature = "std")]
 /// A basic implementation using [`core::mem::size_of`] for non-[`Copy`] types,
@@ -331,6 +335,53 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
 }
 
 impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        if flags.contains(SizeFlags::CAPACITY) {
+            core::mem::size_of::<Self>()
+                + self
+                    .iter()
+                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .sum::<usize>()
+                + (self.capacity() - self.len()) * core::mem::size_of::<T>()
+        } else {
+            core::mem::size_of::<Self>()
+                + self
+                    .iter()
+                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .sum::<usize>()
+        }
+    }
+}
+
+// VecDeque
+
+impl<T> CopyType for VecDeque<T> {
+    type Copy = False;
+}
+
+impl<T: CopyType> MemSize for VecDeque<T>
+where
+    VecDeque<T>: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <VecDeque<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    }
+}
+
+impl<T: CopyType + MemSize> MemSizeHelper<True> for VecDeque<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        if flags.contains(SizeFlags::CAPACITY) {
+            core::mem::size_of::<Self>() + self.capacity() * core::mem::size_of::<T>()
+        } else {
+            core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
+        }
+    }
+}
+
+impl<T: CopyType + MemSize> MemSizeHelper<False> for VecDeque<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {

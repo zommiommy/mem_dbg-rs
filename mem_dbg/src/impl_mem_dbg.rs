@@ -13,7 +13,11 @@ use core::{marker::PhantomData, sync::atomic::*};
 use crate::{CopyType, DbgFlags, MemDbgImpl, impl_mem_size::MemSizeHelper};
 
 #[cfg(not(feature = "std"))]
+use alloc::collections::VecDeque;
+#[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
+#[cfg(feature = "std")]
+use std::collections::VecDeque;
 
 /// Implements [`MemDbg`](crate::MemDbg) using the default implementation of
 /// [`MemDbgImpl`].
@@ -150,6 +154,13 @@ impl<T: CopyType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
 
 impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where
     Vec<T>: MemSizeHelper<<T as CopyType>::Copy>
+{
+}
+
+// VecDeque
+
+impl<T: CopyType + MemDbgImpl> MemDbgImpl for VecDeque<T> where
+    VecDeque<T>: MemSizeHelper<<T as CopyType>::Copy>
 {
 }
 
