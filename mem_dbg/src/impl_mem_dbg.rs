@@ -257,6 +257,19 @@ impl<K: CopyType, V: CopyType> MemDbgImpl for std::collections::HashMap<K, V> wh
 {
 }
 
+#[cfg(feature = "std")]
+impl<T: CopyType> MemDbgImpl for std::collections::BTreeSet<T> where
+    std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>
+{
+}
+
+#[cfg(feature = "std")]
+impl<K: CopyType, V: CopyType> MemDbgImpl for std::collections::BTreeMap<K, V> where
+    std::collections::BTreeMap<K, V>:
+        crate::impl_mem_size::MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
+{
+}
+
 // Hash stuff
 
 #[cfg(feature = "mmap-rs")]

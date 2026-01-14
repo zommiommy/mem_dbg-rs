@@ -12,7 +12,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::*;
 use mem_dbg::*;
 use std::collections::hash_map::{DefaultHasher, RandomState};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor};
@@ -93,10 +93,13 @@ struct AllTypesStruct<'a> {
 
     // Vec and arrays
     vec: Vec<i32>,
+    vec_str: Vec<String>,
     array: [u8; 10],
+    array_str: [String; 2],
 
     // Slices (via Box)
     slice: Box<[u32]>,
+    slice_str: Box<[String]>,
 
     // Tuples
     tuple2: (i32, String),
@@ -123,7 +126,13 @@ struct AllTypesStruct<'a> {
 
     // Collections
     hash_set: HashSet<i32>,
+    hash_set_str: HashSet<String>,
     hash_map: HashMap<String, i32>,
+    hash_map_copy: HashMap<i32, i32>,
+    btree_set: BTreeSet<i32>,
+    btree_set_str: BTreeSet<String>,
+    btree_map: BTreeMap<String, i32>,
+    btree_map_copy: BTreeMap<i32, i32>,
 
     // Hash builders
     build_hasher: BuildHasherDefault<DefaultHasher>,
@@ -177,8 +186,27 @@ fn test_all_types() {
     hash_set.insert(1);
     hash_set.insert(2);
 
+    let mut hash_set_str = HashSet::new();
+    hash_set_str.insert("a".to_string());
+
     let mut hash_map = HashMap::new();
     hash_map.insert("key1".to_string(), 100);
+
+    let mut hash_map_copy = HashMap::new();
+    hash_map_copy.insert(1, 1);
+
+    let mut btree_set = BTreeSet::new();
+    btree_set.insert(1);
+    btree_set.insert(2);
+
+    let mut btree_set_str = BTreeSet::new();
+    btree_set_str.insert("a".to_string());
+
+    let mut btree_map = BTreeMap::new();
+    btree_map.insert("key1".to_string(), 100);
+
+    let mut btree_map_copy = BTreeMap::new();
+    btree_map_copy.insert(1, 1);
 
     let once_cell = OnceCell::new();
     once_cell.set("initialized".to_string()).unwrap();
@@ -253,9 +281,12 @@ fn test_all_types() {
         boxed: Box::new(12345),
 
         vec: vec![1, 2, 3, 4, 5],
+        vec_str: vec!["v1".to_string(), "v2".to_string()],
         array: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        array_str: ["s1".to_string(), "s2".to_string()],
 
         slice: vec![10, 20, 30].into_boxed_slice(),
+        slice_str: vec!["s1".to_string()].into_boxed_slice(),
 
         tuple2: (42, "answer".to_string()),
         tuple3: (1, "two".to_string(), 3.0),
@@ -277,7 +308,13 @@ fn test_all_types() {
         rw_lock: RwLock::new("locked".to_string()),
 
         hash_set,
+        hash_set_str,
         hash_map,
+        hash_map_copy,
+        btree_set,
+        btree_set_str,
+        btree_map,
+        btree_map_copy,
 
         build_hasher: BuildHasherDefault::<DefaultHasher>::default(),
         random_state: RandomState::new(),
