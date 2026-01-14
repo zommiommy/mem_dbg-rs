@@ -1,6 +1,6 @@
 #![cfg(feature = "std")]
-use std::collections::{BTreeMap, BTreeSet};
 use mem_dbg::*;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[test]
 fn test_btree_map() {
@@ -39,8 +39,9 @@ fn test_btree_map_recursive() {
     // size_of::<BTreeMap>
     // + 1 * u8
     // + 1 * Vec (size_of::<Vec> + 2 * u8)
-    
+
     let size = map.mem_size(SizeFlags::default());
-    let expected = std::mem::size_of::<BTreeMap<u8, Vec<u8>>>() + 1 + std::mem::size_of::<Vec<u8>>() + 2;
+    let expected =
+        std::mem::size_of::<BTreeMap<u8, Vec<u8>>>() + 1 + std::mem::size_of::<Vec<u8>>() + 2;
     assert_eq!(size, expected);
 }
