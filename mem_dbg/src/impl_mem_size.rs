@@ -1095,6 +1095,191 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
     }
 }
 
+/// Estimates the heap-allocated memory of a BTree-based container.
+///
+/// The standard library's `BTreeMap` and `BTreeSet` use a B-Tree with a
+/// branching factor `B` (currently 6). The exact memory size depends on
+/// the node layout, which includes headers, keys, values, and child pointers.
+///
+/// This function estimates the memory usage by simulating the node layout
+/// and assuming an average node occupancy.
+#[cfg(feature = "std")]
+fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
+    if len == 0 {
+        return 0;
+    }
+    // The branching factor `B` in the standard library is currently 6.
+    // This determines the maximum capacity of a node: 2 * B - 1.
+    const B: usize = 6;
+    const CAPACITY: usize = 2 * B - 1; // 11
+
+    // Layout calculations:
+    let ptr_size = core::mem::size_of::<usize>();
+
+    // A node header typically contains parent pointers and metadata (height, len).
+    // On 64-bit systems, this is roughly 16 bytes (2 usizes or similar).
+    // This is an approximation as it relies on specific internal implementation details.
+    let header_size = 16;
+
+    // Helper to align a size to the next multiple of `align`.
+    let align_up = |size: usize, align: usize| -> usize {
+        if align == 0 {
+            return size;
+        }
+        (size + align - 1) & !(align - 1)
+    };
+
+    let k_size = core::mem::size_of::<K>();
+    let v_size = core::mem::size_of::<V>();
+
+    // Leaf Node Layout:
+    // [Header] -> [Padding] -> [Keys] -> [Values]
+    let mut leaf_size = header_size;
+    // Align for keys
+    leaf_size = align_up(leaf_size, core::mem::align_of::<K>());
+    leaf_size += k_size * CAPACITY;
+    // Align for values
+    leaf_size = align_up(leaf_size, core::mem::align_of::<V>());
+    leaf_size += v_size * CAPACITY;
+
+    // Internal Node Layout:
+    // [Leaf Node Part] -> [Padding] -> [Child Pointers]
+    // Internal nodes store keys and values (like leaves) plus child pointers.
+    let mut internal_size = leaf_size;
+    // Align for child pointers (usize)
+    internal_size = align_up(internal_size, core::mem::align_of::<usize>());
+    internal_size += ptr_size * (CAPACITY + 1);
+
+    // Calculate weighted average node size.
+    // We heavily weight leaf nodes as they contain the majority of data.
+    // Ratio is approximately B leaves per 1 internal node.
+    let avg_node_size = (leaf_size * B + internal_size) / (B + 1);
+
+    // Estimate total heap usage:
+    // If the tree fits in a single node (len <= CAPACITY), it's just one leaf.
+    // Otherwise, we estimate the number of nodes based on average occupancy.
+    let heap_size = if len <= CAPACITY {
+        leaf_size
+    } else {
+        // Approximate node count assuming each node is roughly half full (B items).
+        (len / B) * avg_node_size
+    };
+
+    heap_size + item_heap_size
+}
+
+#[cfg(feature = "std")]
+impl<T: CopyType> MemSize for std::collections::BTreeSet<T>
+where
+    std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <std::collections::BTreeSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(
+            self, flags,
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: CopyType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<std::collections::BTreeSet<T>>()
+            + estimate_btree_size::<T, ()>(self.len(), 0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<std::collections::BTreeSet<T>>()
+            + estimate_btree_size::<T, ()>(
+                self.len(),
+                self.iter()
+                    .map(|x| x.mem_size(flags) - core::mem::size_of::<T>())
+                    .sum::<usize>(),
+            )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K: CopyType, V: CopyType> MemSize for std::collections::BTreeMap<K, V>
+where
+    std::collections::BTreeMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
+{
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <std::collections::BTreeMap<K, V> as MemSizeHelper2<
+            <K as CopyType>::Copy,
+            <V as CopyType>::Copy,
+        >>::mem_size_impl(self, flags)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
+    for std::collections::BTreeMap<K, V>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
+            + estimate_btree_size::<K, V>(self.len(), 0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
+    for std::collections::BTreeMap<K, V>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
+            + estimate_btree_size::<K, V>(
+                self.len(),
+                self.values()
+                    .map(|v| v.mem_size(flags) - core::mem::size_of::<V>())
+                    .sum::<usize>(),
+            )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
+    for std::collections::BTreeMap<K, V>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
+            + estimate_btree_size::<K, V>(
+                self.len(),
+                self.keys()
+                    .map(|k| k.mem_size(flags) - core::mem::size_of::<K>())
+                    .sum::<usize>(),
+            )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
+    for std::collections::BTreeMap<K, V>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
+            + estimate_btree_size::<K, V>(
+                self.len(),
+                self.iter()
+                    .map(|(k, v)| {
+                        k.mem_size(flags) - core::mem::size_of::<K>() + v.mem_size(flags)
+                            - core::mem::size_of::<V>()
+                    })
+                    .sum::<usize>(),
+            )
+    }
+}
+
 // Hash
 
 impl<H> CopyType for core::hash::BuildHasherDefault<H> {

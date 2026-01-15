@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Build
@@ -22,7 +26,7 @@ jobs:
         run: cargo test --no-default-features --features derive
       - name: Run examples
         working-directory: ./mem_dbg
-        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --features cap,deepsize,get-size; done
+        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release --features cap,deepsize,get-size; done
       - name: Run clippy
         run: cargo clippy #-- -Dclippy::all -Dclippy::cargo
 
@@ -30,6 +34,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev
       - name: Install nightly toolchain + miri
         run: rustup toolchain install nightly && rustup default nightly && rustup component add miri
       - name: Build with all features
@@ -49,6 +57,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y libfontconfig1-dev
 
       - name: Generate code coverage
         run: |

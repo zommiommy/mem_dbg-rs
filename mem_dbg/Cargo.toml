@@ -26,18 +26,28 @@ deepsize = { version = "0.2.0", optional = true }
 get-size = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
+comfy-table = "7.2.2"
 paste = "1.0.15"
+plotters = "0.3"
 
 [features]
 default = ["std", "alloc", "derive"]
 std = []
-alloc = [] # No-op for backward compatibility
+alloc = []                                                   # No-op for backward compatibility
 derive = ["mem_dbg-derive"]
 maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
 [[example]]
 name = "bench_hash_map"
+required-features = ["std", "derive", "cap", "deepsize", "get-size"]
+
+[[example]]
+name = "bench_btree_map"
+required-features = ["std", "derive", "cap", "deepsize", "get-size"]
+
+[[example]]
+name = "bench_error"
 required-features = ["std", "derive", "cap", "deepsize", "get-size"]
 
 [[example]]
