@@ -12,7 +12,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::*;
 use mem_dbg::*;
 use std::collections::hash_map::{DefaultHasher, RandomState};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor};
@@ -133,6 +133,7 @@ struct AllTypesStruct<'a> {
     btree_set_str: BTreeSet<String>,
     btree_map: BTreeMap<String, i32>,
     btree_map_copy: BTreeMap<i32, i32>,
+    vec_deque: VecDeque<u32>,
 
     // Hash builders
     build_hasher: BuildHasherDefault<DefaultHasher>,
@@ -207,6 +208,8 @@ fn test_all_types() {
 
     let mut btree_map_copy = BTreeMap::new();
     btree_map_copy.insert(1, 1);
+    let mut vec_deque: VecDeque<u32> = VecDeque::new();
+    vec_deque.push_back(10);
 
     let once_cell = OnceCell::new();
     once_cell.set("initialized".to_string()).unwrap();
@@ -225,8 +228,8 @@ fn test_all_types() {
         unit: (),
         boolean: true,
         character: 'A',
-        f32_val: 3.14,
-        f64_val: 2.718,
+        f32_val: 3.78,
+        f64_val: 9.81,
 
         u8_val: 8,
         u16_val: 16,
@@ -315,6 +318,7 @@ fn test_all_types() {
         btree_set_str,
         btree_map,
         btree_map_copy,
+        vec_deque,
 
         build_hasher: BuildHasherDefault::<DefaultHasher>::default(),
         random_state: RandomState::new(),
