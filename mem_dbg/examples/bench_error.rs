@@ -1,21 +1,25 @@
 use cap::Cap;
+use comfy_table::*;
 use deepsize::DeepSizeOf;
 use get_size::GetSize;
 use mem_dbg::*;
 use plotters::prelude::*;
+use plotters::style::Color;
 use std::alloc;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 #[global_allocator]
 static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::MAX);
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sizes = [0, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000];
+    let mut all_results = Vec::new();
 
     println!("Running benchmark for usize...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "usize",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -30,12 +34,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "usize",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                m.insert(i, i);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                s.insert(i);
+            }
+            s
+        },
+    )?);
 
     println!("Running benchmark for String...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "String",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -51,12 +75,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "String",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                let s = format!("{}_{}", i, "x".repeat(i % 100));
+                m.insert(s.clone(), s);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                s.insert(format!("{}_{}", i, "x".repeat(i % 100)));
+            }
+            s
+        },
+    )?);
 
     println!("Running benchmark for Vec<usize>...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "Vec",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -73,12 +118,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "Vec",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                let v = vec![i; (i % 100) + 1];
+                m.insert(v.clone(), v);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                let v = vec![i; (i % 100) + 1];
+                s.insert(v);
+            }
+            s
+        },
+    )?);
 
     println!("Running benchmark for (usize, u16) [Padding Check]...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "Tuple_usize_u16",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -94,12 +161,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "Tuple_usize_u16",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                let v = (i, i as u16);
+                m.insert(v, v);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                s.insert((i, i as u16));
+            }
+            s
+        },
+    )?);
 
     println!("Running benchmark for Option<usize> [Enum Check]...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "Option_usize",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -115,12 +203,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "Option_usize",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                let v = Some(i);
+                m.insert(v, v);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                s.insert(Some(i));
+            }
+            s
+        },
+    )?);
 
     println!("Running benchmark for [u8; 32] [Large Copy Check]...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "Array_u8_32",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -136,12 +245,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "Array_u8_32",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                let v = [i as u8; 32];
+                m.insert(v, v);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                s.insert([i as u8; 32]);
+            }
+            s
+        },
+    )?);
 
     println!("Running benchmark for Vec<String> [Nested Heap Check]...");
-    run_benchmark(
+    all_results.extend(run_benchmark(
         &sizes,
         "Vec_String",
+        "BTree",
         |n| {
             let mut m = BTreeMap::new();
             for i in 0..n {
@@ -157,17 +287,123 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             s
         },
-    )?;
+    )?);
+    all_results.extend(run_benchmark(
+        &sizes,
+        "Vec_String",
+        "Hash",
+        |n| {
+            let mut m = HashMap::new();
+            for i in 0..n {
+                let v = vec![format!("{}_{}", i, "x".repeat(i % 100))];
+                m.insert(v.clone(), v);
+            }
+            m
+        },
+        |n| {
+            let mut s = HashSet::new();
+            for i in 0..n {
+                s.insert(vec![format!("{}_{}", i, "x".repeat(i % 100))]);
+            }
+            s
+        },
+    )?);
+
+    let mut table = Table::new();
+    table
+        .load_preset(presets::ASCII_MARKDOWN)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            "Type",
+            "Container",
+            "Crate",
+            "Mean Error ± Std Dev (%)",
+            "Norm. Std Dev",
+        ]);
+
+    // Group results by (type_name, container_name) to find the best mean per group
+    use std::collections::HashMap;
+    let mut best_per_group: HashMap<(String, String), f64> = HashMap::new();
+
+    for res in &all_results {
+        let key = (res.type_name.clone(), res.container_name.clone());
+        let current_best = best_per_group.entry(key).or_insert(f64::INFINITY);
+        if res.mean < *current_best {
+            *current_best = res.mean;
+        }
+    }
+
+    let mut last_type = String::new();
+    let mut last_container = String::new();
+
+    for res in all_results {
+        let key = (res.type_name.clone(), res.container_name.clone());
+        let best_mean = best_per_group.get(&key).unwrap_or(&f64::INFINITY);
+        let is_best = (res.mean - best_mean).abs() < 1e-9;
+
+        // Determine display values for Type and Container
+        let show_type = if res.type_name == last_type {
+            String::new()
+        } else {
+            res.type_name.clone()
+        };
+
+        // If Type changed, we must show Container. If Type is same, check if Container changed.
+        let show_container = if res.container_name == last_container && show_type.is_empty() {
+            String::new()
+        } else {
+            res.container_name.clone()
+        };
+
+        // Update tracking variables
+        last_type = res.type_name.clone();
+        last_container = res.container_name.clone();
+
+        // Helper to format cell (bold if best)
+        let format_cell = |s: String| {
+            if is_best && !s.is_empty() {
+                format!("**{}**", s)
+            } else {
+                s
+            }
+        };
+
+        let norm_std = if res.mean.abs() > 1e-9 {
+            res.std / res.mean
+        } else {
+            0.0
+        };
+
+        table.add_row(vec![
+            format_cell(show_type),
+            format_cell(show_container),
+            format_cell(res.crate_name),
+            format_cell(format!("{:.2} ± {:.2}", res.mean, res.std)),
+            format_cell(format!("{:.2}", norm_std)),
+        ]);
+    }
+
+    println!("\nAggregate Benchmark Results:");
+    println!("{}", table);
 
     Ok(())
+}
+
+struct BenchResult {
+    type_name: String,
+    container_name: String,
+    crate_name: String,
+    mean: f64,
+    std: f64,
 }
 
 fn run_benchmark<M, S>(
     sizes: &[usize],
     type_name: &str,
+    container_name: &str,
     mut map_factory: impl FnMut(usize) -> M,
     mut set_factory: impl FnMut(usize) -> S,
-) -> Result<(), Box<dyn std::error::Error>>
+) -> Result<Vec<BenchResult>, Box<dyn std::error::Error>>
 where
     M: MemSize + DeepSizeOf + GetSize,
     S: MemSize + DeepSizeOf + GetSize,
@@ -181,7 +417,7 @@ where
     let mut set_get_size = Vec::new();
 
     for &n in sizes {
-        // BTreeMap
+        // Map
         {
             let base = ALLOCATOR.allocated();
             let m = map_factory(n);
@@ -213,7 +449,7 @@ where
             drop(m);
         }
 
-        // BTreeSet
+        // Set
         {
             let base = ALLOCATOR.allocated();
             let s = set_factory(n);
@@ -254,28 +490,77 @@ where
     let marsala = RGBColor(150, 79, 76); // Pantone 18-1438
     let greenery = RGBColor(136, 176, 75); // Pantone 15-0343
 
-    let calc_mean = |errors: &Vec<(usize, f64)>| -> f64 {
-        errors.iter().map(|(_, e)| *e).sum::<f64>() / errors.len() as f64
+    let calc_stats = |errors: &Vec<(usize, f64)>| -> (f64, f64) {
+        let n = errors.len() as f64;
+        let mean = errors.iter().map(|(_, e)| *e).sum::<f64>() / n;
+        let variance = errors.iter().map(|(_, e)| (*e - mean).powi(2)).sum::<f64>() / (n - 1.0);
+        let std_dev = variance.sqrt();
+        (mean, std_dev)
     };
 
-    let mean_map_mem_dbg = calc_mean(&map_mem_dbg);
-    let mean_map_deepsize = calc_mean(&map_deepsize);
-    let mean_map_get_size = calc_mean(&map_get_size);
-    let mean_set_mem_dbg = calc_mean(&set_mem_dbg);
-    let mean_set_deepsize = calc_mean(&set_deepsize);
-    let mean_set_get_size = calc_mean(&set_get_size);
+    let (mean_map_mem_dbg, std_map_mem_dbg) = calc_stats(&map_mem_dbg);
+    let (mean_map_deepsize, std_map_deepsize) = calc_stats(&map_deepsize);
+    let (mean_map_get_size, std_map_get_size) = calc_stats(&map_get_size);
+    let (mean_set_mem_dbg, std_set_mem_dbg) = calc_stats(&set_mem_dbg);
+    let (mean_set_deepsize, std_set_deepsize) = calc_stats(&set_deepsize);
+    let (mean_set_get_size, std_set_get_size) = calc_stats(&set_get_size);
 
-    println!("Mean Absolute Percentage Error ({}):", type_name);
-    println!("BTreeMap mem_dbg: {:.2}%", mean_map_mem_dbg);
-    println!("BTreeMap deepsize: {:.2}%", mean_map_deepsize);
-    println!("BTreeMap get-size: {:.2}%", mean_map_get_size);
-    println!("BTreeSet mem_dbg: {:.2}%", mean_set_mem_dbg);
-    println!("BTreeSet deepsize: {:.2}%", mean_set_deepsize);
-    println!("BTreeSet get-size: {:.2}%", mean_set_get_size);
-    println!();
+    let rows = vec![
+        (
+            format!("{}Map", container_name),
+            "mem_dbg",
+            mean_map_mem_dbg,
+            std_map_mem_dbg,
+        ),
+        (
+            format!("{}Map", container_name),
+            "deepsize",
+            mean_map_deepsize,
+            std_map_deepsize,
+        ),
+        (
+            format!("{}Map", container_name),
+            "get-size",
+            mean_map_get_size,
+            std_map_get_size,
+        ),
+        (
+            format!("{}Set", container_name),
+            "mem_dbg",
+            mean_set_mem_dbg,
+            std_set_mem_dbg,
+        ),
+        (
+            format!("{}Set", container_name),
+            "deepsize",
+            mean_set_deepsize,
+            std_set_deepsize,
+        ),
+        (
+            format!("{}Set", container_name),
+            "get-size",
+            mean_set_get_size,
+            std_set_get_size,
+        ),
+    ];
+
+    let results: Vec<BenchResult> = rows
+        .into_iter()
+        .map(|(c_name, crate_name, mean, std)| BenchResult {
+            type_name: type_name.to_string(),
+            container_name: c_name,
+            crate_name: crate_name.to_string(),
+            mean,
+            std,
+        })
+        .collect();
 
     // Plotting
-    let filename = format!("btree_error_plot_{}.png", type_name.to_lowercase());
+    let filename = format!(
+        "{}_error_plot_{}.png",
+        container_name.to_lowercase(),
+        type_name.to_lowercase()
+    );
     let root = BitMapBackend::new(&filename, (2048, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 
@@ -319,9 +604,9 @@ where
         let mut chart_builder = ChartBuilder::on(area);
 
         let caption = if use_log_y {
-            format!("{} Abs. Err. vs Size (Log)", type_name)
+            format!("{} {} Abs. Err. vs Size (Log)", container_name, type_name)
         } else {
-            format!("{} Abs. Err. vs Size (Lin)", type_name)
+            format!("{} {} Abs. Err. vs Size (Lin)", container_name, type_name)
         };
 
         chart_builder
@@ -369,6 +654,17 @@ where
                     ))?
                     .label(format!("{} (Mean: {:.2}%)", name, mean_err))
                     .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], *color));
+
+                chart.draw_series(PointSeries::of_element(
+                    series
+                        .iter()
+                        .map(|(x, y)| (*x as f32, (*y).max(y_min_log as f64) as f32)),
+                    3,
+                    (*color).filled(),
+                    &|coord, size, style| {
+                        EmptyElement::at(coord) + Circle::new((0, 0), size, style)
+                    },
+                ))?;
             }
 
             chart
@@ -397,6 +693,15 @@ where
                     ))?
                     .label(format!("{} (Mean: {:.2}%)", name, mean_err))
                     .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], *color));
+
+                chart.draw_series(PointSeries::of_element(
+                    series.iter().map(|(x, y)| (*x as f32, *y as f32)),
+                    3,
+                    (*color).filled(),
+                    &|coord, size, style| {
+                        EmptyElement::at(coord) + Circle::new((0, 0), size, style)
+                    },
+                ))?;
             }
 
             chart
@@ -413,5 +718,5 @@ where
     draw_chart(&areas[1], true)?; // Log
 
     println!("Plot saved to {}", filename);
-    Ok(())
+    Ok(results)
 }
