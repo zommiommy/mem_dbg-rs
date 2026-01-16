@@ -15,11 +15,11 @@ jobs:
       - name: Build
         run: cargo build
       - name: Run tests on all non-nightly features
-        run: cargo test --features std,derive,half,maligned,mmap-rs,rand
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand --release
       - name: Run no default features tests
-        run: cargo test --no-default-features
+        run: cargo test --no-default-features --release
       - name: Run tests with alloc and derive feature
-        run: cargo test --no-default-features --features derive
+        run: cargo test --no-default-features --features derive --release
       - name: Run examples
         working-directory: ./mem_dbg
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release; done
@@ -33,9 +33,9 @@ jobs:
       - name: Install nightly toolchain + miri
         run: rustup toolchain install nightly && rustup default nightly && rustup component add miri
       - name: Build with all features
-        run: cargo build --all-features
+        run: cargo build --all-features --release
       - name: Run tests with all features (including offset_of_enum)
-        run: cargo test --all-features
+        run: cargo test --all-features --release
       - name: Run miri with all features except half (because of ASM code)
         run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test --features std,derive,rand,maligned,offset_of_enum
         
@@ -49,16 +49,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y libfontconfig1-dev
-
       - name: Generate code coverage
         run: |
           cargo +nightly tarpaulin --verbose --engine llvm --all-features --workspace --out Lcov --exclude mem_dbg-derive --exclude-files "mem_dbg/examples/*" --release
-
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
