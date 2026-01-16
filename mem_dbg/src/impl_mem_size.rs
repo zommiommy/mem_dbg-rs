@@ -898,8 +898,9 @@ impl MemSize for mmap_rs::MmapMut {
 // Straight from hashbrown
 #[cfg(feature = "std")]
 fn capacity_to_buckets(cap: usize) -> Option<usize> {
-    // TODO: check that cap == 0 is handled correctly (we presently return 4)
-
+    if cap == 0 {
+        return Some(0);
+    }
     // For small tables we require at least 1 empty bucket so that lookups are
     // guaranteed to terminate if an element doesn't exist in the table.
     if cap < 8 {
@@ -943,19 +944,17 @@ fn fix_set_for_capacity<K>(
     size: usize,
     flags: SizeFlags,
 ) -> usize {
+    let capacity = if flags.contains(SizeFlags::CAPACITY) {
+        hash_set.capacity()
+    } else {
+        hash_set.len()
+    };
+    let buckets = capacity_to_buckets(capacity).unwrap_or(usize::MAX);
     core::mem::size_of::<std::collections::HashSet<K>>()
         + size
-        + if flags.contains(SizeFlags::CAPACITY) {
-            (capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX) - hash_set.len())
-                * core::mem::size_of::<K>()
-                + capacity_to_buckets(hash_set.capacity()).unwrap_or(usize::MAX)
-                    * core::mem::size_of::<u8>()
-        } else {
-            (capacity_to_buckets(hash_set.len()).unwrap_or(usize::MAX) - hash_set.len())
-                * core::mem::size_of::<K>()
-                + capacity_to_buckets(hash_set.len()).unwrap_or(usize::MAX)
-                    * core::mem::size_of::<u8>()
-        }
+        + (buckets - hash_set.len()) * core::mem::size_of::<K>()
+        + buckets * core::mem::size_of::<u8>()
+        + if buckets > 0 { 16 } else { 0 }
 }
 
 #[cfg(feature = "std")]
@@ -1013,19 +1012,17 @@ fn fix_map_for_capacity<K, V>(
     size: usize,
     flags: SizeFlags,
 ) -> usize {
-    core::mem::size_of::<std::collections::HashSet<K>>()
+    let capacity = if flags.contains(SizeFlags::CAPACITY) {
+        hash_map.capacity()
+    } else {
+        hash_map.len()
+    };
+    let buckets = capacity_to_buckets(capacity).unwrap_or(usize::MAX);
+    core::mem::size_of::<std::collections::HashMap<K, V>>()
         + size
-        + if flags.contains(SizeFlags::CAPACITY) {
-            (capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX) - hash_map.len())
-                * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
-                + capacity_to_buckets(hash_map.capacity()).unwrap_or(usize::MAX)
-                    * core::mem::size_of::<u8>()
-        } else {
-            (capacity_to_buckets(hash_map.len()).unwrap_or(usize::MAX) - hash_map.len())
-                * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
-                + capacity_to_buckets(hash_map.len()).unwrap_or(usize::MAX)
-                    * core::mem::size_of::<u8>()
-        }
+        + (buckets - hash_map.len()) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
+        + buckets * core::mem::size_of::<u8>()
+        + if buckets > 0 { 16 } else { 0 }
 }
 
 #[cfg(feature = "std")]

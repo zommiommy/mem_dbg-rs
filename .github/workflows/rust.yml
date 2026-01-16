@@ -46,7 +46,7 @@ jobs:
         run: cargo test --all-features
       - name: Run miri with all features except half (because of ASM code)
         run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test --features std,derive,rand,maligned,offset_of_enum
-        
+
   coverage:
     needs: [build-stable, build-nightly]
     name: coverage
@@ -65,7 +65,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly tarpaulin --verbose --engine llvm --all-features --workspace --out Lcov
+          cargo +nightly tarpaulin --verbose --all-features --examples --release
 
       - name: Coveralls
         uses: coverallsapp/github-action@v2

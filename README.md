@@ -17,65 +17,53 @@ in bytes; the standard library function [`std::mem::size_of`] returns the
 _stack_ size of a type in bytes, but it does not take into consideration heap
 memory. We provide implementations for most basic types, a derive macro for
 structs and enums whose fields implement [`MemSize`], and support for a few other
-crates.
+crates via optional features.
 
 The trait [`MemDbg`], which depends on [`MemSize`], can be used to display the
 recursive layout of a value, together with the size of each part and the
-associated padding bytes. Also in this case we provide implementations for most
-basic types, a derive macro for structs and enums whose fields implement
-[`MemDbg`], and support for a few other crates.
+associated padding bytes.
 
 ## Why `MemSize`
 
-Other traits partially provide the functionality of [`MemSize`], but either they
-require implementing manually a trait, which is prone to error, or they do not
-provide the flexibility necessary for [`MemDbg`]. Most importantly, [`MemSize`]
-uses the type system to avoid iterating over the content of a container (a
-vector, etc.) when it is not necessary, making it possible to compute instantly
-the size of values occupying hundreds of gigabytes of heap memory.
+[`MemSize`] outperforms other similar traits by using the type system to avoid
+iterating over the content of a container (e.g., a vector of [`Copy`] types)
+when it is not necessary. This allows it to compute instantly the size of values
+occupying hundreds of gigabytes of heap memory.
 
-This is the result of the benchmark `bench_hash_map` contained in the `examples`
-directory. It builds a hash map with a hundred million entries and then measures
-its heap size:
+Moreover, while the size estimation of `BTreeMap`, `BTreeSet`, `HashMap`, and
+`HashSet` is heuristic in all libraries, `mem_dbg` is significantly more
+precise, and takes into account the load factor and the power-of-two size
+constraint of the hash map.
 
-```test
-Allocated:    2281701509
-get_size:     1879048240 152477833 ns
-deep_size_of: 1879048240 152482000 ns
-size_of:      2281701432 152261958 ns
-mem_size:     2281701424 209 ns
-```
+| Type   | Container | Crate    | Error (%)       | Time/Elem (ns) |
+|--------|-----------|----------|-----------------|----------------|
+| String | BTreeMap  | deepsize | 21.53 ± 8.88    | 7.14           |
+|        |           | get-size | 16.04 ± 7.74    | **7.06**       |
+|        |           | mem_dbg  | **3.17 ± 1.45** | 7.90           |
+|        | BTreeSet  | deepsize | 18.58 ± 8.51    | 7.65           |
+|        |           | get-size | 17.54 ± 8.38    | **6.05**       |
+|        |           | mem_dbg  | **3.73 ± 2.65** | 8.35           |
+|        | HashMap   | deepsize | 6.12 ± 3.42     | **2.44**       |
+|        |           | get-size | 6.12 ± 3.42     | 2.92           |
+|        |           | mem_dbg  | **0.62 ± 1.30** | 2.49           |
+|        | HashSet   | deepsize | 6.91 ± 3.82     | **1.37**       |
+|        |           | get-size | 6.91 ± 3.82     | 1.82           |
+|        |           | mem_dbg  | **1.13 ± 2.32** | 1.38           |
+| usize  | BTreeMap  | deepsize | 36.51 ± 20.88   | 3.42           |
+|        |           | get-size | 42.01 ± 21.73   | 2.96           |
+|        |           | mem_dbg  | **1.25 ± 2.59** | **0.46**       |
+|        | BTreeSet  | deepsize | 28.18 ± 12.41   | 2.44           |
+|        |           | get-size | 46.91 ± 23.70   | 2.28           |
+|        |           | mem_dbg  | **1.57 ± 2.97** | **0.32**       |
+|        | HashMap   | deepsize | 15.64 ± 6.34    | 1.30           |
+|        |           | get-size | 15.64 ± 6.34    | **0.30**       |
+|        |           | mem_dbg  | **0.00 ± 0.00** | 0.32           |
+|        | HashSet   | deepsize | 19.57 ± 7.91    | 1.33           |
+|        |           | get-size | 19.57 ± 7.91    | **0.32**       |
+|        |           | mem_dbg  | **0.00 ± 0.00** | 0.33           |
 
-The first line is the number of bytes allocated by the program as returned by
-[`cap`]. Then, we display the result of [`get-size`], [`deepsize`], [`size-of`],
-and our own [`MemSize`]. Note that the first two crates are just measuring the
-space used by the items, and not by the data structure (i.e., they are not
-taking into account the load factor and the power-of-two size constraint of the
-hash map). Moreover, all other crates are about six orders of magnitude slower
-than our implementation, due to the necessity to iterate over all elements.
-
-## Container Accuracy
-
-The size estimation of `BTreeMap`, `BTreeSet`, `HashMap`, and `HashSet` is heuristic, as it is in the other libraries we are comparing to (e.g., [`deepsize`] and [`get-size`]). This is because the exact memory layout depends on the internal allocation strategy of the container, which is not exposed.
-
-However, `mem_dbg` is significantly more precise, as shown by the mean error rate in the following benchmark (generated by `examples/bench_error.rs`):
-
-| Container    | Crate       | Mean Error ± Std   | Norm. Std Dev |
-|--------------|-------------|--------------------|---------------|
-| **BTreeMap** | **mem_dbg** | **2.72 ± 4.58**    | **1.68**      |
-|              | deepsize    | 36.55 ± 20.70      | 0.57          |
-|              | get-size    | 40.64 ± 23.83      | 0.59          |
-| **BTreeSet** | **mem_dbg** | **4.30 ± 8.00**    | **1.86**      |
-|              | deepsize    | 31.55 ± 13.67      | 0.43          |
-|              | get-size    | 44.50 ± 27.47      | 0.62          |
-| **HashMap**  | **mem_dbg** | **1.58 ± 3.88**    | **2.45**      |
-|              | deepsize    | 13.72 ± 6.93       | 0.51          |
-|              | get-size    | 13.72 ± 6.93       | 0.51          |
-| **HashSet**  | **mem_dbg** | **2.87 ± 6.99**    | **2.44**      |
-|              | deepsize    | 16.26 ± 10.09      | 0.62          |
-|              | get-size    | 16.26 ± 10.09      | 0.62          |
-
-Additionally, for `Copy` types (such as `usize`), `mem_dbg` is nearly instantaneous, as it can compute the size without iterating over the elements, whereas other crates require time proportional to the number of elements.
+[`deepsize`] is about six orders of magnitude slower than our implementation
+for copy types, due to the necessity to iterate over all elements.
 
 ## References
 
@@ -327,9 +315,6 @@ assert_eq!(
   might be too complex; this might change in the future (e.g., via a flag)
   should interesting use cases arise.
 
-- `BTreeMap`/`BTreeSet` are not currently supported as we still have to
-  figure out a way to precisely measure their memory size and capacity.
-
 - Regarding `union`s, we only support completely the special case of the single
   field `union`, for which we implement both the derive macros `MemSize`/`MemDbg`.
   For the more complex cases of unions with multiple fields, we only provide the
@@ -346,7 +331,6 @@ assert_eq!(
 [`cap`]: https:/crates.io/crates/cap
 [`get-size`]: https://crates.io/crates/get_size
 [`deepsize`]: https://crates.io/crates/deepsize
-[`size-of`]: https://crates.io/crates/size_of
 [`maligned`]: https://crates.io/crates/maligned
 [`mmap-rs`]: https://crates.io/crates/mmap-rs
 [`half`]: https://crates.io/crates/half

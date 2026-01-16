@@ -21,14 +21,13 @@ mmap-rs = { version = "0.6.1", optional = true }
 half = { version = "2.0.4", optional = true }
 rand = { version = "0.9.0", optional = true, features = ["small_rng"] }
 maligned = { version = "0.2.1", optional = true }
-cap = { version = "0.1.2", optional = true }
-deepsize = { version = "0.2.0", optional = true }
-get-size = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
 comfy-table = "7.2.2"
 paste = "1.0.15"
-plotters = "0.3"
+cap = "0.1.2"
+get-size = "0.1.4"
+deepsize = "0.2.0"
 
 [features]
 default = ["std", "alloc", "derive"]
@@ -39,21 +38,13 @@ maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
 [[example]]
-name = "bench_hash_map"
-required-features = ["std", "derive", "cap", "deepsize", "get-size"]
-
-[[example]]
-name = "bench_btree_map"
-required-features = ["std", "derive", "cap", "deepsize", "get-size"]
-
-[[example]]
-name = "bench_error"
-required-features = ["std", "derive", "cap", "deepsize", "get-size"]
+name = "comparison"
+required-features = ["std", "derive"]
 
 [[example]]
 name = "example"
-required-features = ["std", "derive"]
+required-features = ["std", "derive", "offset_of_enum"]
 
 [[example]]
 name = "readme"
-required-features = ["std", "derive"]
+required-features = ["std", "derive", "offset_of_enum"]
