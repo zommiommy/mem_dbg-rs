@@ -43,8 +43,8 @@ required-features = ["std", "derive"]
 
 [[example]]
 name = "example"
-required-features = ["std", "derive", "offset_of_enum"]
+required-features = ["std", "derive"]
 
 [[example]]
 name = "readme"
-required-features = ["std", "derive", "offset_of_enum"]
+required-features = ["std", "derive"]
