@@ -4,7 +4,6 @@
 [![dependents](https://img.shields.io/librariesio/dependents/cargo/mem_dbg)](https://crates.io/crates/mem_dbg/reverse_dependencies)
 ![GitHub CI](https://github.com/zommiommy/mem_dbg-rs/actions/workflows/rust.yml/badge.svg)
 ![license](https://img.shields.io/crates/l/mem_dbg)
-[![](https://tokei.rs/b1/github/zommiommy/mem_dbg-rs?type=Rust,Python)](https://github.com/zommiommy/mem_dbg-rs)
 [![Latest version](https://img.shields.io/crates/v/mem_dbg.svg)](https://crates.io/crates/mem_dbg)
 [![Documentation](https://docs.rs/mem_dbg/badge.svg)](https://docs.rs/mem_dbg)
 [![Coverage Status](https://coveralls.io/repos/github/zommiommy/mem_dbg-rs/badge.svg?branch=main)](https://coveralls.io/github/zommiommy/mem_dbg-rs?branch=main)
