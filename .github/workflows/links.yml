@@ -1,0 +1,20 @@
+name: Links
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Check all markdown and rust files
+          args: --verbose --no-progress './**/*.md' './**/*.rs'
+          # Fail the action if broken links are found
+          fail: true
