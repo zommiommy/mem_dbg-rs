@@ -5,36 +5,71 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-/// Given a float, returns it in a human readable format using SI suffixes.
-pub fn humanize_float(mut x: f64) -> (f64, &'static str) {
+/// Given a size in bytes, returns it in a human readable format using SI suffixes.
+///
+/// # Arguments
+///
+/// * `x` - The size to humanize.
+///
+/// # Examples
+///
+/// ```rust
+/// use mem_dbg::humanize_float;
+///
+/// let (x, uom) = humanize_float(100);
+/// assert_eq!(x, 100.0);
+/// assert_eq!(uom, " B");
+///
+/// let (x, uom) = humanize_float(1234);
+/// assert_eq!(x, 1.234);
+/// assert_eq!(uom, "kB");
+///
+/// let (x, uom) = humanize_float(0);
+/// assert_eq!(x, 0.0);
+/// assert_eq!(uom, " B");
+/// 
+/// let (x, uom) = humanize_float(usize::MAX);
+/// assert!(x > 1.0);
+/// assert_eq!(uom, "EB");
+/// ```
+pub fn humanize_float(x: usize) -> (f64, &'static str) {
     const UOM: &[&str] = &[
-        "qB", "rB", "yB", "zB", "aB", "fB", "pB", "nB", "μB", "mB", " B", "kB", "MB", "GB", "TB",
-        "PB", "EB", "ZB", "YB", "RB", "QB",
+        " B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB", "RB", "QB",
     ];
-    let mut uom_idx = 10;
+    let mut uom_idx = 0;
     debug_assert_eq!(UOM[uom_idx], " B");
 
-    if x == 0.0 {
+    if x == 0 {
         return (0.0, UOM[uom_idx]);
     }
 
-    let abs_x = if x < 0.0 { -x } else { x };
+    let mut x = x as f64;
 
-    if abs_x > 1.0 {
-        while abs_x > 1000.0 && uom_idx < UOM.len() - 1 {
-            uom_idx += 1;
-            x /= 1000.0;
-        }
-    } else {
-        while abs_x < 0.001 && uom_idx > 0 {
-            uom_idx -= 1;
-            x *= 1000.0;
-        }
+    while x >= 1000.0 && uom_idx < UOM.len() - 1 {
+        uom_idx += 1;
+        x /= 1000.0;
     }
 
     (x, UOM[uom_idx])
 }
 
+/// Returns the color code corresponding to the size.
+///
+/// # Arguments
+///
+/// * `x` - The size in bytes.
+///
+/// # Examples
+///
+/// ```rust
+/// use mem_dbg::color;
+/// use mem_dbg::reset_color;
+///
+/// assert_eq!(color(100), reset_color());
+/// assert_eq!(color(1024), "\x1B[32m");
+/// assert_eq!(color(1024 * 1024), "\x1B[33m");
+/// assert_eq!(color(1024 * 1024 * 1024), "\x1B[31m");
+/// ```
 pub fn color(x: usize) -> &'static str {
     const KB: usize = 1024;
     const MB: usize = KB * KB;
@@ -52,11 +87,29 @@ pub fn color(x: usize) -> &'static str {
     }
 }
 
+/// Returns the color used to print types.
+///
+/// # Examples
+///
+/// ```rust
+/// use mem_dbg::type_color;
+///
+/// assert_eq!(type_color(), "\x1B[38;2;128;128;128m");
+/// ```
 pub fn type_color() -> &'static str {
     // custom grey
     "\x1B[38;2;128;128;128m"
 }
 
+/// Returns the color code to reset the color.
+///
+/// # Examples
+///
+/// ```rust
+/// use mem_dbg::reset_color;
+///
+/// assert_eq!(reset_color(), "\x1B[0m");
+/// ```
 pub fn reset_color() -> &'static str {
     "\x1B[0m"
 }

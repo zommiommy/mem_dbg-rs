@@ -341,19 +341,19 @@ pub trait MemDbgImpl: MemSize {
             writer.write_fmt(format_args!("{color}"))?;
         };
         if flags.contains(DbgFlags::HUMANIZE) {
-            let (value, uom) = crate::utils::humanize_float(real_size as f64);
+            let (value, uom) = crate::utils::humanize_float(real_size);
             if uom == " B" {
                 writer.write_fmt(format_args!("{:>5}  B ", real_size))?;
             } else {
-                let mut precision = 4;
-                let a = if value < 0.0 { -value } else { value };
-                if a >= 100.0 {
-                    precision = 1;
-                } else if a >= 10.0 {
-                    precision = 2;
-                } else if a >= 1.0 {
-                    precision = 3;
-                }
+                let precision = if value >= 100.0 {
+                    1
+                } else if value >= 10.0 {
+                    2
+                } else if value >= 1.0 {
+                    3
+                } else {
+                    4
+                };
                 writer.write_fmt(format_args!("{0:>4.1$} {2} ", value, precision, uom))?;
             }
         } else if flags.contains(DbgFlags::SEPARATOR) {
