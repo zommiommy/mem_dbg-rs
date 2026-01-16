@@ -1,5 +1,4 @@
-#![cfg(feature = "std")]
-#![cfg(feature = "derive")]
+#![cfg(all(feature = "std", feature = "derive"))]
 #![allow(dead_code)]
 
 use core::alloc::Layout;

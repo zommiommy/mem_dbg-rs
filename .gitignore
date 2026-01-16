@@ -16,3 +16,4 @@ Cargo.lock
 .vscode
 lcov.info
 *.png
+build_rs_cov.profraw
