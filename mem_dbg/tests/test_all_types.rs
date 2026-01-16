@@ -1,5 +1,4 @@
 #![cfg(all(feature = "std", feature = "derive"))]
-#![allow(dead_code)]
 
 use core::alloc::Layout;
 use core::cell::{Cell, OnceCell, RefCell, UnsafeCell};
@@ -167,6 +166,7 @@ struct AllTypesStruct<'a> {
 fn fn_ptr_0() -> i32 {
     42
 }
+
 fn fn_ptr_1(x: i32) -> i32 {
     x + 1
 }
@@ -178,6 +178,15 @@ fn fn_ptr_3(_a: u32, _b: u64, _c: i32) -> bool {
 }
 fn fn_ptr_4(_a: u32, _b: u64, _c: i32, _d: f64) -> bool {
     true
+}
+
+#[test]
+fn test_for_coverage() {
+    assert_eq!(fn_ptr_0(), 42);
+    assert_eq!(fn_ptr_1(1), 2);
+    assert_eq!(fn_ptr_2(2, 3), 5);
+    assert_eq!(fn_ptr_3(0, 0, 0), true);
+    assert_eq!(fn_ptr_4(0, 0, 0, 0.0), true);
 }
 
 #[test]
