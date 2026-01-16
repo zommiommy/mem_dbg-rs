@@ -26,7 +26,7 @@ jobs:
         run: cargo test --no-default-features --features derive
       - name: Run examples
         working-directory: ./mem_dbg
-        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release; done
+        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release --features="std derive offset_of_enum"; done
       - name: Run clippy
         run: cargo clippy #-- -Dclippy::all -Dclippy::cargo
 
