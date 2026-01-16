@@ -27,15 +27,13 @@
 /// let (x, uom) = humanize_float(0);
 /// assert_eq!(x, 0.0);
 /// assert_eq!(uom, " B");
-/// 
+///
 /// let (x, uom) = humanize_float(usize::MAX);
 /// assert!(x > 1.0);
 /// assert_eq!(uom, "EB");
 /// ```
 pub fn humanize_float(x: usize) -> (f64, &'static str) {
-    const UOM: &[&str] = &[
-        " B", "kB", "MB", "GB", "TB", "PB", "EB",
-    ];
+    const UOM: &[&str] = &[" B", "kB", "MB", "GB", "TB", "PB", "EB"];
     let mut uom_idx = 0;
     debug_assert_eq!(UOM[uom_idx], " B");
 
