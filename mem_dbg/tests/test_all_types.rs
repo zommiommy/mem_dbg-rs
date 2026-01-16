@@ -15,7 +15,11 @@ use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, RwLock};
+use std::rc::Rc;
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+#[cfg(feature = "mmap-rs")]
+use mmap_rs::{Mmap, MmapMut, MmapOptions};
 
 static STATIC_STR: &str = "static";
 
@@ -160,6 +164,48 @@ struct AllTypesStruct<'a> {
     buf_reader: BufReader<File>,
     buf_writer: BufWriter<File>,
     cursor: Cursor<Vec<u8>>,
+
+    // Smart pointers
+    arc: Arc<i32>,
+    rc: Rc<i32>,
+
+    // Nested VecDeque
+    vec_deque_nested: VecDeque<Vec<i32>>,
+
+    // Guards
+    mutex_guard: MutexGuard<'a, i32>,
+    rw_lock_read_guard: RwLockReadGuard<'a, String>,
+    rw_lock_write_guard: RwLockWriteGuard<'a, String>,
+
+    // Mmap
+    #[cfg(feature = "mmap-rs")]
+    mmap: Mmap,
+    #[cfg(feature = "mmap-rs")]
+    mmap_mut: MmapMut,
+
+    // Collections
+    hash_set_empty: HashSet<i32>,
+    hash_set_100: HashSet<i32>,
+    
+    hash_map_empty: HashMap<i32, i32>,
+    
+    hash_map_cc_100: HashMap<i32, i32>,
+    hash_map_cn_100: HashMap<i32, String>,
+    hash_map_nc_100: HashMap<String, i32>,
+    hash_map_nn_100: HashMap<String, String>,
+
+    btree_set_empty: BTreeSet<i32>,
+    btree_set_100: BTreeSet<i32>,
+    
+    btree_map_empty: BTreeMap<i32, i32>,
+    
+    btree_map_cc_100: BTreeMap<i32, i32>,
+    btree_map_cn_100: BTreeMap<i32, String>,
+    btree_map_nc_100: BTreeMap<String, i32>,
+    btree_map_nn_100: BTreeMap<String, String>,
+
+    // Hasher
+    default_hasher: DefaultHasher,
 }
 
 // Helper functions for function pointers
@@ -231,6 +277,15 @@ fn test_all_types() {
     let mut_ref0 = &mut data0;
     let mut data1 = 0;
     let mut_ref1 = &mut data1;
+
+    let mutex_source = Mutex::new(0);
+    let rwlock_source = RwLock::new("source".to_string());
+    let rwlock_source_write = RwLock::new("source_write".to_string());
+
+    #[cfg(feature = "mmap-rs")]
+    let mmap = MmapOptions::new(4096).unwrap().map().unwrap();
+    #[cfg(feature = "mmap-rs")]
+    let mmap_mut = MmapOptions::new(4096).unwrap().map_mut().unwrap();
 
     let all_types = AllTypesStruct {
         unit: (),
@@ -349,6 +404,47 @@ fn test_all_types() {
         buf_reader: BufReader::new(File::open("/dev/null").unwrap()),
         buf_writer: BufWriter::new(File::create("/tmp/test_all_types_buf_writer").unwrap()),
         cursor: Cursor::new(vec![1, 2, 3, 4]),
+
+        // Smart pointers
+        arc: Arc::new(10),
+        rc: Rc::new(20),
+
+        // Nested VecDeque
+        vec_deque_nested: VecDeque::from(vec![vec![1, 2], vec![3]]),
+
+        // Guards
+        mutex_guard: mutex_source.lock().unwrap(),
+        rw_lock_read_guard: rwlock_source.read().unwrap(),
+        rw_lock_write_guard: rwlock_source_write.write().unwrap(),
+
+        // Mmap
+        #[cfg(feature = "mmap-rs")]
+        mmap,
+        #[cfg(feature = "mmap-rs")]
+        mmap_mut,
+
+        // Collections
+        hash_set_empty: HashSet::new(),
+        hash_set_100: (0..100).collect(),
+        hash_map_empty: HashMap::new(),
+        
+        hash_map_cc_100: (0..100).map(|i| (i, i)).collect(),
+        hash_map_cn_100: (0..100).map(|i| (i, i.to_string())).collect(),
+        hash_map_nc_100: (0..100).map(|i| (i.to_string(), i)).collect(),
+        hash_map_nn_100: (0..100).map(|i| (i.to_string(), i.to_string())).collect(),
+
+        btree_set_empty: BTreeSet::new(),
+        btree_set_100: (0..100).collect(),
+        
+        btree_map_empty: BTreeMap::new(),
+        
+        btree_map_cc_100: (0..100).map(|i| (i, i)).collect(),
+        btree_map_cn_100: (0..100).map(|i| (i, i.to_string())).collect(),
+        btree_map_nc_100: (0..100).map(|i| (i.to_string(), i)).collect(),
+        btree_map_nn_100: (0..100).map(|i| (i.to_string(), i.to_string())).collect(),
+
+        // Hasher
+        default_hasher: DefaultHasher::new(),
     };
 
     for flags in [
@@ -357,6 +453,8 @@ fn test_all_types() {
         SizeFlags::CAPACITY,
         SizeFlags::FOLLOW_REFS,
         SizeFlags::CAPACITY | SizeFlags::FOLLOW_REFS,
+        SizeFlags::FOLLOW_RC,
+        SizeFlags::CAPACITY | SizeFlags::FOLLOW_RC,
     ] {
         let sz = all_types.mem_size(flags);
         assert!(sz > 0, "mem_size with flags {:?} should be > 0", flags);
