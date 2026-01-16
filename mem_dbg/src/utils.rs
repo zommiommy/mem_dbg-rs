@@ -34,7 +34,7 @@
 /// ```
 pub fn humanize_float(x: usize) -> (f64, &'static str) {
     const UOM: &[&str] = &[
-        " B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB", "RB", "QB",
+        " B", "kB", "MB", "GB", "TB", "PB", "EB",
     ];
     let mut uom_idx = 0;
     debug_assert_eq!(UOM[uom_idx], " B");
