@@ -25,7 +25,7 @@ associated padding bytes.
 ## Why `MemSize`
 
 [`MemSize`] outperforms other similar traits by using the type system to avoid
-iterating over the content of a container (e.g., a vector of [`Copy`] types)
+iterating over the content of a container (e.g., a vector of `Copy` types)
 when it is not necessary. This allows it to compute instantly the size of values
 occupying hundreds of gigabytes of heap memory.
 
@@ -33,6 +33,8 @@ Moreover, while the size estimation of `BTreeMap`, `BTreeSet`, `HashMap`, and
 `HashSet` is heuristic in all libraries, `mem_dbg` is significantly more
 precise, and takes into account the load factor and the power-of-two size
 constraint of the hash map.
+
+The following table compares [`mem_dbg`] against [`deepsize`] and [`get-size`]. The true memory usage (0% error) is calculated using the allocator from the [`cap`] crate.
 
 | Type   | Container | Crate    | Error (%)       | Time/Elem (ns) |
 |--------|-----------|----------|-----------------|----------------|
@@ -327,7 +329,7 @@ assert_eq!(
 [`DbgFlags::RUST_LAYOUT`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT
 [`DbgFlags::COLOR`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.COLOR
 [`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
-[`cap`]: https:/crates.io/crates/cap
+[`cap`]: https://crates.io/crates/cap
 [`get-size`]: https://crates.io/crates/get_size
 [`deepsize`]: https://crates.io/crates/deepsize
 [`maligned`]: https://crates.io/crates/maligned
