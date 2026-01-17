@@ -26,9 +26,14 @@ maligned = { version = "0.2.1", optional = true }
 comfy-table = "7.2.2"
 paste = "1.0.15"
 cap = "0.1.2"
-get-size = "0.1.4"
-deepsize = "0.2.0"
+get-size = { version = "0.1.4", features = ["derive"] }
+deepsize = { version = "0.2.0", features = ["derive"] }
 insta = "1.46.1"
+criterion = { version = "0.8.1", features = ["html_reports"] }
+
+[[bench]]
+name = "bench_sizes"
+harness = false
 
 [features]
 default = ["std", "alloc", "derive"]
