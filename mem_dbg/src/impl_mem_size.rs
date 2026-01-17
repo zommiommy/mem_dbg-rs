@@ -669,12 +669,12 @@ impl<T: CopyType> CopyType for std::sync::MutexGuard<'_, T> {
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         use core::ops::Deref;
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size(self.deref(), flags)
-        } else {
-            0
-        }
+        core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::FOLLOW_REFS) {
+                <T as MemSize>::mem_size(self.deref(), flags) - core::mem::size_of::<T>()
+            } else {
+                0
+            }
     }
 }
 
@@ -687,12 +687,12 @@ impl<T: CopyType> CopyType for std::sync::RwLockReadGuard<'_, T> {
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         use core::ops::Deref;
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size(self.deref(), flags)
-        } else {
-            0
-        }
+        core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::FOLLOW_REFS) {
+                <T as MemSize>::mem_size(self.deref(), flags) - core::mem::size_of::<T>()
+            } else {
+                0
+            }
     }
 }
 
@@ -705,12 +705,12 @@ impl<T: CopyType> CopyType for std::sync::RwLockWriteGuard<'_, T> {
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         use core::ops::Deref;
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size(self.deref(), flags)
-        } else {
-            0
-        }
+        core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::FOLLOW_REFS) {
+                <T as MemSize>::mem_size(self.deref(), flags) - core::mem::size_of::<T>()
+            } else {
+                0
+            }
     }
 }
 
