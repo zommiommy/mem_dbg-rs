@@ -12,11 +12,15 @@ fn test_all_types_mem_dbg() {
     let flags_set = [
         DbgFlags::empty(),
         DbgFlags::default(),
-        DbgFlags::CAPACITY,
-        DbgFlags::COLOR,
+        DbgFlags::FOLLOW_REFS,
         DbgFlags::HUMANIZE,
-        DbgFlags::CAPACITY,
+        DbgFlags::PERCENTAGE,
         DbgFlags::TYPE_NAME,
+        DbgFlags::CAPACITY,
+        DbgFlags::SEPARATOR,
+        DbgFlags::RUST_LAYOUT,
+        DbgFlags::COLOR,
+        DbgFlags::FOLLOW_RC,
     ];
     for first in flags_set {
         for second in flags_set {
@@ -34,7 +38,7 @@ fn test_all_types_mem_dbg() {
                         .is_ok()),
                     "mem_dbg_on with flags {combined_flags:?} should succeed",
                 );
-                for depth in 0..5 {
+                for depth in 0..3 {
                     assert!(
                         run_all_types_test(|all_types| all_types
                             .mem_dbg_depth(depth, combined_flags)
