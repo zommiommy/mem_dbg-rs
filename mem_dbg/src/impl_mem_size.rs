@@ -9,6 +9,7 @@
 use core::marker::{PhantomData, PhantomPinned};
 use core::num::*;
 use core::sync::atomic::*;
+use std::ops::Deref;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
@@ -327,11 +328,12 @@ where
 impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
-        if flags.contains(SizeFlags::CAPACITY) {
-            core::mem::size_of::<Self>() + self.capacity() * core::mem::size_of::<T>()
-        } else {
-            core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<T>()
-        }
+        core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::CAPACITY) {
+                self.capacity()
+            } else {
+                self.len()
+            } * core::mem::size_of::<T>()
     }
 }
 
@@ -372,10 +374,10 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for VecDeque<T> {
     fn mem_size_impl(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
-                self.capacity() * core::mem::size_of::<T>()
+                self.capacity()
             } else {
-                self.len() * core::mem::size_of::<T>()
-            }
+                self.len()
+            } * core::mem::size_of::<T>()
     }
 }
 
@@ -621,6 +623,25 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
     }
 }
 
+/// Helper function to compute the size of a Deref pointer type,
+/// such as `MutexGuard`, `RwLockReadGuard`, `RwLockWriteGuard`.
+///
+/// # Arguments
+///
+/// * `obj` - The Deref pointer object.
+/// * `flags` - The SizeFlags to use for the computation.
+fn deref_pointer_size<M>(obj: &M, flags: SizeFlags) -> usize
+where
+    M: Deref<Target: MemSize + Sized>,
+{
+    core::mem::size_of::<M>()
+        + if flags.contains(SizeFlags::FOLLOW_REFS) {
+            <M::Target as MemSize>::mem_size(obj.deref(), flags) - core::mem::size_of::<M::Target>()
+        } else {
+            0
+        }
+}
+
 #[cfg(feature = "std")]
 impl<T> CopyType for std::sync::MutexGuard<'_, T> {
     type Copy = False;
@@ -629,13 +650,7 @@ impl<T> CopyType for std::sync::MutexGuard<'_, T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        use core::ops::Deref;
-        core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::FOLLOW_REFS) {
-                <T as MemSize>::mem_size(self.deref(), flags) - core::mem::size_of::<T>()
-            } else {
-                0
-            }
+        deref_pointer_size(self, flags)
     }
 }
 
@@ -647,13 +662,7 @@ impl<T> CopyType for std::sync::RwLockReadGuard<'_, T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        use core::ops::Deref;
-        core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::FOLLOW_REFS) {
-                <T as MemSize>::mem_size(self.deref(), flags) - core::mem::size_of::<T>()
-            } else {
-                0
-            }
+        deref_pointer_size(self, flags)
     }
 }
 
@@ -665,13 +674,7 @@ impl<T> CopyType for std::sync::RwLockWriteGuard<'_, T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        use core::ops::Deref;
-        core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::FOLLOW_REFS) {
-                <T as MemSize>::mem_size(self.deref(), flags) - core::mem::size_of::<T>()
-            } else {
-                0
-            }
+        deref_pointer_size(self, flags)
     }
 }
 
