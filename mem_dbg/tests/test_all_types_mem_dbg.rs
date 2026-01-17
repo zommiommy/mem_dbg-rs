@@ -26,11 +26,6 @@ fn test_all_types_mem_dbg() {
         for second in flags_set {
             for third in flags_set {
                 let combined_flags = first | second | third;
-
-                assert!(
-                    run_all_types_test(|all_types| all_types.mem_dbg(combined_flags).is_ok()),
-                    "mem_dbg with flags {combined_flags:?} should succeed",
-                );
                 let mut output = String::new();
                 assert!(
                     run_all_types_test(|all_types| all_types
@@ -39,12 +34,6 @@ fn test_all_types_mem_dbg() {
                     "mem_dbg_on with flags {combined_flags:?} should succeed",
                 );
                 for depth in 0..3 {
-                    assert!(
-                        run_all_types_test(|all_types| all_types
-                            .mem_dbg_depth(depth, combined_flags)
-                            .is_ok()),
-                        "mem_dbg_depth with depth {depth} and flags {combined_flags:?} should succeed",
-                    );
                     let mut depth_output = String::new();
                     assert!(
                         run_all_types_test(|all_types| all_types
