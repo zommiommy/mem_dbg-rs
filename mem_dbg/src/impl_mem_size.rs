@@ -8,8 +8,8 @@
 
 use core::marker::{PhantomData, PhantomPinned};
 use core::num::*;
+use core::ops::Deref;
 use core::sync::atomic::*;
-use std::ops::Deref;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
