@@ -328,6 +328,11 @@ fn test_phantom() {
     Example::<Dummy>(PhantomData)
         .mem_dbg(DbgFlags::default())
         .unwrap();
+
+    for depth in 0..3 {
+        let result = Example::<Dummy>(PhantomData).mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -335,6 +340,10 @@ fn test_phantom() {
 fn test_vec_strings() {
     let data = vec![String::new(), String::new()];
     data.mem_dbg(DbgFlags::default()).unwrap();
+    for depth in 0..3 {
+        let result = data.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -343,6 +352,10 @@ fn test_array_u8() {
     let data = [0_u8; 10];
     assert_eq!(data.mem_size(SizeFlags::default()), 10);
     data.mem_dbg(DbgFlags::default()).unwrap();
+    for depth in 0..3 {
+        let result = data.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -353,6 +366,10 @@ fn test_array_empty_struct() {
     let data = [Dummy; 10];
     assert_eq!(data.mem_size(SizeFlags::default()), 0);
     data.mem_dbg(DbgFlags::default()).unwrap();
+    for depth in 0..3 {
+        let result = data.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]

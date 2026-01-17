@@ -42,4 +42,9 @@ fn test_mmap_types() {
     let size = s.mem_size(SizeFlags::default());
     assert!(size > 0);
     assert!(s.mem_dbg(DbgFlags::default()).is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
