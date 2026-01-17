@@ -46,9 +46,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         where_clause
             .predicates
             .push(parse_quote_spanned!(input_ident.span()=> Self: Copy + 'static));
-        parse_quote!(mem_dbg::True)
+        parse_quote!(::mem_dbg::True)
     } else {
-        parse_quote!(mem_dbg::False)
+        parse_quote!(::mem_dbg::False)
     };
 
     match input.data {
@@ -69,20 +69,20 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 // Add MemSize bound to all fields
                 where_clause
                     .predicates
-                    .push(parse_quote_spanned!(field.span()=> #field_ty: mem_dbg::MemSize));
+                    .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize));
             }
             quote! {
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                impl #impl_generics ::mem_dbg::CopyType for #input_ident #ty_generics #where_clause
                 {
                     type Copy = #copy_type;
                 }
 
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
-                        let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += <#fields_ty as mem_dbg::MemSize>::mem_size(&self.#fields_ident, _memsize_flags) - core::mem::size_of::<#fields_ty>();)*
+                impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                    fn mem_size(&self, _memsize_flags: ::mem_dbg::SizeFlags) -> usize {
+                        let mut bytes = ::core::mem::size_of::<Self>();
+                        #(bytes += <#fields_ty as ::mem_dbg::MemSize>::mem_size(&self.#fields_ident, _memsize_flags) - ::core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
@@ -95,7 +95,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             for variant in e.variants {
                 let mut res = variant.ident.to_owned().to_token_stream();
-                let mut var_args_size = quote! {core::mem::size_of::<Self>()};
+                let mut var_args_size = quote! {::core::mem::size_of::<Self>()};
                 match &variant.fields {
                     syn::Fields::Unit => {}
                     syn::Fields::Named(fields) => {
@@ -104,11 +104,11 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemSize));
+                                .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemSize));
                                 let field_ident = &field.ident;
                                 let field_ty = field.ty.to_token_stream();
                                 var_args_size.extend([quote! {
-                                    + <#field_ty as mem_dbg::MemSize>::mem_size(#field_ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
+                                    + <#field_ty as ::mem_dbg::MemSize>::mem_size(#field_ident, _memsize_flags) - ::core::mem::size_of::<#field_ty>()
                                 }]);
                                 args.extend([field_ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -129,14 +129,14 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_ty = field.ty.to_token_stream();
                             var_args_size.extend([quote! {
-                                + <#field_ty as mem_dbg::MemSize>::mem_size(#ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
+                                + <#field_ty as ::mem_dbg::MemSize>::mem_size(#ident, _memsize_flags) - ::core::mem::size_of::<#field_ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
 
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span()=> #field_ty: mem_dbg::MemSize));
+                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize));
                         }
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
@@ -150,14 +150,14 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                impl #impl_generics ::mem_dbg::CopyType for #input_ident #ty_generics #where_clause
                 {
                     type Copy = #copy_type;
                 }
 
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                    fn mem_size(&self, _memsize_flags: ::mem_dbg::SizeFlags) -> usize {
                         match self {
                             #(
                                #input_ident::#variants => #variants_size,
@@ -183,18 +183,18 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     let ident = field.ident.as_ref().unwrap();
                     where_clause
                         .predicates
-                        .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemSize));
+                        .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemSize));
                     quote! {
                         #[automatically_derived]
-                        impl #impl_generics mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                        impl #impl_generics ::mem_dbg::CopyType for #input_ident #ty_generics #where_clause
                         {
                             type Copy = #copy_type;
                         }
 
                         #[automatically_derived]
-                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
-                                unsafe{ <#field_ty as mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags) }
+                        impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                            fn mem_size(&self, _memsize_flags: ::mem_dbg::SizeFlags) -> usize {
+                                unsafe{ <#field_ty as ::mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags) }
                             }
                         }
                     }
@@ -246,36 +246,36 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 let field_ty = &field.ty;
                 where_clause
                     .predicates
-                    .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemDbgImpl));
+                    .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemDbgImpl));
 
                 // We push the field index and its offset
                 id_offset_pushes.push(quote!{
-                    id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #field_ident)));
+                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #field_ident)));
                 });
                 // This is the arm of the match statement that invokes
                 // _mem_dbg_depth_on on the field.
                 match_code.push(quote!{
-                    #field_idx => <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                    #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                 });
             }
 
             quote! {
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
+                impl #impl_generics ::mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
                     #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
-                        _memdbg_writer: &mut impl core::fmt::Write,
+                        _memdbg_writer: &mut impl ::core::fmt::Write,
                         _memdbg_total_size: usize,
                         _memdbg_max_depth: usize,
                         _memdbg_prefix: &mut String,
                         _memdbg_is_last: bool,
-                        _memdbg_flags: mem_dbg::DbgFlags,
-                    ) -> core::fmt::Result {
+                        _memdbg_flags: ::mem_dbg::DbgFlags,
+                    ) -> ::core::fmt::Result {
                         let mut id_sizes: Vec<(usize, usize)> = vec![];
                         #(#id_offset_pushes)*
                         let n = id_sizes.len();
-                        id_sizes.push((n, core::mem::size_of::<Self>()));
+                        id_sizes.push((n, ::core::mem::size_of::<Self>()));
                         // Sort by offset
                         id_sizes.sort_by_key(|x| x.1);
                         // Compute padded sizes
@@ -283,7 +283,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                         };
                         // Put the candle back unless the user requested otherwise
-                        if ! _memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT) {
+                        if ! _memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT) {
                             id_sizes.sort_by_key(|x| x.0);
                         }
 
@@ -329,20 +329,20 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push(quote!{
                                 // We push the offset of the field, which will
                                 // be used to compute the padded size.
-                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
+                                id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
                             });
                             #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
-                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
+                                id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
                                 // We push the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, std::mem::size_of_val(#field_ident)));
+                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#field_ident)));
                             });
 
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                             });
                             args.extend([field_ident.to_token_stream()]);
                             args.extend([quote! {,}]);
@@ -350,7 +350,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span()=> #field_ty: mem_dbg::MemDbgImpl));
+                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl));
                         }
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
@@ -378,20 +378,20 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push(quote!{
                                 // We push the offset of the field, which will
                                 // be used to compute the padded size.
-                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx)));
+                                id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx)));
                             });
 
                             #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
                                 // We push the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, std::mem::size_of_val(#field_ident)));
+                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#field_ident)));
                             });
 
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
                             });
 
                             args.extend([field_ident]);
@@ -400,7 +400,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span()=> #field_ty: mem_dbg::MemDbgImpl));
+                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl));
                         }
                         // extend res with the args sourrounded by curly braces
                         res.extend(quote! {
@@ -427,7 +427,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                     // We use the offset_of information to build the real
                     // space occupied by a field.
-                    id_sizes.push((n, core::mem::size_of::<Self>()));
+                    id_sizes.push((n, ::core::mem::size_of::<Self>()));
                     // Sort by offset
                     id_sizes.sort_by_key(|x| x.1);
                     // Compute padded sizes
@@ -435,7 +435,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                     };
                     // Put the candle back unless the user requested otherwise
-                    if ! _memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT) {
+                    if ! _memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT) {
                         id_sizes.sort_by_key(|x| x.0);
                     }
 
@@ -456,7 +456,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     // Lacking offset_of for enums, id_sizes contains the
                     // size_of of each field which we use as a surrogate of
                     // the padded size.
-                    assert!(!_memdbg_flags.contains(mem_dbg::DbgFlags::RUST_LAYOUT), "DbgFlags::RUST_LAYOUT for enums requires the offset_of_enum feature");
+                    assert!(!_memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT), "DbgFlags::RUST_LAYOUT for enums requires the offset_of_enum feature");
 
                     for (i, (field_idx, padded_size)) in id_sizes.into_iter().enumerate().take(n) {
                         match field_idx {
@@ -469,26 +469,26 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::MemDbgImpl  for #input_ident #ty_generics #where_clause {
+                impl #impl_generics ::mem_dbg::MemDbgImpl  for #input_ident #ty_generics #where_clause {
                     #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
-                        _memdbg_writer: &mut impl core::fmt::Write,
+                        _memdbg_writer: &mut impl ::core::fmt::Write,
                         _memdbg_total_size: usize,
                         _memdbg_max_depth: usize,
                         _memdbg_prefix: &mut String,
                         _memdbg_is_last: bool,
-                        _memdbg_flags: mem_dbg::DbgFlags,
-                    ) -> core::fmt::Result {
-                        let mut _memdbg_digits_number = mem_dbg::n_of_digits(_memdbg_total_size);
-                        if _memdbg_flags.contains(mem_dbg::DbgFlags::SEPARATOR) {
+                        _memdbg_flags: ::mem_dbg::DbgFlags,
+                    ) -> ::core::fmt::Result {
+                        let mut _memdbg_digits_number = ::mem_dbg::n_of_digits(_memdbg_total_size);
+                        if _memdbg_flags.contains(::mem_dbg::DbgFlags::SEPARATOR) {
                             _memdbg_digits_number += _memdbg_digits_number / 3;
                         }
-                        if _memdbg_flags.contains(mem_dbg::DbgFlags::HUMANIZE) {
+                        if _memdbg_flags.contains(::mem_dbg::DbgFlags::HUMANIZE) {
                             _memdbg_digits_number = 6;
                         }
 
-                        if _memdbg_flags.contains(mem_dbg::DbgFlags::PERCENTAGE) {
+                        if _memdbg_flags.contains(::mem_dbg::DbgFlags::PERCENTAGE) {
                             _memdbg_digits_number += 8;
                         }
 
@@ -522,21 +522,21 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     let ident = field.ident.as_ref().unwrap();
                     where_clause
                         .predicates
-                        .push(parse_quote_spanned!(field.span() => #field_ty: mem_dbg::MemDbgImpl));
+                        .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemDbgImpl));
                     quote! {
                         #[automatically_derived]
-                        impl #impl_generics mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
+                        impl #impl_generics ::mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
                             #[inline(always)]
                             fn _mem_dbg_rec_on(
                                 &self,
-                                _memdbg_writer: &mut impl core::fmt::Write,
+                                _memdbg_writer: &mut impl ::core::fmt::Write,
                                 _memdbg_total_size: usize,
                                 _memdbg_max_depth: usize,
                                 _memdbg_prefix: &mut String,
                                 _memdbg_is_last: bool,
-                                _memdbg_flags: mem_dbg::DbgFlags,
-                            ) -> core::fmt::Result {
-                                unsafe{ <#field_ty as mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, core::mem::size_of::<#field_ty>(), _memdbg_flags) }
+                                _memdbg_flags: ::mem_dbg::DbgFlags,
+                            ) -> ::core::fmt::Result {
+                                unsafe{ <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, ::core::mem::size_of::<#field_ty>(), _memdbg_flags) }
                             }
                         }
                     }
