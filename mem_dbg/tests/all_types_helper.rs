@@ -18,9 +18,6 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-#[cfg(feature = "mmap-rs")]
-use mmap_rs::{Mmap, MmapMut, MmapOptions};
-
 static STATIC_STR: &str = "static";
 
 #[derive(MemSize, MemDbg)]
@@ -177,12 +174,6 @@ pub struct AllTypesStruct<'a> {
     rw_lock_read_guard: RwLockReadGuard<'a, String>,
     rw_lock_write_guard: RwLockWriteGuard<'a, String>,
 
-    // Mmap
-    #[cfg(feature = "mmap-rs")]
-    mmap: Mmap,
-    #[cfg(feature = "mmap-rs")]
-    mmap_mut: MmapMut,
-
     // Collections
     hash_set_empty: HashSet<i32>,
     hash_set_100: HashSet<i32>,
@@ -257,11 +248,6 @@ where
     let mutex_source = Mutex::new(0);
     let rwlock_source = RwLock::new("source".to_string());
     let rwlock_source_write = RwLock::new("source_write".to_string());
-
-    #[cfg(feature = "mmap-rs")]
-    let mmap = MmapOptions::new(4096).unwrap().map().unwrap();
-    #[cfg(feature = "mmap-rs")]
-    let mmap_mut = MmapOptions::new(4096).unwrap().map_mut().unwrap();
 
     let all_types = AllTypesStruct {
         unit: (),
@@ -392,12 +378,6 @@ where
         mutex_guard: mutex_source.lock().unwrap(),
         rw_lock_read_guard: rwlock_source.read().unwrap(),
         rw_lock_write_guard: rwlock_source_write.write().unwrap(),
-
-        // Mmap
-        #[cfg(feature = "mmap-rs")]
-        mmap,
-        #[cfg(feature = "mmap-rs")]
-        mmap_mut,
 
         // Collections
         hash_set_empty: HashSet::new(),
