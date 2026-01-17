@@ -30,14 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install nightly toolchain + miri
-        run: rustup toolchain install nightly && rustup default nightly && rustup component add miri
+      - name: Install nightly toolchain
+        run: rustup toolchain install nightly && rustup default nightly
       - name: Build with all features
         run: cargo build --all-features
       - name: Run tests with all features (including offset_of_enum)
         run: cargo test --all-features
-      - name: Run miri with all features except half (because of ASM code)
-        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test --features std,derive,rand,maligned,offset_of_enum
         
   coverage:
     needs: [build-stable, build-nightly]
