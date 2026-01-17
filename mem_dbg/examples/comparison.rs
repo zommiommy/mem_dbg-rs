@@ -172,7 +172,8 @@ where
     Ok(results)
 }
 
-fn save_full_table(results: &Vec<BenchResult>) -> Result<(), Box<dyn std::error::Error>> {
+#[allow(clippy::type_complexity)]
+fn save_full_table(results: &[BenchResult]) -> Result<(), Box<dyn std::error::Error>> {
     // --- Full Table ---
     let mut table = Table::new();
     table
