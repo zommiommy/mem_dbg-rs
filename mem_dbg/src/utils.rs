@@ -72,14 +72,13 @@ pub fn color(x: usize) -> &'static str {
     const KB: usize = 1024;
     const MB: usize = KB * KB;
     const GB: usize = MB * KB;
-    #[allow(clippy::match_overlapping_arm)]
     match x {
         // white
         ..KB => reset_color(),
         // green
-        ..MB => "\x1B[32m",
+        KB..MB => "\x1B[32m",
         // yellow
-        ..GB => "\x1B[33m",
+        MB..GB => "\x1B[33m",
         // red
         _ => "\x1B[31m",
     }

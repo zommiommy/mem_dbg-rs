@@ -207,7 +207,7 @@ fn test_correctness() {
         check!(Vec::<u64>::with_capacity(cap));
         check!((0..cap).map(|x| x as u64).collect::<Vec<u64>>());
         check!(Vec::<usize>::with_capacity(cap));
-        check!((0..cap).map(|x| x as usize).collect::<Vec<usize>>());
+        check!((0..cap).collect::<Vec<usize>>());
         check!(Vec::<String>::with_capacity(cap));
         check!((0..cap).map(|i| i.to_string()).collect::<Vec<String>>());
 

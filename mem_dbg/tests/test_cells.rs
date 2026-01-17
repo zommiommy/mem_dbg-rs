@@ -55,6 +55,11 @@ fn test_cell_with_memdbg() {
     // Test that mem_dbg works without stack overflow
     let result = s.mem_dbg(DbgFlags::default());
     assert!(result.is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -105,6 +110,11 @@ fn test_refcell_with_memdbg() {
     // Test that mem_dbg works without stack overflow
     let result = s.mem_dbg(DbgFlags::default());
     assert!(result.is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -155,6 +165,11 @@ fn test_unsafe_cell_with_memdbg() {
     // Test that mem_dbg works without stack overflow
     let result = s.mem_dbg(DbgFlags::default());
     assert!(result.is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -226,6 +241,11 @@ fn test_oncecell_with_memdbg() {
     // Test that mem_dbg works without stack overflow
     let result = s.mem_dbg(DbgFlags::default());
     assert!(result.is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
 
 #[test]
@@ -255,4 +275,9 @@ fn test_all_cells_in_struct() {
     // Test that mem_dbg works without stack overflow
     let result = s.mem_dbg(DbgFlags::default());
     assert!(result.is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }

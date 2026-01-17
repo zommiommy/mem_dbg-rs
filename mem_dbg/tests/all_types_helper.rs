@@ -15,12 +15,13 @@ use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, RwLock};
+use std::rc::Rc;
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 static STATIC_STR: &str = "static";
 
 #[derive(MemSize, MemDbg)]
-struct AllTypesStruct<'a> {
+pub struct AllTypesStruct<'a> {
     // Unit and primitives
     unit: (),
     boolean: bool,
@@ -160,37 +161,49 @@ struct AllTypesStruct<'a> {
     buf_reader: BufReader<File>,
     buf_writer: BufWriter<File>,
     cursor: Cursor<Vec<u8>>,
+
+    // Smart pointers
+    arc: Arc<i32>,
+    rc: Rc<i32>,
+
+    // Nested VecDeque
+    vec_deque_nested: VecDeque<Vec<i32>>,
+
+    // Guards
+    mutex_guard: MutexGuard<'a, i32>,
+    rw_lock_read_guard: RwLockReadGuard<'a, String>,
+    rw_lock_write_guard: RwLockWriteGuard<'a, String>,
+
+    // Collections
+    hash_set_empty: HashSet<i32>,
+    hash_set_100: HashSet<i32>,
+
+    hash_map_empty: HashMap<i32, i32>,
+
+    hash_map_cc_100: HashMap<i32, i32>,
+    hash_map_cn_100: HashMap<i32, String>,
+    hash_map_nc_100: HashMap<String, i32>,
+    hash_map_nn_100: HashMap<String, String>,
+
+    btree_set_empty: BTreeSet<i32>,
+    btree_set_100: BTreeSet<i32>,
+
+    btree_map_empty: BTreeMap<i32, i32>,
+
+    btree_map_cc_100: BTreeMap<i32, i32>,
+    btree_map_cn_100: BTreeMap<i32, String>,
+    btree_map_nc_100: BTreeMap<String, i32>,
+    btree_map_nn_100: BTreeMap<String, String>,
+
+    // Hasher
+    default_hasher: DefaultHasher,
 }
 
-// Helper functions for function pointers
-fn fn_ptr_0() -> i32 {
-    42
-}
-
-fn fn_ptr_1(x: i32) -> i32 {
-    x + 1
-}
-fn fn_ptr_2(x: i32, y: i32) -> i32 {
-    x + y
-}
-fn fn_ptr_3(_a: u32, _b: u64, _c: i32) -> bool {
-    true
-}
-fn fn_ptr_4(_a: u32, _b: u64, _c: i32, _d: f64) -> bool {
-    true
-}
-
-#[test]
-fn test_for_coverage() {
-    assert_eq!(fn_ptr_0(), 42);
-    assert_eq!(fn_ptr_1(1), 2);
-    assert_eq!(fn_ptr_2(2, 3), 5);
-    assert_eq!(fn_ptr_3(0, 0, 0), true);
-    assert_eq!(fn_ptr_4(0, 0, 0, 0.0), true);
-}
-
-#[test]
-fn test_all_types() {
+/// Function to create an instance of AllTypesStruct and run a test function on it
+pub fn run_all_types_test<F, R>(test: F) -> R
+where
+    F: for<'a> FnOnce(AllTypesStruct<'a>) -> R,
+{
     let mut hash_set = HashSet::new();
     hash_set.insert(1);
     hash_set.insert(2);
@@ -231,6 +244,10 @@ fn test_all_types() {
     let mut_ref0 = &mut data0;
     let mut data1 = 0;
     let mut_ref1 = &mut data1;
+
+    let mutex_source = Mutex::new(0);
+    let rwlock_source = RwLock::new("source".to_string());
+    let rwlock_source_write = RwLock::new("source_write".to_string());
 
     let all_types = AllTypesStruct {
         unit: (),
@@ -349,55 +366,68 @@ fn test_all_types() {
         buf_reader: BufReader::new(File::open("/dev/null").unwrap()),
         buf_writer: BufWriter::new(File::create("/tmp/test_all_types_buf_writer").unwrap()),
         cursor: Cursor::new(vec![1, 2, 3, 4]),
+
+        // Smart pointers
+        arc: Arc::new(10),
+        rc: Rc::new(20),
+
+        // Nested VecDeque
+        vec_deque_nested: VecDeque::from(vec![vec![1, 2], vec![3]]),
+
+        // Guards
+        mutex_guard: mutex_source.lock().unwrap(),
+        rw_lock_read_guard: rwlock_source.read().unwrap(),
+        rw_lock_write_guard: rwlock_source_write.write().unwrap(),
+
+        // Collections
+        hash_set_empty: HashSet::new(),
+        hash_set_100: (0..100).collect(),
+        hash_map_empty: HashMap::new(),
+
+        hash_map_cc_100: (0..100).map(|i| (i, i)).collect(),
+        hash_map_cn_100: (0..100).map(|i| (i, i.to_string())).collect(),
+        hash_map_nc_100: (0..100).map(|i| (i.to_string(), i)).collect(),
+        hash_map_nn_100: (0..100).map(|i| (i.to_string(), i.to_string())).collect(),
+
+        btree_set_empty: BTreeSet::new(),
+        btree_set_100: (0..100).collect(),
+
+        btree_map_empty: BTreeMap::new(),
+
+        btree_map_cc_100: (0..100).map(|i| (i, i)).collect(),
+        btree_map_cn_100: (0..100).map(|i| (i, i.to_string())).collect(),
+        btree_map_nc_100: (0..100).map(|i| (i.to_string(), i)).collect(),
+        btree_map_nn_100: (0..100).map(|i| (i.to_string(), i.to_string())).collect(),
+
+        // Hasher
+        default_hasher: DefaultHasher::new(),
     };
 
-    for flags in [
-        SizeFlags::empty(),
-        SizeFlags::default(),
-        SizeFlags::CAPACITY,
-        SizeFlags::FOLLOW_REFS,
-        SizeFlags::CAPACITY | SizeFlags::FOLLOW_REFS,
-    ] {
-        let sz = all_types.mem_size(flags);
-        assert!(sz > 0, "mem_size with flags {:?} should be > 0", flags);
-    }
+    test(all_types)
+}
+// Helper functions for function pointers
+fn fn_ptr_0() -> i32 {
+    42
+}
 
-    // Test with all combinations of depth and flags
-    for flags in [
-        DbgFlags::default(),
-        DbgFlags::CAPACITY,
-        DbgFlags::COLOR,
-        DbgFlags::HUMANIZE,
-        DbgFlags::CAPACITY | DbgFlags::COLOR,
-    ] {
-        dbg!(flags);
-        assert!(
-            all_types.mem_dbg(flags).is_ok(),
-            "mem_dbg with flags {:?} should succeed",
-            flags
-        );
-        let mut output = String::new();
-        assert!(
-            all_types.mem_dbg_on(&mut output, flags).is_ok(),
-            "mem_dbg_on with flags {:?} should succeed",
-            flags
-        );
-        for depth in 0..5 {
-            assert!(
-                all_types.mem_dbg_depth(depth, flags).is_ok(),
-                "mem_dbg_depth with depth {} and flags {:?} should succeed",
-                depth,
-                flags
-            );
-            let mut depth_output = String::new();
-            assert!(
-                all_types
-                    .mem_dbg_depth_on(&mut depth_output, depth, flags)
-                    .is_ok(),
-                "mem_dbg_depth_on with depth {} and flags {:?} should succeed",
-                depth,
-                flags
-            );
-        }
-    }
+fn fn_ptr_1(x: i32) -> i32 {
+    x + 1
+}
+fn fn_ptr_2(x: i32, y: i32) -> i32 {
+    x + y
+}
+fn fn_ptr_3(_a: u32, _b: u64, _c: i32) -> bool {
+    true
+}
+fn fn_ptr_4(_a: u32, _b: u64, _c: i32, _d: f64) -> bool {
+    true
+}
+
+#[test]
+fn test_for_coverage() {
+    assert_eq!(fn_ptr_0(), 42);
+    assert_eq!(fn_ptr_1(1), 2);
+    assert_eq!(fn_ptr_2(2, 3), 5);
+    assert!(fn_ptr_3(0, 0, 0));
+    assert!(fn_ptr_4(0, 0, 0, 0.0));
 }

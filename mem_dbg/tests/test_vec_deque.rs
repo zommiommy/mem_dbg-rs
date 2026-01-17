@@ -38,4 +38,9 @@ fn test_vec_deque_mem_dbg() {
     let mut v: VecDeque<u32> = VecDeque::new();
     v.push_back(100);
     v.mem_dbg(DbgFlags::default()).unwrap();
+
+    for depth in 0..3 {
+        let result = v.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }
