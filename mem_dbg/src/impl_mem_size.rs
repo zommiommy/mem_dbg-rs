@@ -635,7 +635,7 @@ impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
 // Mutexes
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::Mutex<T> {
+impl<T> CopyType for std::sync::Mutex<T> {
     type Copy = False;
 }
 
@@ -648,7 +648,7 @@ impl<T: MemSize> MemSize for std::sync::Mutex<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::RwLock<T> {
+impl<T> CopyType for std::sync::RwLock<T> {
     type Copy = False;
 }
 
@@ -661,7 +661,7 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::MutexGuard<'_, T> {
+impl<T> CopyType for std::sync::MutexGuard<'_, T> {
     type Copy = False;
 }
 
@@ -679,7 +679,7 @@ impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::RwLockReadGuard<'_, T> {
+impl<T> CopyType for std::sync::RwLockReadGuard<'_, T> {
     type Copy = False;
 }
 
@@ -697,7 +697,7 @@ impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::RwLockWriteGuard<'_, T> {
+impl<T> CopyType for std::sync::RwLockWriteGuard<'_, T> {
     type Copy = False;
 }
 
@@ -794,7 +794,7 @@ impl_size_of!(
 // I/O
 
 #[cfg(feature = "std")]
-impl<T: MemSize + std::io::Read> CopyType for std::io::BufReader<T> {
+impl<T> CopyType for std::io::BufReader<T> {
     type Copy = False;
 }
 
