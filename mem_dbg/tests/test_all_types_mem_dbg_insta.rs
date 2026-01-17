@@ -25,5 +25,15 @@ fn test_all_types_mem_dbg_snapshot() {
             output
         });
         assert_snapshot!(name, output);
+        for depth in 0..3 {
+            let depth_output = run_all_types_test(|all_types| {
+                let mut output = String::new();
+                all_types
+                    .mem_dbg_depth_on(&mut output, depth, flags)
+                    .expect("mem_dbg_depth_on failed");
+                output
+            });
+            assert_snapshot!(format!("{name}_depth_{depth}"), depth_output);
+        }
     }
 }
