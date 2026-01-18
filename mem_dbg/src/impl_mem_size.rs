@@ -8,6 +8,7 @@
 
 use core::marker::{PhantomData, PhantomPinned};
 use core::num::*;
+use core::ops::Deref;
 use core::sync::atomic::*;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
@@ -453,6 +454,17 @@ macro_rules! impl_tuples_muncher {
                 bytes
             }
         }
+
+        impl<$ty, $($nty,)* R> CopyType for fn($ty, $($nty,)*) -> R {
+            type Copy = True;
+        }
+
+        impl<$ty, $($nty,)* R> MemSize for fn($ty, $($nty,)*) -> R {
+            #[inline(always)]
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+                core::mem::size_of::<Self>()
+            }
+        }
     }
 
 }
@@ -477,50 +489,6 @@ impl<R> CopyType for fn() -> R {
 }
 
 impl<R> MemSize for fn() -> R {
-    #[inline(always)]
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-    }
-}
-
-impl<A, R> CopyType for fn(A) -> R {
-    type Copy = True;
-}
-
-impl<A, R> MemSize for fn(A) -> R {
-    #[inline(always)]
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-    }
-}
-
-impl<A, B, R> CopyType for fn(A, B) -> R {
-    type Copy = True;
-}
-
-impl<A, B, R> MemSize for fn(A, B) -> R {
-    #[inline(always)]
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-    }
-}
-
-impl<A, B, C, R> CopyType for fn(A, B, C) -> R {
-    type Copy = True;
-}
-
-impl<A, B, C, R> MemSize for fn(A, B, C) -> R {
-    #[inline(always)]
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-    }
-}
-
-impl<A, B, C, D, R> CopyType for fn(A, B, C, D) -> R {
-    type Copy = True;
-}
-
-impl<A, B, C, D, R> MemSize for fn(A, B, C, D) -> R {
     #[inline(always)]
     fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
@@ -658,7 +626,7 @@ impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
 // Mutexes
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::Mutex<T> {
+impl<T> CopyType for std::sync::Mutex<T> {
     type Copy = False;
 }
 
@@ -672,7 +640,7 @@ impl<T: MemSize> MemSize for std::sync::Mutex<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::RwLock<T> {
+impl<T> CopyType for std::sync::RwLock<T> {
     type Copy = False;
 }
 
@@ -685,60 +653,59 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
     }
 }
 
+/// Helper function to compute the size of a Deref pointer type,
+/// such as `MutexGuard`, `RwLockReadGuard`, `RwLockWriteGuard`.
+///
+/// # Arguments
+///
+/// * `obj` - The Deref pointer object.
+/// * `flags` - The SizeFlags to use for the computation.
+#[inline(always)]
+fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+where
+    M: Deref<Target: MemSize + Sized>,
+{
+    core::mem::size_of::<M>()
+        + if flags.contains(SizeFlags::FOLLOW_REFS) {
+            <M::Target as MemSize>::mem_size(obj.deref(), flags) - core::mem::size_of::<M::Target>()
+        } else {
+            0
+        }
+}
+
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::MutexGuard<'_, T> {
+impl<T> CopyType for std::sync::MutexGuard<'_, T> {
     type Copy = False;
 }
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
-    #[inline(always)]
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        use core::ops::Deref;
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
-        } else {
-            0
-        }
+    fn mem_size(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        deref_pointer_size(self, flags, refs)
     }
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::RwLockReadGuard<'_, T> {
+impl<T> CopyType for std::sync::RwLockReadGuard<'_, T> {
     type Copy = False;
 }
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
-    #[inline(always)]
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        use core::ops::Deref;
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
-        } else {
-            0
-        }
+    fn mem_size(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        deref_pointer_size(self, flags, refs)
     }
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> CopyType for std::sync::RwLockWriteGuard<'_, T> {
+impl<T> CopyType for std::sync::RwLockWriteGuard<'_, T> {
     type Copy = False;
 }
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
-    #[inline(always)]
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        use core::ops::Deref;
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
-        } else {
-            0
-        }
+    fn mem_size(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        deref_pointer_size(self, flags, refs)
     }
 }
 
@@ -826,7 +793,7 @@ impl_size_of!(
 // I/O
 
 #[cfg(feature = "std")]
-impl<T: MemSize + std::io::Read> CopyType for std::io::BufReader<T> {
+impl<T> CopyType for std::io::BufReader<T> {
     type Copy = False;
 }
 
@@ -930,6 +897,22 @@ impl MemSize for mmap_rs::MmapMut {
 // If the standard library changes load factor, this code will have to change
 // accordingly.
 
+// Group width for Swiss Tables (hashbrown). This depends on SIMD support:
+// - x86_64 with SSE2: 16 bytes
+// - Other platforms (ARM64 NEON, generic): 8 bytes
+#[cfg(feature = "std")]
+#[cfg(all(
+    target_arch = "x86_64",
+    any(target_feature = "sse2", target_env = "msvc")
+))]
+const GROUP_WIDTH: usize = 16;
+#[cfg(feature = "std")]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    any(target_feature = "sse2", target_env = "msvc")
+)))]
+const GROUP_WIDTH: usize = 8;
+
 // Straight from hashbrown
 #[cfg(feature = "std")]
 fn capacity_to_buckets(cap: usize) -> Option<usize> {
@@ -989,7 +972,7 @@ fn fix_set_for_capacity<K>(
         + size
         + (buckets - hash_set.len()) * core::mem::size_of::<K>()
         + buckets * core::mem::size_of::<u8>()
-        + if buckets > 0 { 16 } else { 0 }
+        + if buckets > 0 { GROUP_WIDTH } else { 0 }
 }
 
 #[cfg(feature = "std")]
@@ -1057,7 +1040,7 @@ fn fix_map_for_capacity<K, V>(
         + size
         + (buckets - hash_map.len()) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
         + buckets * core::mem::size_of::<u8>()
-        + if buckets > 0 { 16 } else { 0 }
+        + if buckets > 0 { GROUP_WIDTH } else { 0 }
 }
 
 #[cfg(feature = "std")]
@@ -1155,12 +1138,7 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
     let header_size = 16;
 
     // Helper to align a size to the next multiple of `align`.
-    let align_up = |size: usize, align: usize| -> usize {
-        if align == 0 {
-            return size;
-        }
-        (size + align - 1) & !(align - 1)
-    };
+    let align_up = |size: usize, align: usize| -> usize { (size + align - 1) & !(align - 1) };
 
     let k_size = core::mem::size_of::<K>();
     let v_size = core::mem::size_of::<V>();

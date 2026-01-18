@@ -73,4 +73,9 @@ fn test_atomic_with_memdbg() {
     // Test that mem_dbg works without stack overflow
     let result = s.mem_dbg(DbgFlags::default());
     assert!(result.is_ok());
+
+    for depth in 0..3 {
+        let result = s.mem_dbg_depth(depth, DbgFlags::default());
+        assert!(result.is_ok());
+    }
 }

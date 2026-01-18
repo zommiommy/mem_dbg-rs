@@ -107,10 +107,11 @@ visualize the effect of the useful [`DbgFlags::COLOR`] flag, which colorizes
 sizes depending on their magnitude.
 
 ```rust
+# #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
+
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 # #[cfg(all(feature = "std", feature = "derive"))]
-# #[cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
 # {
 use mem_dbg::*;
 
