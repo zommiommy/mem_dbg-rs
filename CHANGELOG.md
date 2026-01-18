@@ -1,5 +1,24 @@
 # Change Log
 
+## [0.3.4]
+
+### New
+
+* Support for `VecDeque`, `BTreeMap` and `BTreeSet`.
+
+* Vastly improved test coverage, added correctness tests for `mem_size` using
+  `cap`, and added output test for `mem_dbg` using `insta`.
+
+### Fixed
+
+* Sets and maps now have a `CopyType`.
+
+* Fixed several old bugs in implementations and output formatting.
+
+### Changed
+
+* Improved `HashMap` and `HashSet` size approximation.
+
 ## [0.3.3] - 2026-01-04
 
 ### New
