@@ -1114,12 +1114,7 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
     let header_size = 16;
 
     // Helper to align a size to the next multiple of `align`.
-    let align_up = |size: usize, align: usize| -> usize {
-        if align == 0 {
-            return size;
-        }
-        (size + align - 1) & !(align - 1)
-    };
+    let align_up = |size: usize, align: usize| -> usize { (size + align - 1) & !(align - 1) };
 
     let k_size = core::mem::size_of::<K>();
     let v_size = core::mem::size_of::<V>();
