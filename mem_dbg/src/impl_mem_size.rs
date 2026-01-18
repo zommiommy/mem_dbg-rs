@@ -661,13 +661,14 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 /// * `obj` - The Deref pointer object.
 /// * `flags` - The SizeFlags to use for the computation.
 #[inline(always)]
-fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize
 where
     M: Deref<Target: MemSize + Sized>,
 {
     core::mem::size_of::<M>()
         + if flags.contains(SizeFlags::FOLLOW_REFS) {
-            <M::Target as MemSize>::mem_size(obj.deref(), flags) - core::mem::size_of::<M::Target>()
+            <M::Target as MemSize>::mem_size_rec(obj.deref(), flags, refs)
+                - core::mem::size_of::<M::Target>()
         } else {
             0
         }
@@ -680,7 +681,7 @@ impl<T> CopyType for std::sync::MutexGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
-    fn mem_size(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -692,7 +693,7 @@ impl<T> CopyType for std::sync::RwLockReadGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
-    fn mem_size(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -704,7 +705,7 @@ impl<T> CopyType for std::sync::RwLockWriteGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
-    fn mem_size(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
