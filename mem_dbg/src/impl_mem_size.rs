@@ -918,6 +918,11 @@ fn capacity_to_buckets(cap: usize) -> Option<usize> {
 }
 
 #[cfg(feature = "std")]
+impl<T> CopyType for std::collections::HashSet<T> {
+    type Copy = False;
+}
+
+#[cfg(feature = "std")]
 impl<T: CopyType> MemSize for std::collections::HashSet<T>
 where
     std::collections::HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
@@ -982,6 +987,11 @@ impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
 /// See [`crate::CopyType`] for more information.
 pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags) -> usize;
+}
+
+#[cfg(feature = "std")]
+impl<K, V> CopyType for std::collections::HashMap<K, V> {
+    type Copy = False;
 }
 
 #[cfg(feature = "std")]
@@ -1156,6 +1166,11 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
 }
 
 #[cfg(feature = "std")]
+impl<T> CopyType for std::collections::BTreeSet<T> {
+    type Copy = False;
+}
+
+#[cfg(feature = "std")]
 impl<T: CopyType> MemSize for std::collections::BTreeSet<T>
 where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
@@ -1189,6 +1204,11 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<
                     .sum::<usize>(),
             )
     }
+}
+
+#[cfg(feature = "std")]
+impl<K, V> CopyType for std::collections::BTreeMap<K, V> {
+    type Copy = False;
 }
 
 #[cfg(feature = "std")]
