@@ -35,7 +35,7 @@ This is the result of the benchmark `btree_set_comp` contained in the `examples`
 directory. It builds a B-tree set with a hundred million `usize` entries and
 then measures its heap size:
 
-```
+```ignore
 Allocated:    3428571500
 get_size:     1600000024 349387500 ns
 deep_size_of: 1800000024 284149583 ns
