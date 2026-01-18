@@ -1,6 +1,6 @@
 #![cfg(feature = "mmap-rs")]
 #![cfg(feature = "derive")]
-use mem_dbg::*;
+use mem_dbg::{SizeFlags, *};
 
 #[test]
 fn test_mmap_types() {
@@ -39,7 +39,26 @@ fn test_mmap_types() {
         },
     };
 
-    let size = s.mem_size(SizeFlags::default());
-    assert!(size > 0);
-    assert!(s.mem_dbg(DbgFlags::default()).is_ok());
+    for flag in [
+        SizeFlags::default(),
+        SizeFlags::FOLLOW_RC,
+        SizeFlags::FOLLOW_REFS,
+        SizeFlags::CAPACITY,
+    ] {
+        let size = s.mem_size(flag);
+        assert!(size > 0);
+    }
+    for flag in [
+        DbgFlags::default(),
+        DbgFlags::FOLLOW_RC,
+        DbgFlags::FOLLOW_REFS,
+        DbgFlags::CAPACITY,
+    ] {
+        assert!(s.mem_dbg(flag).is_ok());
+
+        for depth in 0..3 {
+            let result = s.mem_dbg_depth(depth, flag);
+            assert!(result.is_ok());
+        }
+    }
 }
