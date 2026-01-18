@@ -409,7 +409,7 @@ pub trait MemDbgImpl: MemSize {
                 .char_indices()
                 .nth(2) // Skip 2 characters to get to the 3rd
                 .map(|(idx, _)| idx)
-                .unwrap_or(0);
+                .unwrap_or(prefix.len());
             writer.write_str(&prefix[start_byte..])?;
             if is_last {
                 writer.write_char('╰')?;
