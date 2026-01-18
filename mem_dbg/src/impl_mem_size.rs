@@ -13,10 +13,10 @@ use core::sync::atomic::*;
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
 // HashMap for pointer deduplication
-#[cfg(feature = "std")]
-use std::collections::HashMap;
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
+#[cfg(feature = "std")]
+use std::collections::HashMap;
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
@@ -1231,7 +1231,9 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<
             + estimate_btree_size::<T, ()>(
                 self.len(),
                 self.iter()
-                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>())
+                    .map(|x| {
+                        <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>()
+                    })
                     .sum::<usize>(),
             )
     }
@@ -1272,7 +1274,9 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
             + estimate_btree_size::<K, V>(
                 self.len(),
                 self.values()
-                    .map(|v| <V as MemSize>::mem_size_rec(v, flags, refs) - core::mem::size_of::<V>())
+                    .map(|v| {
+                        <V as MemSize>::mem_size_rec(v, flags, refs) - core::mem::size_of::<V>()
+                    })
                     .sum::<usize>(),
             )
     }
@@ -1288,7 +1292,9 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
             + estimate_btree_size::<K, V>(
                 self.len(),
                 self.keys()
-                    .map(|k| <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>())
+                    .map(|k| {
+                        <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>()
+                    })
                     .sum::<usize>(),
             )
     }
