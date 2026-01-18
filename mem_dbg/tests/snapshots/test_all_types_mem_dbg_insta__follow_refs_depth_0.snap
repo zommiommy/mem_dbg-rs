@@ -1,5 +1,0 @@
----
-source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
-expression: depth_output
----
-43_365 B 100.00% : test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
