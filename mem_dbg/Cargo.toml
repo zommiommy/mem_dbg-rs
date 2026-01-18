@@ -39,6 +39,10 @@ maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
 [[example]]
+name = "btree_set_comp"
+required-features = ["std"]
+
+[[example]]
 name = "comparison"
 required-features = ["std", "derive"]
 

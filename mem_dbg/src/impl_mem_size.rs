@@ -637,6 +637,7 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 ///
 /// * `obj` - The Deref pointer object.
 /// * `flags` - The SizeFlags to use for the computation.
+#[cfg(feature = "std")]
 #[inline(always)]
 fn deref_pointer_size<M>(obj: &M, flags: SizeFlags) -> usize
 where
