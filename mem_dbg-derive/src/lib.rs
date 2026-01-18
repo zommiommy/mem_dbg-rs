@@ -333,10 +333,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             });
                             #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
-                                id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
                                 // We push the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#field_ident)));
+                                id_sizes.push((#field_idx, core::mem::size_of_val(#field_ident)));
                             });
 
                             // This is the arm of the match statement that
@@ -410,17 +409,18 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }
                 variants.push(res);
                 let variant_name = format!("Variant: {}\n", variant.ident);
+
+                // There's some code duplication here, but we need to keep the
+                // #[cfg] attributes outside of the quote! macro.
+                // IMPORTANT: We must push exactly ONE item to variants_code per
+                // variant to match the length of the variants Vec.
+
+                #[cfg(feature = "offset_of_enum")]
                 variants_code.push(quote!{{
                     _memdbg_writer.write_char(#arrow)?;
                     _memdbg_writer.write_char('╴')?;
                     _memdbg_writer.write_str(#variant_name)?;
-                }});
 
-                // There's some abundant code duplication here, but we need to
-                // keep the #[cfg] attributes outside of the quote! macro.
-
-                #[cfg(feature = "offset_of_enum")]
-                variants_code.push(quote!{{
                     let mut id_sizes: Vec<(usize, usize)> = vec![];
                     #(#id_offset_pushes)*
                     let n = id_sizes.len();
@@ -449,6 +449,10 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
 
                 #[cfg(not(feature = "offset_of_enum"))]
                 variants_code.push(quote!{{
+                    _memdbg_writer.write_char(#arrow)?;
+                    _memdbg_writer.write_char('╴')?;
+                    _memdbg_writer.write_str(#variant_name)?;
+
                     let mut id_sizes: Vec<(usize, usize)> = vec![];
                     #(#id_offset_pushes)*
                     let n = id_sizes.len();
