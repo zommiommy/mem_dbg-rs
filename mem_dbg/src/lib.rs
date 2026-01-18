@@ -15,6 +15,12 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 
+// HashMap for pointer deduplication in mem_size (re-exported for derive macro)
+#[cfg(feature = "std")]
+pub use std::collections::HashMap;
+#[cfg(not(feature = "std"))]
+pub use hashbrown::HashMap;
+
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
 
@@ -130,10 +136,36 @@ impl Default for SizeFlags {
 ///
 /// You can derive this trait with `#[derive(MemSize)]` if all the fields of
 /// your type implement [`MemSize`].
+///
+/// The trait uses a two-method design to handle pointer deduplication:
+/// - [`mem_size_rec`](MemSize::mem_size_rec): The recursive implementation that tracks visited pointers
+/// - [`mem_size`](MemSize::mem_size): The user-facing API with a default implementation
+///
+/// When implementing this trait manually, you should implement `mem_size_rec`.
+/// The `refs` parameter is a map from pointer addresses to sizes, used to avoid
+/// counting the same referenced memory multiple times (e.g., when multiple `Rc`s
+/// point to the same data).
 pub trait MemSize {
-    /// Returns the (recursively computed) overall
-    /// memory size of the structure in bytes.
-    fn mem_size(&self, flags: SizeFlags) -> usize;
+    /// Recursive implementation that tracks visited pointers for deduplication.
+    ///
+    /// For types that contain references (Box, Rc, Arc, &T), this method should:
+    /// 1. Check if the pointer is already in `refs`
+    /// 2. If not, compute the inner size and insert it into `refs`
+    /// 3. Return only the size of the pointer itself (not the referenced data)
+    ///
+    /// For types without references, simply ignore the `refs` parameter.
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+
+    /// Returns the (recursively computed) overall memory size of the structure in bytes.
+    ///
+    /// This method handles pointer deduplication: if the same memory region is
+    /// reachable through multiple paths (e.g., multiple `Rc`s pointing to the same data),
+    /// it will only be counted once.
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        let mut refs = HashMap::new();
+        let base = self.mem_size_rec(flags, &mut refs);
+        base + refs.into_values().sum::<usize>()
+    }
 }
 
 bitflags::bitflags! {

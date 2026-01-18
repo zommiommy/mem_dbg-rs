@@ -12,6 +12,12 @@ use core::sync::atomic::*;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
+// HashMap for pointer deduplication
+#[cfg(feature = "std")]
+use std::collections::HashMap;
+#[cfg(not(feature = "std"))]
+use hashbrown::HashMap;
+
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
 #[cfg(not(feature = "std"))]
@@ -30,7 +36,7 @@ macro_rules! impl_size_of {
 
         impl MemSize for $ty {
             #[inline(always)]
-            fn mem_size(&self, _flags: SizeFlags) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
                 core::mem::size_of::<Self>()
             }
         }
@@ -47,7 +53,7 @@ macro_rules! impl_copy_size_of {
 
         impl MemSize for $ty {
             #[inline(always)]
-            fn mem_size(&self, _flags: SizeFlags) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
                 core::mem::size_of::<Self>()
             }
         }
@@ -74,7 +80,7 @@ impl CopyType for str {
 
 impl MemSize for str {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<usize>() + self.len()
     }
 }
@@ -85,7 +91,7 @@ impl CopyType for String {
 
 impl MemSize for String {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
             core::mem::size_of::<Self>() + self.capacity()
         } else {
@@ -102,12 +108,12 @@ impl<T> CopyType for PhantomData<T> {
 
 impl<T: ?Sized> MemSize for PhantomData<T> {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         0
     }
 }
 
-// References: we recurse only if FOLLOW_REFS is set
+// References: we recurse only if FOLLOW_REFS is set, and use the map for deduplication
 
 impl<T: ?Sized + MemSize> CopyType for &'_ T {
     type Copy = False;
@@ -115,9 +121,14 @@ impl<T: ?Sized + MemSize> CopyType for &'_ T {
 
 impl<T: ?Sized + MemSize> MemSize for &'_ T {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
-            core::mem::size_of::<Self>() + <T as MemSize>::mem_size(*self, flags)
+            let ptr = *self as *const T as *const () as usize;
+            if !refs.contains_key(&ptr) {
+                let inner_size = <T as MemSize>::mem_size_rec(*self, flags, refs);
+                refs.insert(ptr, inner_size);
+            }
+            core::mem::size_of::<Self>()
         } else {
             core::mem::size_of::<Self>()
         }
@@ -130,8 +141,8 @@ impl<T: ?Sized + MemSize> CopyType for &'_ mut T {
 
 impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <&'_ T as MemSize>::mem_size(&&**self, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <&'_ T as MemSize>::mem_size_rec(&&**self, flags, refs)
     }
 }
 
@@ -143,15 +154,15 @@ impl<T: CopyType + MemSize> CopyType for Option<T> {
 
 impl<T: MemSize> MemSize for Option<T> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + self.as_ref().map_or(0, |x| {
-                <T as MemSize>::mem_size(x, flags) - core::mem::size_of::<T>()
+                <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>()
             })
     }
 }
 
-// Box
+// Box: unique ownership, so just recurse directly
 
 impl<T: ?Sized> CopyType for Box<T> {
     type Copy = False;
@@ -159,8 +170,8 @@ impl<T: ?Sized> CopyType for Box<T> {
 
 impl<T: ?Sized + MemSize> MemSize for Box<T> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <T as MemSize>::mem_size(self.as_ref(), flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
     }
 }
 
@@ -173,7 +184,7 @@ struct RcInner<T: ?Sized> {
     _data: T,
 }
 
-// Rc
+// Rc: uses map for deduplication when FOLLOW_RC is set
 
 /// This implementation is based on the assumption that `Rc<T>` is
 /// implemented as follows:
@@ -193,18 +204,22 @@ struct RcInner<T: ?Sized> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::rc::Rc<T> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>()
-            + core::mem::size_of::<RcInner<T>>()
-            + if flags.contains(SizeFlags::FOLLOW_RC) {
-                <T as MemSize>::mem_size(self.as_ref(), flags) - core::mem::size_of::<T>()
-            } else {
-                0
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        if flags.contains(SizeFlags::FOLLOW_RC) {
+            let ptr = std::rc::Rc::as_ptr(self) as usize;
+            if !refs.contains_key(&ptr) {
+                // Size of RcInner (header) + inner value's recursive size
+                let inner_size = core::mem::size_of::<RcInner<T>>()
+                    + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
+                    - core::mem::size_of::<T>();
+                refs.insert(ptr, inner_size);
             }
+        }
+        core::mem::size_of::<Self>()
     }
 }
 
-// Arc
+// Arc: uses map for deduplication when FOLLOW_RC is set
 
 /// This implementation is based on the assumption that `Arc<T>` is
 /// implemented as follows:
@@ -225,14 +240,18 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Arc<T> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>()
-            + core::mem::size_of::<RcInner<T>>()
-            + if flags.contains(SizeFlags::FOLLOW_RC) {
-                <T as MemSize>::mem_size(self.as_ref(), flags) - core::mem::size_of::<T>()
-            } else {
-                0
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        if flags.contains(SizeFlags::FOLLOW_RC) {
+            let ptr = std::sync::Arc::as_ptr(self) as usize;
+            if !refs.contains_key(&ptr) {
+                // Size of ArcInner (header) + inner value's recursive size
+                let inner_size = core::mem::size_of::<RcInner<T>>()
+                    + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
+                    - core::mem::size_of::<T>();
+                refs.insert(ptr, inner_size);
             }
+        }
+        core::mem::size_of::<Self>()
     }
 }
 
@@ -242,7 +261,7 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
 ///
 /// See [`crate::CopyType`] for more information.
 pub trait MemSizeHelper<T: Boolean> {
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize;
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
 
 // Slices
@@ -252,23 +271,23 @@ where
     [T]: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of_val(self)
     }
 }
 
 impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         self.iter()
-            .map(|x| <T as MemSize>::mem_size(x, flags))
+            .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
             .sum::<usize>()
     }
 }
@@ -284,25 +303,25 @@ where
     [T; N]: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
 
 impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + self
                 .iter()
-                .map(|x| <T as MemSize>::mem_size(x, flags) - core::mem::size_of::<T>())
+                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>())
                 .sum::<usize>()
     }
 }
@@ -318,14 +337,14 @@ where
     Vec<T>: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
             core::mem::size_of::<Self>() + self.capacity() * core::mem::size_of::<T>()
         } else {
@@ -336,19 +355,19 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
 
 impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
             core::mem::size_of::<Self>()
                 + self
                     .iter()
-                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
                     .sum::<usize>()
                 + (self.capacity() - self.len()) * core::mem::size_of::<T>()
         } else {
             core::mem::size_of::<Self>()
                 + self
                     .iter()
-                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
                     .sum::<usize>()
         }
     }
@@ -365,14 +384,14 @@ where
     VecDeque<T>: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <VecDeque<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <VecDeque<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: CopyType + MemSize> MemSizeHelper<True> for VecDeque<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
             core::mem::size_of::<Self>() + self.capacity() * core::mem::size_of::<T>()
         } else {
@@ -383,19 +402,19 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for VecDeque<T> {
 
 impl<T: CopyType + MemSize> MemSizeHelper<False> for VecDeque<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::CAPACITY) {
             core::mem::size_of::<Self>()
                 + self
                     .iter()
-                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
                     .sum::<usize>()
                 + (self.capacity() - self.len()) * core::mem::size_of::<T>()
         } else {
             core::mem::size_of::<Self>()
                 + self
                     .iter()
-                    .map(|x| <T as MemSize>::mem_size(x, flags))
+                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
                     .sum::<usize>()
         }
     }
@@ -427,10 +446,10 @@ macro_rules! impl_tuples_muncher {
 		impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*)
         {
             #[inline(always)]
-            fn mem_size(&self, flags: SizeFlags) -> usize {
+            fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
                 let mut bytes = core::mem::size_of::<Self>();
-                bytes += <$ty as MemSize>::mem_size(&self.$idx, flags) - core::mem::size_of::<$ty>();
-                $( bytes += <$nty as MemSize>::mem_size(&self.$nidx, flags) - core::mem::size_of::<$nty>(); )*
+                bytes += <$ty as MemSize>::mem_size_rec(&self.$idx, flags, refs) - core::mem::size_of::<$ty>();
+                $( bytes += <$nty as MemSize>::mem_size_rec(&self.$nidx, flags, refs) - core::mem::size_of::<$nty>(); )*
                 bytes
             }
         }
@@ -459,7 +478,7 @@ impl<R> CopyType for fn() -> R {
 
 impl<R> MemSize for fn() -> R {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -470,7 +489,7 @@ impl<A, R> CopyType for fn(A) -> R {
 
 impl<A, R> MemSize for fn(A) -> R {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -481,7 +500,7 @@ impl<A, B, R> CopyType for fn(A, B) -> R {
 
 impl<A, B, R> MemSize for fn(A, B) -> R {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -492,7 +511,7 @@ impl<A, B, C, R> CopyType for fn(A, B, C) -> R {
 
 impl<A, B, C, R> MemSize for fn(A, B, C) -> R {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -503,7 +522,7 @@ impl<A, B, C, D, R> CopyType for fn(A, B, C, D) -> R {
 
 impl<A, B, C, D, R> MemSize for fn(A, B, C, D) -> R {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -516,10 +535,10 @@ impl<Idx: CopyType> CopyType for core::ops::Range<Idx> {
 
 impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
-            + <Idx as MemSize>::mem_size(&self.start, flags)
-            + <Idx as MemSize>::mem_size(&self.end, flags)
+            + <Idx as MemSize>::mem_size_rec(&self.start, flags, refs)
+            + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - 2 * core::mem::size_of::<Idx>()
     }
 }
@@ -530,8 +549,8 @@ impl<Idx: CopyType> CopyType for core::ops::RangeFrom<Idx> {
 
 impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.start, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.start, flags, refs)
             - core::mem::size_of::<Idx>()
     }
 }
@@ -542,10 +561,10 @@ impl<Idx: CopyType> CopyType for core::ops::RangeInclusive<Idx> {
 
 impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
-            + <Idx as MemSize>::mem_size(self.start(), flags)
-            + <Idx as MemSize>::mem_size(self.end(), flags)
+            + <Idx as MemSize>::mem_size_rec(self.start(), flags, refs)
+            + <Idx as MemSize>::mem_size_rec(self.end(), flags, refs)
             - 2 * core::mem::size_of::<Idx>()
     }
 }
@@ -556,8 +575,8 @@ impl<Idx: CopyType> CopyType for core::ops::RangeTo<Idx> {
 
 impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.end, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - core::mem::size_of::<Idx>()
     }
 }
@@ -568,8 +587,8 @@ impl<Idx: CopyType> CopyType for core::ops::RangeToInclusive<Idx> {
 
 impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size(&self.end, flags)
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - core::mem::size_of::<Idx>()
     }
 }
@@ -590,9 +609,10 @@ impl<T: CopyType> CopyType for core::cell::RefCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(&self.borrow(), flags)
+            + <T as MemSize>::mem_size_rec(&self.borrow(), flags, refs)
     }
 }
 
@@ -601,9 +621,10 @@ impl<T: CopyType> CopyType for core::cell::Cell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value
-        unsafe { <T as MemSize>::mem_size(&*self.as_ptr(), flags) }
+        unsafe { <T as MemSize>::mem_size_rec(&*self.as_ptr(), flags, refs) }
     }
 }
 
@@ -612,10 +633,11 @@ impl<T: CopyType> CopyType for core::cell::OnceCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         let mut size = core::mem::size_of::<Self>();
         if let Some(t) = self.get() {
-            size += <T as MemSize>::mem_size(t, flags) - core::mem::size_of::<T>();
+            size += <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>();
         }
         size
     }
@@ -626,9 +648,10 @@ impl<T: CopyType> CopyType for core::cell::UnsafeCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value
-        unsafe { <T as MemSize>::mem_size(&*self.get(), flags) }
+        unsafe { <T as MemSize>::mem_size_rec(&*self.get(), flags, refs) }
     }
 }
 
@@ -641,9 +664,10 @@ impl<T: CopyType> CopyType for std::sync::Mutex<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(&self.lock().unwrap(), flags)
+            + <T as MemSize>::mem_size_rec(&self.lock().unwrap(), flags, refs)
     }
 }
 
@@ -654,9 +678,10 @@ impl<T: CopyType> CopyType for std::sync::RwLock<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(&self.read().unwrap(), flags)
+            + <T as MemSize>::mem_size_rec(&self.read().unwrap(), flags, refs)
     }
 }
 
@@ -667,11 +692,12 @@ impl<T: CopyType> CopyType for std::sync::MutexGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         use core::ops::Deref;
         if flags.contains(SizeFlags::FOLLOW_REFS) {
             core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size(self.deref(), flags)
+                + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
         } else {
             0
         }
@@ -685,11 +711,12 @@ impl<T: CopyType> CopyType for std::sync::RwLockReadGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         use core::ops::Deref;
         if flags.contains(SizeFlags::FOLLOW_REFS) {
             core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size(self.deref(), flags)
+                + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
         } else {
             0
         }
@@ -703,11 +730,12 @@ impl<T: CopyType> CopyType for std::sync::RwLockWriteGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         use core::ops::Deref;
         if flags.contains(SizeFlags::FOLLOW_REFS) {
             core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-                + <T as MemSize>::mem_size(self.deref(), flags)
+                + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
         } else {
             0
         }
@@ -723,8 +751,9 @@ impl CopyType for std::path::Path {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::Path {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
-        <std::ffi::OsStr as MemSize>::mem_size(self.as_os_str(), flags)
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <std::ffi::OsStr as MemSize>::mem_size_rec(self.as_os_str(), flags, refs)
     }
 }
 
@@ -735,12 +764,13 @@ impl CopyType for std::path::PathBuf {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::PathBuf {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
             } else {
-                <std::ffi::OsStr as MemSize>::mem_size(self.as_os_str(), flags)
+                <std::ffi::OsStr as MemSize>::mem_size_rec(self.as_os_str(), flags, refs)
             }
     }
 }
@@ -752,7 +782,8 @@ impl CopyType for std::ffi::OsStr {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsStr {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
             // OsStr is unsized, so we can only return the length of the data
             self.as_encoded_bytes().len()
@@ -769,7 +800,8 @@ impl CopyType for std::ffi::OsString {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsString {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         // OsString is like String - it has heap-allocated data
         // We use len() by default, and capacity() with CAPACITY flag
         core::mem::size_of::<Self>()
@@ -800,9 +832,10 @@ impl<T: MemSize + std::io::Read> CopyType for std::io::BufReader<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(self.get_ref(), flags)
+            + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
 }
 
@@ -813,9 +846,10 @@ impl<T: MemSize + std::io::Write> CopyType for std::io::BufWriter<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(self.get_ref(), flags)
+            + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
 }
 
@@ -826,9 +860,10 @@ impl<T> CopyType for std::io::Cursor<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::io::Cursor<T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    #[inline(always)]
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(self.get_ref(), flags)
+            + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
 }
 
@@ -862,7 +897,7 @@ impl CopyType for mmap_rs::Mmap {
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::Mmap {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::FOLLOW_REFS) {
                 self.len()
@@ -880,7 +915,7 @@ impl CopyType for mmap_rs::MmapMut {
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::MmapMut {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::FOLLOW_REFS) {
                 self.len()
@@ -928,9 +963,9 @@ where
     std::collections::HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         <std::collections::HashSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(
-            self, flags,
+            self, flags, refs,
         )
     }
 }
@@ -960,7 +995,7 @@ fn fix_set_for_capacity<K>(
 #[cfg(feature = "std")]
 impl<K: CopyType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         fix_set_for_capacity(self, core::mem::size_of::<K>() * self.len(), flags)
     }
 }
@@ -968,11 +1003,11 @@ impl<K: CopyType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K>
 #[cfg(feature = "std")]
 impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         fix_set_for_capacity(
             self,
             self.iter()
-                .map(|x| <K as MemSize>::mem_size(x, flags))
+                .map(|x| <K as MemSize>::mem_size_rec(x, flags, refs))
                 .sum::<usize>(),
             flags,
         )
@@ -986,7 +1021,7 @@ impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
 ///
 /// See [`crate::CopyType`] for more information.
 pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize;
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
 
 #[cfg(feature = "std")]
@@ -995,11 +1030,11 @@ where
     std::collections::HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         <std::collections::HashMap<K, V> as MemSizeHelper2<
             <K as CopyType>::Copy,
             <V as CopyType>::Copy,
-        >>::mem_size_impl(self, flags)
+        >>::mem_size_impl(self, flags, refs)
     }
 }
 
@@ -1030,7 +1065,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * self.len(),
@@ -1044,13 +1079,13 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             (core::mem::size_of::<K>()) * self.len()
                 + self
                     .values()
-                    .map(|v| <V as MemSize>::mem_size(v, flags))
+                    .map(|v| <V as MemSize>::mem_size_rec(v, flags, refs))
                     .sum::<usize>(),
             flags,
         )
@@ -1062,11 +1097,11 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             self.keys()
-                .map(|k| <K as MemSize>::mem_size(k, flags))
+                .map(|k| <K as MemSize>::mem_size_rec(k, flags, refs))
                 .sum::<usize>()
                 + (core::mem::size_of::<V>()) * self.len(),
             flags,
@@ -1079,12 +1114,13 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             self.iter()
                 .map(|(k, v)| {
-                    <K as MemSize>::mem_size(k, flags) + <V as MemSize>::mem_size(v, flags)
+                    <K as MemSize>::mem_size_rec(k, flags, refs)
+                        + <V as MemSize>::mem_size_rec(v, flags, refs)
                 })
                 .sum::<usize>(),
             flags,
@@ -1171,9 +1207,9 @@ where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         <std::collections::BTreeSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(
-            self, flags,
+            self, flags, refs,
         )
     }
 }
@@ -1181,7 +1217,7 @@ where
 #[cfg(feature = "std")]
 impl<T: CopyType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeSet<T>>()
             + estimate_btree_size::<T, ()>(self.len(), 0)
     }
@@ -1190,12 +1226,12 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T
 #[cfg(feature = "std")]
 impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeSet<T>>()
             + estimate_btree_size::<T, ()>(
                 self.len(),
                 self.iter()
-                    .map(|x| x.mem_size(flags) - core::mem::size_of::<T>())
+                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>())
                     .sum::<usize>(),
             )
     }
@@ -1207,11 +1243,11 @@ where
     std::collections::BTreeMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
 {
     #[inline(always)]
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         <std::collections::BTreeMap<K, V> as MemSizeHelper2<
             <K as CopyType>::Copy,
             <V as CopyType>::Copy,
-        >>::mem_size_impl(self, flags)
+        >>::mem_size_impl(self, flags, refs)
     }
 }
 
@@ -1220,7 +1256,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(self.len(), 0)
     }
@@ -1231,12 +1267,12 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(
                 self.len(),
                 self.values()
-                    .map(|v| v.mem_size(flags) - core::mem::size_of::<V>())
+                    .map(|v| <V as MemSize>::mem_size_rec(v, flags, refs) - core::mem::size_of::<V>())
                     .sum::<usize>(),
             )
     }
@@ -1247,12 +1283,12 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(
                 self.len(),
                 self.keys()
-                    .map(|k| k.mem_size(flags) - core::mem::size_of::<K>())
+                    .map(|k| <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>())
                     .sum::<usize>(),
             )
     }
@@ -1263,13 +1299,14 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(
                 self.len(),
                 self.iter()
                     .map(|(k, v)| {
-                        k.mem_size(flags) - core::mem::size_of::<K>() + v.mem_size(flags)
+                        <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>()
+                            + <V as MemSize>::mem_size_rec(v, flags, refs)
                             - core::mem::size_of::<V>()
                     })
                     .sum::<usize>(),
@@ -1284,7 +1321,7 @@ impl<H> CopyType for core::hash::BuildHasherDefault<H> {
 }
 impl<H> MemSize for core::hash::BuildHasherDefault<H> {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         // it's a phantom hash
         debug_assert_eq!(core::mem::size_of::<Self>(), 0);
         0
@@ -1301,7 +1338,7 @@ impl CopyType for std::hash::DefaultHasher {
 // that does not allocate memory on the heap.
 impl MemSize for std::hash::DefaultHasher {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1314,7 +1351,7 @@ impl CopyType for std::collections::hash_map::RandomState {
 #[cfg(feature = "std")]
 impl MemSize for std::collections::hash_map::RandomState {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1329,7 +1366,7 @@ impl<T: ?Sized> CopyType for core::ptr::NonNull<T> {
 
 impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
     #[inline(always)]
-    fn mem_size(&self, _flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1356,10 +1393,10 @@ impl<A: maligned::Alignment, T: MemSize> CopyType for maligned::Aligned<A, T> {
 
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
-    fn mem_size(&self, flags: SizeFlags) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         use core::ops::Deref;
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(self.deref(), flags)
+            + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
     }
 }
 

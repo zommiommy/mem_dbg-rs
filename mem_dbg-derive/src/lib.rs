@@ -80,9 +80,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                 #[automatically_derived]
                 impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                    fn mem_size_rec(&self, _memsize_flags: mem_dbg::SizeFlags, _memsize_refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
                         let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += <#fields_ty as mem_dbg::MemSize>::mem_size(&self.#fields_ident, _memsize_flags) - core::mem::size_of::<#fields_ty>();)*
+                        #(bytes += <#fields_ty as mem_dbg::MemSize>::mem_size_rec(&self.#fields_ident, _memsize_flags, _memsize_refs) - core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
@@ -108,7 +108,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 let field_ident = &field.ident;
                                 let field_ty = field.ty.to_token_stream();
                                 var_args_size.extend([quote! {
-                                    + <#field_ty as mem_dbg::MemSize>::mem_size(#field_ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
+                                    + <#field_ty as mem_dbg::MemSize>::mem_size_rec(#field_ident, _memsize_flags, _memsize_refs) - core::mem::size_of::<#field_ty>()
                                 }]);
                                 args.extend([field_ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -129,7 +129,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_ty = field.ty.to_token_stream();
                             var_args_size.extend([quote! {
-                                + <#field_ty as mem_dbg::MemSize>::mem_size(#ident, _memsize_flags) - core::mem::size_of::<#field_ty>()
+                                + <#field_ty as mem_dbg::MemSize>::mem_size_rec(#ident, _memsize_flags, _memsize_refs) - core::mem::size_of::<#field_ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -157,7 +157,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                 #[automatically_derived]
                 impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
+                    fn mem_size_rec(&self, _memsize_flags: mem_dbg::SizeFlags, _memsize_refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
                         match self {
                             #(
                                #input_ident::#variants => #variants_size,
@@ -193,8 +193,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                         #[automatically_derived]
                         impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                            fn mem_size(&self, _memsize_flags: mem_dbg::SizeFlags) -> usize {
-                                unsafe{ <#field_ty as mem_dbg::MemSize>::mem_size(&self.#ident, _memsize_flags) }
+                            fn mem_size_rec(&self, _memsize_flags: mem_dbg::SizeFlags, _memsize_refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
+                                unsafe{ <#field_ty as mem_dbg::MemSize>::mem_size_rec(&self.#ident, _memsize_flags, _memsize_refs) }
                             }
                         }
                     }
@@ -304,7 +304,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             let mut variants_code = Vec::new();
 
             for variant in &e.variants {
-                let variant_ident = &variant.ident;
+                // This variable is used only in the offset_of_enum-gated code
+                let _variant_ident = &variant.ident;
                 let mut res = variant.ident.to_owned().to_token_stream();
                 // Depending on the presence of the feature offset_of_enum, this
                 // will contains field indices and offset_of or field indices
@@ -329,7 +330,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push(quote!{
                                 // We push the offset of the field, which will
                                 // be used to compute the padded size.
-                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
+                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #_variant_ident . #field_ident)));
                             });
                             #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
@@ -377,7 +378,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push(quote!{
                                 // We push the offset of the field, which will
                                 // be used to compute the padded size.
-                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx)));
+                                id_sizes.push((#field_idx, core::mem::offset_of!(#input_ident #ty_generics, #_variant_ident . #_field_tuple_idx)));
                             });
 
                             #[cfg(not(feature = "offset_of_enum"))]
