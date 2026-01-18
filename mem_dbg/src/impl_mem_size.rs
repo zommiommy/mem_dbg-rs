@@ -13,11 +13,8 @@ use core::sync::atomic::*;
 
 use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
 
-// HashMap for pointer deduplication
-#[cfg(not(feature = "std"))]
+// HashMap for pointer deduplication (always use hashbrown for consistency)
 use hashbrown::HashMap;
-#[cfg(feature = "std")]
-use std::collections::HashMap;
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;

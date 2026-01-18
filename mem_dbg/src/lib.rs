@@ -16,10 +16,7 @@ extern crate alloc;
 use alloc::string::String;
 
 // HashMap for pointer deduplication in mem_size (re-exported for derive macro)
-#[cfg(not(feature = "std"))]
 pub use hashbrown::HashMap;
-#[cfg(feature = "std")]
-pub use std::collections::HashMap;
 
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
