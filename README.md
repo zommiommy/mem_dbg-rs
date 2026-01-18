@@ -29,12 +29,14 @@ iterating over the content of a container (e.g., a vector of `Copy` types)
 when it is not necessary. This allows it to compute instantly the size of values
 occupying hundreds of gigabytes of heap memory.
 
-Moreover, while the size estimation of `BTreeMap`, `BTreeSet`, `HashMap`, and
-`HashSet` is heuristic in all libraries, `mem_dbg` is significantly more
+Moreover, while the size estimation of [`BTreeSet`], [`BTreeMap`], [`HashSet`],
+and [`HashMap`] is heuristic in all libraries, `mem_dbg` is significantly more
 precise, and takes into account the load factor and the power-of-two size
-constraint of the hash map.
+constraint of the hash table.
 
-The following table compares [`mem_dbg`] against [`deepsize`] and [`get-size`]. The true memory usage (0% error) is calculated using the allocator from the [`cap`] crate.
+The following table compares the [`MemSize`] trait from this crate against the
+crates [`deepsize`] and [`get-size`]. The true memory usage (0% error) is
+calculated using the allocator from the [`cap`] crate.
 
 | Type   | Container | Crate    | Error (%)       | Time/Elem (ns) |
 |--------|-----------|----------|-----------------|----------------|
@@ -343,3 +345,7 @@ assert_eq!(
 [`DbgFlags::FOLLOW_RC`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RC
 [`SizeFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_REFS
 [`SizeFlags::FOLLOW_RC`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RC
+[`HashSet`]: https://doc.rust-lang.org/std/collections/struct.HashSet.html
+[`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
+[`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+[`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
