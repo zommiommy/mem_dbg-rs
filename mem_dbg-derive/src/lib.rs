@@ -304,7 +304,6 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             let mut variants_code = Vec::new();
 
             for variant in &e.variants {
-                let variant_ident = &variant.ident;
                 let mut res = variant.ident.to_owned().to_token_stream();
                 // Depending on the presence of the feature offset_of_enum, this
                 // will contains field indices and offset_of or field indices

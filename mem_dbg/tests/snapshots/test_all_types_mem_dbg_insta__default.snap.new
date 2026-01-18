@@ -1,5 +1,6 @@
 ---
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
+assertion_line: 27
 expression: output
 ---
 43_350 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
