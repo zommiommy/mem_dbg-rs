@@ -895,6 +895,22 @@ impl MemSize for mmap_rs::MmapMut {
 // If the standard library changes load factor, this code will have to change
 // accordingly.
 
+// Group width for Swiss Tables (hashbrown). This depends on SIMD support:
+// - x86_64 with SSE2: 16 bytes
+// - Other platforms (ARM64 NEON, generic): 8 bytes
+#[cfg(feature = "std")]
+#[cfg(all(
+    target_arch = "x86_64",
+    any(target_feature = "sse2", target_env = "msvc")
+))]
+const GROUP_WIDTH: usize = 16;
+#[cfg(feature = "std")]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    any(target_feature = "sse2", target_env = "msvc")
+)))]
+const GROUP_WIDTH: usize = 8;
+
 // Straight from hashbrown
 #[cfg(feature = "std")]
 fn capacity_to_buckets(cap: usize) -> Option<usize> {
@@ -954,7 +970,7 @@ fn fix_set_for_capacity<K>(
         + size
         + (buckets - hash_set.len()) * core::mem::size_of::<K>()
         + buckets * core::mem::size_of::<u8>()
-        + if buckets > 0 { 16 } else { 0 }
+        + if buckets > 0 { GROUP_WIDTH } else { 0 }
 }
 
 #[cfg(feature = "std")]
@@ -1022,7 +1038,7 @@ fn fix_map_for_capacity<K, V>(
         + size
         + (buckets - hash_map.len()) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
         + buckets * core::mem::size_of::<u8>()
-        + if buckets > 0 { 16 } else { 0 }
+        + if buckets > 0 { GROUP_WIDTH } else { 0 }
 }
 
 #[cfg(feature = "std")]
