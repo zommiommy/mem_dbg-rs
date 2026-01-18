@@ -16,10 +16,10 @@ extern crate alloc;
 use alloc::string::String;
 
 // HashMap for pointer deduplication in mem_size (re-exported for derive macro)
-#[cfg(feature = "std")]
-pub use std::collections::HashMap;
 #[cfg(not(feature = "std"))]
 pub use hashbrown::HashMap;
+#[cfg(feature = "std")]
+pub use std::collections::HashMap;
 
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
@@ -88,13 +88,10 @@ bitflags::bitflags! {
         /// Follow references.
         ///
         /// By default [`MemSize::mem_size`] does not follow references and
-        /// computes only the size of the reference itself.
-        ///
-        /// # Warning
-        ///
-        /// Note that all references are followed independently. If the same
-        /// region of memory is reachable by two different paths, it will be
-        /// counted twice.
+        /// computes only the size of the reference itself. Note that the size
+        /// of every reference will be added once (i.e., if you have two
+        /// identical references to the same memory region, the size of that
+        /// region will be added only once).
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///
@@ -112,13 +109,10 @@ bitflags::bitflags! {
         /// [`Arc`](std::sync::Arc)).
         ///
         /// By default [`MemSize::mem_size`] does not follow counted references
-        /// and computes only the size of the reference itself.
-        ///
-        /// # Warning
-        ///
-        /// Note that all counted references are followed independently. If the same
-        /// region of memory is reachable by two different paths, it will be
-        /// counted twice.
+        /// and computes only the size of the reference itself. Note that the
+        /// size of every counted reference will be added once (i.e., if you
+        /// have two identical counted references to the same memory region,
+        /// the size of that region will be added only once).
         const FOLLOW_RC = 1 << 2;
     }
 }
@@ -137,35 +131,29 @@ impl Default for SizeFlags {
 /// You can derive this trait with `#[derive(MemSize)]` if all the fields of
 /// your type implement [`MemSize`].
 ///
-/// The trait uses a two-method design to handle pointer deduplication:
-/// - [`mem_size_rec`](MemSize::mem_size_rec): The recursive implementation that tracks visited pointers
-/// - [`mem_size`](MemSize::mem_size): The user-facing API with a default implementation
-///
-/// When implementing this trait manually, you should implement `mem_size_rec`.
-/// The `refs` parameter is a map from pointer addresses to sizes, used to avoid
-/// counting the same referenced memory multiple times (e.g., when multiple `Rc`s
-/// point to the same data).
+/// When implementing this trait manually, you should implement
+/// [`mem_size_rec`](MemSize::mem_size_rec).
 pub trait MemSize {
-    /// Recursive implementation that tracks visited pointers for deduplication.
-    ///
-    /// For types that contain references (Box, Rc, Arc, &T), this method should:
-    /// 1. Check if the pointer is already in `refs`
-    /// 2. If not, compute the inner size and insert it into `refs`
-    /// 3. Return only the size of the pointer itself (not the referenced data)
-    ///
-    /// For types without references, simply ignore the `refs` parameter.
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
-
-    /// Returns the (recursively computed) overall memory size of the structure in bytes.
-    ///
-    /// This method handles pointer deduplication: if the same memory region is
-    /// reachable through multiple paths (e.g., multiple `Rc`s pointing to the same data),
-    /// it will only be counted once.
+    /// Returns the (recursively computed) overall memory size of the structure
+    /// in bytes.
     fn mem_size(&self, flags: SizeFlags) -> usize {
         let mut refs = HashMap::new();
         let base = self.mem_size_rec(flags, &mut refs);
         base + refs.into_values().sum::<usize>()
     }
+
+    /// Recursive implementation that tracks visited references for deduplication.
+    ///
+    /// The parameter `refs` is a map from pointer addresses (coming from
+    /// references) to their computed size that is used to count the space
+    /// occupied by references only once in case any of the flags
+    /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RC`] is set.
+    ///
+    /// In case of custom (non-derive) implementations: types that do not
+    /// contain references can simply ignore the `refs` parameter; otherwise,
+    /// please have a look at the [implementation for
+    /// references](#impl-MemSize-for-%26T).
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
 
 bitflags::bitflags! {
@@ -224,7 +212,7 @@ impl Default for DbgFlags {
 /// type implement [`MemDbg`]. Note that you will also need to derive
 /// [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
-    /// Writes to stderr debug infos about the structure memory usage, expanding
+    /// Writes to stderr debug info about the structure memory usage, expanding
     /// all levels of nested structures.
     #[inline(always)]
     #[cfg(feature = "std")]
@@ -238,7 +226,7 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage, expanding all levels of nested structures.
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
@@ -256,7 +244,7 @@ pub trait MemDbg: MemDbgImpl {
     }
 
     #[cfg(feature = "std")]
-    /// Writes to stderr debug infos about the structure memory usage as
+    /// Writes to stderr debug info about the structure memory usage as
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
@@ -268,7 +256,7 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage as [`mem_dbg_on`](MemDbg::mem_dbg_on), but expanding only up to
     /// `max_depth` levels of nested structures.
     fn mem_dbg_depth_on(
@@ -290,7 +278,7 @@ pub trait MemDbg: MemDbgImpl {
     }
 }
 
-/// Implemens [`MemDbg`] for all types that implement [`MemDbgImpl`].
+/// Implements [`MemDbg`] for all types that implement [`MemDbgImpl`].
 ///
 /// This is done so that no one can change the implementation of [`MemDbg`],
 /// which ensures consistency in printing.
