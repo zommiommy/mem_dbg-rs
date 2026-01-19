@@ -285,28 +285,6 @@ pub trait MemDbgImpl: MemSize {
         Ok(())
     }
 
-    #[cfg(feature = "std")]
-    #[doc(hidden)]
-    #[inline(always)]
-    fn _mem_dbg_depth(
-        &self,
-        total_size: usize,
-        max_depth: usize,
-        padded_size: usize,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        self._mem_dbg_depth_on(
-            &mut Wrapper(std::io::stderr()),
-            total_size,
-            max_depth,
-            &mut String::new(),
-            Some("⏺"),
-            true,
-            padded_size,
-            flags,
-        )
-    }
-
     #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     fn _mem_dbg_depth_on(
