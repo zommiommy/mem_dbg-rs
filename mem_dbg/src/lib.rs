@@ -264,6 +264,23 @@ pub trait MemDbg: MemDbgImpl {
 /// which ensures consistency in printing.
 impl<T: MemDbgImpl> MemDbg for T {}
 
+/// A wrapper around `std::io::Stderr` implementing `core::fmt::Write`.
+#[cfg(feature = "std")]
+struct Wrapper(std::io::Stderr);
+
+#[cfg(feature = "std")]
+impl core::fmt::Write for Wrapper {
+    #[inline(always)]
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        use std::io::Write;
+        self.0
+            .lock()
+            .write(s.as_bytes())
+            .map_err(|_| core::fmt::Error)
+            .map(|_| ())
+    }
+}
+
 /// Inner trait used to implement [`MemDbg`].
 ///
 /// This trait should not be implemented by users, which should use the
@@ -295,18 +312,6 @@ pub trait MemDbgImpl: MemSize {
         padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        struct Wrapper(std::io::Stderr);
-        impl core::fmt::Write for Wrapper {
-            #[inline(always)]
-            fn write_str(&mut self, s: &str) -> core::fmt::Result {
-                use std::io::Write;
-                self.0
-                    .lock()
-                    .write(s.as_bytes())
-                    .map_err(|_| core::fmt::Error)
-                    .map(|_| ())
-            }
-        }
         self._mem_dbg_depth_on(
             &mut Wrapper(std::io::stderr()),
             total_size,
@@ -349,10 +354,8 @@ pub trait MemDbgImpl: MemSize {
                     1
                 } else if value >= 10.0 {
                     2
-                } else if value >= 1.0 {
-                    3
                 } else {
-                    4
+                    3
                 };
                 writer.write_fmt(format_args!("{0:>4.1$} {2} ", value, precision, uom))?;
             }
