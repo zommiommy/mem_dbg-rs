@@ -4,35 +4,37 @@
 
 ### New
 
-* Support for `VecDeque`, `BTreeMap` and `BTreeSet`.
-
-* Vastly improved test coverage, added correctness tests for `mem_size` using
-  `cap`, and added output test for `mem_dbg` using `insta`.
+* Support for [`VecDeque`](https://doc.rust-lang.org/std/collections/struct.VecDeque.html), [`BTreeMap`](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html) and [`BTreeSet`](https://doc.rust-lang.org/std/collections/struct.BTreeSet.html).
+* Vastly improved test coverage, added correctness tests for [`mem_size`](https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html#tymethod.mem_size) using
+  [`cap`](https://crates.io/crates/cap), and added output test for [`mem_dbg`](https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html) using [`insta`](https://crates.io/crates/insta).
+* Support associated function pointers with up to 10 arguments.
 
 ### Fixed
 
-* Sets and maps now have a `CopyType`.
-
-* Fixed several old bugs in implementations and output formatting.
+* Sets and maps now have a [`CopyType`](https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html).
+* Fixed several minor bugs in implementations and output formatting, including module collisions in derive macros and
+  issues with [`MutexGuard`](https://doc.rust-lang.org/std/sync/struct.MutexGuard.html) and [`RwLock`](https://doc.rust-lang.org/std/sync/struct.RwLock.html) guards.
+* Fixed `no_std` compilation.
 
 ### Changed
 
-* Improved `HashMap` and `HashSet` size approximation.
+* Improved [`HashMap`](https://doc.rust-lang.org/std/collections/struct.HashMap.html) and [`HashSet`](https://doc.rust-lang.org/std/collections/struct.HashSet.html) size approximation, which is now
+  architecture-dependent (SIMD-aware).
 
 ## [0.3.3] - 2026-01-04
 
 ### New
 
-* Support for `std::rc::Rc`.
+* Support for [`std::rc::Rc`](https://doc.rust-lang.org/std/rc/struct.Rc.html).
 
-* New `FOLLOW_RC` flag for following reference-counted pointers.
+* New [`FOLLOW_RC`](https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RC) flag for following reference-counted pointers.
 
 ### Fixed
 
-* Completed support for `std::hash::DefaultHasher`.
+* Completed support for [`std::hash::DefaultHasher`](https://doc.rust-lang.org/std/hash/struct.DefaultHasher.html).
 
-* Extensive tests uncovered a series of bugs (in particular, in `PathBuf` and
-  `OnceCell`) that have been fixed.
+* Extensive tests uncovered a series of bugs (in particular, in [`PathBuf`](https://doc.rust-lang.org/std/path/struct.PathBuf.html) and
+  [`OnceCell`](https://doc.rust-lang.org/core/cell/struct.OnceCell.html)) that have been fixed.
 
 * The `std` feature now work as expected. The `alloc` feature is no longer
   supported.
@@ -41,7 +43,7 @@
 
 ### New
 
-* Added support for `std::hash::DefaultHasher`.
+* Added support for [`std::hash::DefaultHasher`](https://doc.rust-lang.org/std/hash/struct.DefaultHasher.html).
 
 ## [0.3.1] 2025-10-16
 
