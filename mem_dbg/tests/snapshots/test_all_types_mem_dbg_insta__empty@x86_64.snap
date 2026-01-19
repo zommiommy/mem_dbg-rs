@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: output
 ---
-43350 B ⏺
+43395 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -84,6 +84,8 @@ expression: output
    16 B ├╴ref_cell
     4 B ├╴unsafe_cell
    35 B ├╴once_cell
+   37 B ├╴manually_drop
+    4 B ├╴manually_drop2
    12 B ├╴mutex
    46 B ├╴rw_lock
    84 B ├╴hash_set
@@ -95,7 +97,7 @@ expression: output
   352 B ├╴btree_map
   128 B ├╴btree_map_copy
    36 B ├╴vec_deque
-    0 B ├╴build_hasher [6B]
+    0 B ├╴build_hasher [10B]
    16 B ├╴random_state
    24 B ├╴path_buf
    16 B ├╴path

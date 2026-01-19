@@ -118,6 +118,8 @@ pub struct AllTypesStruct<'a> {
     ref_cell: RefCell<i32>,
     unsafe_cell: UnsafeCell<i32>,
     once_cell: OnceCell<String>,
+    manually_drop: core::mem::ManuallyDrop<String>,
+    manually_drop2: core::mem::ManuallyDrop<i32>,
 
     // Sync primitives
     mutex: Mutex<i32>,
@@ -331,6 +333,8 @@ where
         ref_cell: RefCell::new(200),
         unsafe_cell: UnsafeCell::new(300),
         once_cell,
+        manually_drop: core::mem::ManuallyDrop::new("manually_drop".to_string()),
+        manually_drop2: core::mem::ManuallyDrop::new(42),
 
         mutex: Mutex::new(400),
         rw_lock: RwLock::new("locked".to_string()),

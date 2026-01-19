@@ -1,5 +1,6 @@
 ---
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
+assertion_line: 32
 expression: output
 ---
 43_395 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
@@ -85,7 +86,6 @@ expression: output
      4 B   0.01% ├╴unsafe_cell: core::cell::UnsafeCell<i32>
     35 B   0.08% ├╴once_cell: core::cell::once::OnceCell<alloc::string::String>
     37 B   0.09% ├╴manually_drop: core::mem::manually_drop::ManuallyDrop<alloc::string::String>
-     4 B   0.01% ├╴manually_drop2: core::mem::manually_drop::ManuallyDrop<i32>
     12 B   0.03% ├╴mutex: std::sync::poison::mutex::Mutex<i32>
     46 B   0.11% ├╴rw_lock: std::sync::poison::rwlock::RwLock<alloc::string::String>
     84 B   0.19% ├╴hash_set: std::collections::hash::set::HashSet<i32>
@@ -97,7 +97,7 @@ expression: output
    352 B   0.81% ├╴btree_map: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
    128 B   0.29% ├╴btree_map_copy: alloc::collections::btree::map::BTreeMap<i32, i32>
     36 B   0.08% ├╴vec_deque: alloc::collections::vec_deque::VecDeque<u32>
-     0 B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [10B]
+     0 B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [14B]
     16 B   0.04% ├╴random_state: std::hash::random::RandomState
     24 B   0.06% ├╴path_buf: std::path::PathBuf
     16 B   0.04% ├╴path: &std::path::Path

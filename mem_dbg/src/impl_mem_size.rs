@@ -167,6 +167,19 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
     }
 }
 
+// ManuallyDrop
+
+impl<T: ?Sized + CopyType> CopyType for core::mem::ManuallyDrop<T> {
+    type Copy = T::Copy;
+}
+
+impl<T: ?Sized + MemSize> MemSize for core::mem::ManuallyDrop<T> {
+    #[inline(always)]
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        <T as MemSize>::mem_size(&**self, flags)
+    }
+}
+
 // Structure used to occupy the equivalent space of RcInner/ArcInner in std
 #[doc(hidden)]
 #[cfg(feature = "std")]

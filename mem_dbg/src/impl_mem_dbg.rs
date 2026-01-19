@@ -99,6 +99,22 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
     }
 }
 
+// ManuallyDrop
+
+impl<T: ?Sized + MemDbgImpl> MemDbgImpl for core::mem::ManuallyDrop<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+    ) -> core::fmt::Result {
+        (**self)._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+    }
+}
+
 // Rc
 
 /// This implementation displays the referenced data, but not
