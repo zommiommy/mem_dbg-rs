@@ -198,12 +198,8 @@ pub trait MemDbg: MemDbgImpl {
     #[cfg(feature = "std")]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
-        self._mem_dbg_depth(
-            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
-            usize::MAX,
-            core::mem::size_of_val(self),
-            flags,
-        )
+        let max_depth = usize::MAX;
+        self.mem_dbg_depth(max_depth, flags)
     }
 
     /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
@@ -211,16 +207,8 @@ pub trait MemDbg: MemDbgImpl {
     #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
-        self._mem_dbg_depth_on(
-            writer,
-            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
-            usize::MAX,
-            &mut String::new(),
-            Some("⏺"),
-            true,
-            core::mem::size_of_val(self),
-            flags,
-        )
+        let max_depth = usize::MAX;
+        self.mem_dbg_depth_on(writer, max_depth, flags)
     }
 
     #[cfg(feature = "std")]
@@ -228,12 +216,7 @@ pub trait MemDbg: MemDbgImpl {
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
-        self._mem_dbg_depth(
-            <Self as MemSize>::mem_size(self, flags.to_size_flags()),
-            max_depth,
-            core::mem::size_of_val(self),
-            flags,
-        )
+        self.mem_dbg_depth_on(&mut Wrapper(std::io::stderr()), max_depth, flags)
     }
 
     /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
@@ -250,8 +233,8 @@ pub trait MemDbg: MemDbgImpl {
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             max_depth,
             &mut String::new(),
-            None,
-            false,
+            Some("⏺"),
+            true,
             core::mem::size_of_val(self),
             flags,
         )
