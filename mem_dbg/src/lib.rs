@@ -333,13 +333,7 @@ pub trait MemDbgImpl: MemSize {
             if uom == " B" {
                 writer.write_fmt(format_args!("{:>5}  B ", real_size))?;
             } else {
-                let precision = if value >= 100.0 {
-                    1
-                } else if value >= 10.0 {
-                    2
-                } else {
-                    3
-                };
+                let precision = if value >= 10.0 { 2 } else { 3 };
                 writer.write_fmt(format_args!("{0:>4.1$} {2} ", value, precision, uom))?;
             }
         } else if flags.contains(DbgFlags::SEPARATOR) {
