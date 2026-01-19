@@ -223,9 +223,9 @@ macro_rules! impl_tuples_muncher {
                     id_sizes.sort_by_key(|x| x.0);
                 }
 
-                self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags)?;
+                self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, stringify!($idx), $idx == _max_idx, id_sizes[$idx].1, flags)?;
                 $(
-                    self.$nidx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, id_sizes[$nidx].1, flags)?;
+                    self.$nidx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, stringify!($nidx), $nidx == _max_idx, id_sizes[$nidx].1, flags)?;
                 )*
                 Ok(())
             }

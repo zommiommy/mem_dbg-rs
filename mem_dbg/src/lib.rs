@@ -233,7 +233,7 @@ pub trait MemDbg: MemDbgImpl {
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             max_depth,
             &mut String::new(),
-            Some("⏺"),
+            "⏺",
             true,
             core::mem::size_of_val(self),
             flags,
@@ -293,7 +293,7 @@ pub trait MemDbgImpl: MemSize {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        field_name: Option<&str>,
+        field_name: &str,
         is_last: bool,
         padded_size: usize,
         flags: DbgFlags,
@@ -377,9 +377,7 @@ pub trait MemDbgImpl: MemSize {
             writer.write_char('╴')?;
         }
 
-        if let Some(field_name) = field_name {
-            writer.write_fmt(format_args!("{:}", field_name))?;
-        }
+        writer.write_fmt(format_args!("{:}", field_name))?;
 
         if flags.contains(DbgFlags::TYPE_NAME) {
             if flags.contains(DbgFlags::COLOR) {
