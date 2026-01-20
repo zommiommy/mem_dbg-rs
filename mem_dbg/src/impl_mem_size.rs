@@ -621,8 +621,10 @@ impl<T> CopyType for std::sync::Mutex<T> {
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
+        // Use unwrap_or_else to handle poisoned mutexes gracefully
+        let guard = self.lock().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(&self.lock().unwrap(), flags)
+            + <T as MemSize>::mem_size(&guard, flags)
     }
 }
 
@@ -635,8 +637,10 @@ impl<T> CopyType for std::sync::RwLock<T> {
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
     #[inline(always)]
     fn mem_size(&self, flags: SizeFlags) -> usize {
+        // Use unwrap_or_else to handle poisoned locks gracefully
+        let guard = self.read().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size(&self.read().unwrap(), flags)
+            + <T as MemSize>::mem_size(&guard, flags)
     }
 }
 
