@@ -87,8 +87,8 @@ bitflags::bitflags! {
         /// # Warning
         ///
         /// Note that all references are followed independently. If the same
-        /// region of memory is reachable by two different paths, it will be
-        /// counted twice.
+        /// region of memory is reachable by different paths, it will be
+        /// counted multiple times.
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///
@@ -111,8 +111,8 @@ bitflags::bitflags! {
         /// # Warning
         ///
         /// Note that all counted references are followed independently. If the same
-        /// region of memory is reachable by two different paths, it will be
-        /// counted twice.
+        /// region of memory is reachable by different paths, it will be
+        /// counted multiple times.
         const FOLLOW_RC = 1 << 2;
     }
 }
