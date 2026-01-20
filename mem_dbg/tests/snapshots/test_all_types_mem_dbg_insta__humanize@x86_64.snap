@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: output
 ---
-43.35 kB 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
+43.38 kB 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
     0  B   0.00% ├╴unit: ()
     1  B   0.00% ├╴boolean: bool
     4  B   0.01% ├╴character: char
@@ -109,7 +109,7 @@ expression: output
    16  B   0.04% ├╴layout: core::alloc::layout::Layout
     8  B   0.02% ├╴non_null: core::ptr::non_null::NonNull<i32>
    48  B   0.11% ├╴buf_reader: std::io::buffered::bufreader::BufReader<std::fs::File>
-   32  B   0.07% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::fs::File>
+   64  B   0.15% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
    36  B   0.08% ├╴cursor: std::io::cursor::Cursor<alloc::vec::Vec<u8>>
    32  B   0.07% ├╴arc: alloc::sync::Arc<i32>
    32  B   0.07% ├╴rc: alloc::rc::Rc<i32>
