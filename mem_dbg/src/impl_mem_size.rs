@@ -178,6 +178,11 @@ struct RcInner<T: ?Sized> {
 
 // Rc
 
+#[cfg(feature = "std")]
+impl<T> CopyType for std::rc::Rc<T> {
+    type Copy = False;
+}
+
 /// This implementation is based on the assumption that `Rc<T>` is
 /// implemented as follows:
 /// ```ignore
@@ -208,6 +213,11 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
 }
 
 // Arc
+
+#[cfg(feature = "std")]
+impl<T> CopyType for std::sync::Arc<T> {
+    type Copy = False;
+}
 
 /// This implementation is based on the assumption that `Arc<T>` is
 /// implemented as follows:

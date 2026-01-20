@@ -172,6 +172,9 @@ impl DbgFlags {
         if self.contains(DbgFlags::CAPACITY) {
             flags |= SizeFlags::CAPACITY;
         }
+        if self.contains(DbgFlags::FOLLOW_RC) {
+            flags |= SizeFlags::FOLLOW_RC;
+        }
         flags
     }
 }
