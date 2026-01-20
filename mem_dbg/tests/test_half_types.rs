@@ -4,6 +4,7 @@
 use mem_dbg::*;
 
 #[test]
+#[cfg_attr(miri, ignore)] // half crate uses x86 SIMD intrinsics unsupported by miri
 fn test_half_types() {
     use half::{bf16, f16};
 

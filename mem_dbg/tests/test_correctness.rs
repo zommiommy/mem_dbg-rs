@@ -99,6 +99,7 @@ struct NestedStruct {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // too slow under miri
 /// sadly they have to be in the same test so we can enforce that they run sequentially
 ///
 /// TODO: Arc, Rc

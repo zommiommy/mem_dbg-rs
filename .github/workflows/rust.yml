@@ -55,3 +55,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: "lcov.info"
+
+  miri:
+    needs: [build-stable, build-nightly]
+    name: miri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install nightly and miri
+        run: rustup toolchain install nightly --component miri && rustup default nightly && cargo miri setup
+      - name: Run tests with miri
+        # mmap-rs excluded: requires file I/O unsupported by miri
+        run: cargo miri test --features std,derive,half,maligned,rand

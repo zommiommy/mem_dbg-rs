@@ -7,6 +7,7 @@ mod all_types_helper;
 use all_types_helper::run_all_types_test;
 
 #[test]
+#[cfg_attr(miri, ignore)] // too slow under miri
 fn test_all_types_mem_dbg_snapshot() {
     let combinations = vec![
         ("default", DbgFlags::default()),
