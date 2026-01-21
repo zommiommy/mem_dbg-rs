@@ -163,16 +163,17 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
     }
 }
 
-// Structure used to occupy the equivalent space of RcInner/ArcInner in std
-#[doc(hidden)]
+// Rc: uses map for deduplication when FOLLOW_RCS is set
+
+// Structure used to measure the size of RcInner in std
 #[cfg(feature = "std")]
+#[doc(hidden)]
+#[repr(C, align(2))]
 struct RcInner<T: ?Sized> {
     _strong: std::cell::Cell<usize>,
     _weak: std::cell::Cell<usize>,
     _data: T,
 }
-
-// Rc: uses map for deduplication when FOLLOW_RC is set
 
 #[cfg(feature = "std")]
 impl<T> CopyType for std::rc::Rc<T> {
@@ -211,11 +212,21 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
     }
 }
 
-// Arc: uses map for deduplication when FOLLOW_RC is set
+// Arc: uses map for deduplication when FOLLOW_RCS is set
 
 #[cfg(feature = "std")]
 impl<T> CopyType for std::sync::Arc<T> {
     type Copy = False;
+}
+
+// Structure used to measure the size of ArcInner in std
+#[cfg(feature = "std")]
+#[doc(hidden)]
+#[repr(C, align(2))]
+struct ArcInner<T: ?Sized> {
+    _strong: core::sync::atomic::AtomicUsize,
+    _weak: core::sync::atomic::AtomicUsize,
+    _data: T,
 }
 
 /// This implementation is based on the assumption that `Arc<T>` is
@@ -241,7 +252,7 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
             let ptr = std::sync::Arc::as_ptr(self) as usize;
             if !refs.contains_key(&ptr) {
                 // Size of ArcInner (header) + inner value's recursive size
-                let inner_size = core::mem::size_of::<RcInner<T>>()
+                let inner_size = core::mem::size_of::<ArcInner<T>>()
                     + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
                     - core::mem::size_of::<T>();
                 refs.insert(ptr, inner_size);

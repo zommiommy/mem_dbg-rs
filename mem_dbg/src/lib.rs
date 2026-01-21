@@ -143,7 +143,7 @@ pub trait MemSize {
     /// The parameter `refs` is a map from pointer addresses (coming from
     /// references) to their computed size that is used to count the space
     /// occupied by references only once in case any of the flags
-    /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RC`] is set.
+    /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RCS`] is set.
     ///
     /// In case of custom (non-derive) implementations: types that do not
     /// contain references can simply ignore the `refs` parameter; otherwise,

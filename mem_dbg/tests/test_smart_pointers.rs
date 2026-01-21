@@ -40,7 +40,7 @@ fn test_rc_deduplication() {
     let size_no_follow = s.mem_size(SizeFlags::default());
     assert_eq!(size_no_follow, 2 * std::mem::size_of::<Rc<[u8; 1000]>>());
 
-    // With FOLLOW_RC: the shared data should only be counted once
+    // With FOLLOW_RCS: the shared data should only be counted once
     let size_with_follow = s.mem_size(SizeFlags::FOLLOW_RCS);
 
     // Two Rc pointers + one RcInner (which contains strong/weak counts + data)
