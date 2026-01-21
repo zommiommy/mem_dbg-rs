@@ -79,10 +79,10 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
 
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size_rec(&self, _memsize_flags: mem_dbg::SizeFlags, _memsize_refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
-                        let mut bytes = core::mem::size_of::<Self>();
-                        #(bytes += <#fields_ty as mem_dbg::MemSize>::mem_size_rec(&self.#fields_ident, _memsize_flags, _memsize_refs) - core::mem::size_of::<#fields_ty>();)*
+                impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
+                        let mut bytes = ::core::mem::size_of::<Self>();
+                        #(bytes += <#fields_ty as ::mem_dbg::MemSize>::mem_size_rec(&self.#fields_ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#fields_ty>();)*
                         bytes
                     }
                 }
@@ -108,7 +108,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 let field_ident = &field.ident;
                                 let field_ty = field.ty.to_token_stream();
                                 var_args_size.extend([quote! {
-                                    + <#field_ty as mem_dbg::MemSize>::mem_size_rec(#field_ident, _memsize_flags, _memsize_refs) - core::mem::size_of::<#field_ty>()
+                                    + <#field_ty as ::mem_dbg::MemSize>::mem_size_rec(#field_ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#field_ty>()
                                 }]);
                                 args.extend([field_ident.to_token_stream()]);
                                 args.extend([quote! {,}]);
@@ -129,7 +129,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             .to_token_stream();
                             let field_ty = field.ty.to_token_stream();
                             var_args_size.extend([quote! {
-                                + <#field_ty as mem_dbg::MemSize>::mem_size_rec(#ident, _memsize_flags, _memsize_refs) - core::mem::size_of::<#field_ty>()
+                                + <#field_ty as ::mem_dbg::MemSize>::mem_size_rec(#ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#field_ty>()
                             }]);
                             args.extend([ident]);
                             args.extend([quote! {,}]);
@@ -156,8 +156,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
 
                 #[automatically_derived]
-                impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size_rec(&self, _memsize_flags: mem_dbg::SizeFlags, _memsize_refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
+                impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
                         match self {
                             #(
                                #input_ident::#variants => #variants_size,
@@ -192,9 +192,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         }
 
                         #[automatically_derived]
-                        impl #impl_generics mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                            fn mem_size_rec(&self, _memsize_flags: mem_dbg::SizeFlags, _memsize_refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
-                                unsafe{ <#field_ty as mem_dbg::MemSize>::mem_size_rec(&self.#ident, _memsize_flags, _memsize_refs) }
+                        impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
+                            fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
+                                unsafe{ <#field_ty as ::mem_dbg::MemSize>::mem_size_rec(&self.#ident, _memsize_flags, _memsize_refs) }
                             }
                         }
                     }
@@ -337,7 +337,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push(quote!{
                                 // We push the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, core::mem::size_of_val(#field_ident)));
+                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#field_ident)));
                             });
 
                             // This is the arm of the match statement that
