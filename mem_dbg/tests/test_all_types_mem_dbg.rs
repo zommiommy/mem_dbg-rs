@@ -21,7 +21,7 @@ fn test_all_types_mem_dbg() {
         DbgFlags::SEPARATOR,
         DbgFlags::RUST_LAYOUT,
         DbgFlags::COLOR,
-        DbgFlags::FOLLOW_RC,
+        DbgFlags::FOLLOW_RCS,
     ];
     for first in flags_set {
         for second in flags_set {

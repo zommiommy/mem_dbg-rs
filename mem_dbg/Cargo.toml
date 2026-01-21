@@ -31,7 +31,7 @@ deepsize = "0.2.0"
 insta = "1.46.1"
 
 [features]
-default = ["std", "alloc", "derive"]
+default = ["std", "derive"]
 std = []
 derive = ["mem_dbg-derive"]
 maligned = ["dep:maligned"]

@@ -194,7 +194,7 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
             + core::mem::size_of::<RcInner<T>>()
-            + if flags.contains(SizeFlags::FOLLOW_RC) {
+            + if flags.contains(SizeFlags::FOLLOW_RCS) {
                 <T as MemSize>::mem_size(self.as_ref(), flags) - core::mem::size_of::<T>()
             } else {
                 0
@@ -230,7 +230,7 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         core::mem::size_of::<Self>()
             + core::mem::size_of::<RcInner<T>>()
-            + if flags.contains(SizeFlags::FOLLOW_RC) {
+            + if flags.contains(SizeFlags::FOLLOW_RCS) {
                 <T as MemSize>::mem_size(self.as_ref(), flags) - core::mem::size_of::<T>()
             } else {
                 0

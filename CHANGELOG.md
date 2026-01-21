@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.4.0]
+
+### Changed
+
+* Removed no-op `alloc` feature.
+
+* `FOLLOW_RC` has been renamed `FOLLOW_RCS` for uniformity with `FOLLOW_REFS`.
+
 ## [0.3.4] - 2026-01-20
 
 ### New

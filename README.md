@@ -78,7 +78,7 @@ again calculated using the allocator from the [`cap`] crate.
 
 Two flags, [`SizeFlags::FOLLOW_REFS`] and [`DbgFlags::FOLLOW_REFS`], make it
 possible to follow references when computing the size or displaying the layout
-of a value. Analogously, [`SizeFlags::FOLLOW_RC`] and [`DbgFlags::FOLLOW_RC`]
+of a value. Analogously, [`SizeFlags::FOLLOW_RCS`] and [`DbgFlags::FOLLOW_RCS`]
 make it possible to follow [`Rc`]/[`Arc`] smart pointers.
 
 ## Padding
@@ -348,9 +348,9 @@ assert_eq!(
 [`Rc`]: https://doc.rust-lang.org/std/rc/struct.Rc.html
 [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 [`DbgFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS
-[`DbgFlags::FOLLOW_RC`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RC
+[`DbgFlags::FOLLOW_RCS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RCS
 [`SizeFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_REFS
-[`SizeFlags::FOLLOW_RC`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RC
+[`SizeFlags::FOLLOW_RCS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RCS
 [`HashSet`]: https://doc.rust-lang.org/std/collections/struct.HashSet.html
 [`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html

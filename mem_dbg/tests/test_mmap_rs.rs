@@ -41,7 +41,7 @@ fn test_mmap_types() {
 
     for flag in [
         SizeFlags::default(),
-        SizeFlags::FOLLOW_RC,
+        SizeFlags::FOLLOW_RCS,
         SizeFlags::FOLLOW_REFS,
         SizeFlags::CAPACITY,
     ] {
@@ -50,7 +50,7 @@ fn test_mmap_types() {
     }
     for flag in [
         DbgFlags::default(),
-        DbgFlags::FOLLOW_RC,
+        DbgFlags::FOLLOW_RCS,
         DbgFlags::FOLLOW_REFS,
         DbgFlags::CAPACITY,
     ] {

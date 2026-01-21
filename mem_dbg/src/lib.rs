@@ -113,7 +113,7 @@ bitflags::bitflags! {
         /// Note that all counted references are followed independently. If the same
         /// region of memory is reachable by different paths, it will be
         /// counted multiple times.
-        const FOLLOW_RC = 1 << 2;
+        const FOLLOW_RCS = 1 << 2;
     }
 }
 
@@ -156,8 +156,8 @@ bitflags::bitflags! {
         const RUST_LAYOUT = 1 << 6;
         /// Use colors to distinguish sizes.
         const COLOR = 1 << 7;
-        /// Follow counted references. See [`SizeFlags::FOLLOW_RC`].
-        const FOLLOW_RC = 1 << 8;
+        /// Follow counted references. See [`SizeFlags::FOLLOW_RCS`].
+        const FOLLOW_RCS = 1 << 8;
     }
 }
 
@@ -171,8 +171,8 @@ impl DbgFlags {
         if self.contains(DbgFlags::CAPACITY) {
             flags |= SizeFlags::CAPACITY;
         }
-        if self.contains(DbgFlags::FOLLOW_RC) {
-            flags |= SizeFlags::FOLLOW_RC;
+        if self.contains(DbgFlags::FOLLOW_RCS) {
+            flags |= SizeFlags::FOLLOW_RCS;
         }
         flags
     }
