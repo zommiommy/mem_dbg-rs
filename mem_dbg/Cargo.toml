@@ -33,7 +33,6 @@ insta = "1.46.1"
 [features]
 default = ["std", "alloc", "derive"]
 std = []
-alloc = []                                                   # No-op for backward compatibility
 derive = ["mem_dbg-derive"]
 maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
