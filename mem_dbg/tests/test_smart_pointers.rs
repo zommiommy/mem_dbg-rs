@@ -36,12 +36,12 @@ fn test_rc_deduplication() {
         rc2: Rc::clone(&shared),
     };
 
-    // Without FOLLOW_RC: just the two Rc pointer sizes
+    // Without FOLLOW_RCS: just the two Rc pointer sizes
     let size_no_follow = s.mem_size(SizeFlags::default());
     assert_eq!(size_no_follow, 2 * std::mem::size_of::<Rc<[u8; 1000]>>());
 
     // With FOLLOW_RC: the shared data should only be counted once
-    let size_with_follow = s.mem_size(SizeFlags::FOLLOW_RC);
+    let size_with_follow = s.mem_size(SizeFlags::FOLLOW_RCS);
 
     // Two Rc pointers + one RcInner (which contains strong/weak counts + data)
     // The data (1000 bytes) should only appear once, not twice
@@ -71,12 +71,12 @@ fn test_arc_deduplication() {
         arc2: Arc::clone(&shared),
     };
 
-    // Without FOLLOW_RC: just the two Arc pointer sizes
+    // Without FOLLOW_RCS: just the two Arc pointer sizes
     let size_no_follow = s.mem_size(SizeFlags::default());
     assert_eq!(size_no_follow, 2 * std::mem::size_of::<Arc<[u8; 1000]>>());
 
-    // With FOLLOW_RC: the shared data should only be counted once
-    let size_with_follow = s.mem_size(SizeFlags::FOLLOW_RC);
+    // With FOLLOW_RCS: the shared data should only be counted once
+    let size_with_follow = s.mem_size(SizeFlags::FOLLOW_RCS);
 
     let arc_ptr_size = std::mem::size_of::<Arc<[u8; 1000]>>();
 

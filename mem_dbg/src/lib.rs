@@ -110,7 +110,7 @@ bitflags::bitflags! {
         /// size of every counted reference will be added once (i.e., if you
         /// have two identical counted references to the same memory region,
         /// the size of that region will be added only once).
-        const FOLLOW_RC = 1 << 2;
+        const FOLLOW_RCS = 1 << 2;
     }
 }
 

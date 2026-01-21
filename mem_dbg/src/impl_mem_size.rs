@@ -208,7 +208,7 @@ impl<T> CopyType for std::rc::Rc<T> {
 impl<T: MemSize> MemSize for std::rc::Rc<T> {
     #[inline(always)]
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_RC) {
+        if flags.contains(SizeFlags::FOLLOW_RCS) {
             let ptr = std::rc::Rc::as_ptr(self) as usize;
             if !refs.contains_key(&ptr) {
                 // Size of RcInner (header) + inner value's recursive size
@@ -249,7 +249,7 @@ impl<T> CopyType for std::sync::Arc<T> {
 impl<T: MemSize> MemSize for std::sync::Arc<T> {
     #[inline(always)]
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_RC) {
+        if flags.contains(SizeFlags::FOLLOW_RCS) {
             let ptr = std::sync::Arc::as_ptr(self) as usize;
             if !refs.contains_key(&ptr) {
                 // Size of ArcInner (header) + inner value's recursive size
@@ -660,7 +660,7 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
         // Use unwrap_or_else to handle poisoned locks gracefully
         let guard = self.read().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_ref(&guard, flags, refs)
+            + <T as MemSize>::mem_size_rec(&guard, flags, refs)
     }
 }
 
