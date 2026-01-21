@@ -116,7 +116,6 @@ bitflags::bitflags! {
 
 impl Default for SizeFlags {
     /// The default set of flags is the empty set.
-    #[inline(always)]
     fn default() -> Self {
         Self::empty()
     }
@@ -174,8 +173,8 @@ bitflags::bitflags! {
         const RUST_LAYOUT = 1 << 6;
         /// Use colors to distinguish sizes.
         const COLOR = 1 << 7;
-        /// Follow counted references. See [`SizeFlags::FOLLOW_RC`].
-        const FOLLOW_RC = 1 << 8;
+        /// Follow counted references. See [`SizeFlags::FOLLOW_RCS`].
+        const FOLLOW_RCS = 1 << 8;
     }
 }
 
@@ -189,6 +188,9 @@ impl DbgFlags {
         if self.contains(DbgFlags::CAPACITY) {
             flags |= SizeFlags::CAPACITY;
         }
+        if self.contains(DbgFlags::FOLLOW_RCS) {
+            flags |= SizeFlags::FOLLOW_RCS;
+        }
         flags
     }
 }
@@ -196,7 +198,6 @@ impl DbgFlags {
 impl Default for DbgFlags {
     /// The default set of flags contains [`DbgFlags::TYPE_NAME`],
     /// [`DbgFlags::SEPARATOR`], and [`DbgFlags::PERCENTAGE`].
-    #[inline(always)]
     fn default() -> Self {
         Self::TYPE_NAME | Self::SEPARATOR | Self::PERCENTAGE
     }
@@ -211,7 +212,6 @@ impl Default for DbgFlags {
 pub trait MemDbg: MemDbgImpl {
     /// Writes to stderr debug info about the structure memory usage, expanding
     /// all levels of nested structures.
-    #[inline(always)]
     #[cfg(feature = "std")]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
@@ -225,7 +225,6 @@ pub trait MemDbg: MemDbgImpl {
 
     /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage, expanding all levels of nested structures.
-    #[inline(always)]
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
         self._mem_dbg_depth_on(
@@ -289,7 +288,6 @@ impl<T: MemDbgImpl> MemDbg for T {}
 /// The default no-op implementation is used by all types in which it does not
 /// make sense, or it is impossible, to recurse.
 pub trait MemDbgImpl: MemSize {
-    #[inline(always)]
     fn _mem_dbg_rec_on(
         &self,
         _writer: &mut impl core::fmt::Write,
@@ -304,7 +302,6 @@ pub trait MemDbgImpl: MemSize {
 
     #[cfg(feature = "std")]
     #[doc(hidden)]
-    #[inline(always)]
     fn _mem_dbg_depth(
         &self,
         total_size: usize,
@@ -336,7 +333,6 @@ pub trait MemDbgImpl: MemSize {
         )
     }
 
-    #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     fn _mem_dbg_depth_on(
         &self,

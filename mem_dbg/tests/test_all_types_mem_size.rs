@@ -6,6 +6,7 @@ mod all_types_helper;
 use all_types_helper::run_all_types_test;
 
 #[test]
+#[cfg_attr(miri, ignore)] // too slow under miri
 /// Test mem_size on AllTypesStruct with various flags.
 fn test_all_types_mem_size() {
     let flags_set = [
@@ -13,7 +14,7 @@ fn test_all_types_mem_size() {
         SizeFlags::default(),
         SizeFlags::CAPACITY,
         SizeFlags::FOLLOW_REFS,
-        SizeFlags::FOLLOW_RC,
+        SizeFlags::FOLLOW_RCS,
     ];
 
     for first in flags_set {

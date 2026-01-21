@@ -9,9 +9,9 @@
 //! Derive procedural macros for the [`mem_dbg`](https://crates.io/crates/mem_dbg) crate.
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned, Data, DeriveInput,
+    Data, DeriveInput, parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned,
 };
 
 /**

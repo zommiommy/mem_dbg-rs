@@ -12,11 +12,16 @@ use mem_dbg::*;
 use std::collections::hash_map::{DefaultHasher, RandomState};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::ffi::{OsStr, OsString};
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Cursor};
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+#[cfg(not(miri))]
+use std::fs::File;
+#[cfg(not(miri))]
+use std::io::BufReader;
+use std::io::BufWriter;
 
 static STATIC_STR: &str = "static";
 
@@ -158,8 +163,9 @@ pub struct AllTypesStruct<'a> {
     non_null: NonNull<i32>,
 
     // I/O types
+    #[cfg(not(miri))]
     buf_reader: BufReader<File>,
-    buf_writer: BufWriter<File>,
+    buf_writer: BufWriter<Cursor<Vec<u8>>>,
     cursor: Cursor<Vec<u8>>,
 
     // Smart pointers
@@ -363,8 +369,9 @@ where
 
         non_null: NonNull::from(mut_ref1),
 
+        #[cfg(not(miri))]
         buf_reader: BufReader::new(File::open("/dev/null").unwrap()),
-        buf_writer: BufWriter::new(File::create("/tmp/test_all_types_buf_writer").unwrap()),
+        buf_writer: BufWriter::new(Cursor::new(vec![])),
         cursor: Cursor::new(vec![1, 2, 3, 4]),
 
         // Smart pointers

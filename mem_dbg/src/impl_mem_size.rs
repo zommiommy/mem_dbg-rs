@@ -184,6 +184,11 @@ struct RcInner<T: ?Sized> {
 
 // Rc: uses map for deduplication when FOLLOW_RC is set
 
+#[cfg(feature = "std")]
+impl<T> CopyType for std::rc::Rc<T> {
+    type Copy = False;
+}
+
 /// This implementation is based on the assumption that `Rc<T>` is
 /// implemented as follows:
 /// ```ignore
@@ -218,6 +223,11 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
 }
 
 // Arc: uses map for deduplication when FOLLOW_RC is set
+
+#[cfg(feature = "std")]
+impl<T> CopyType for std::sync::Arc<T> {
+    type Copy = False;
+}
 
 /// This implementation is based on the assumption that `Arc<T>` is
 /// implemented as follows:
@@ -631,8 +641,10 @@ impl<T> CopyType for std::sync::Mutex<T> {
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
     #[inline(always)]
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        // Use unwrap_or_else to handle poisoned mutexes gracefully
+        let guard = self.lock().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_rec(&self.lock().unwrap(), flags, refs)
+            + <T as MemSize>::mem_size_rec(&guard, flags, refs)
     }
 }
 
@@ -645,8 +657,10 @@ impl<T> CopyType for std::sync::RwLock<T> {
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
     #[inline(always)]
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        // Use unwrap_or_else to handle poisoned locks gracefully
+        let guard = self.read().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_rec(&self.read().unwrap(), flags, refs)
+            + <T as MemSize>::mem_size_ref(&guard, flags, refs)
     }
 }
 
@@ -657,6 +671,7 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 ///
 /// * `obj` - The Deref pointer object.
 /// * `flags` - The SizeFlags to use for the computation.
+#[cfg(feature = "std")]
 #[inline(always)]
 fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize
 where
@@ -939,6 +954,11 @@ fn capacity_to_buckets(cap: usize) -> Option<usize> {
 }
 
 #[cfg(feature = "std")]
+impl<T> CopyType for std::collections::HashSet<T> {
+    type Copy = False;
+}
+
+#[cfg(feature = "std")]
 impl<T: CopyType> MemSize for std::collections::HashSet<T>
 where
     std::collections::HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
@@ -1003,6 +1023,11 @@ impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
 /// See [`crate::CopyType`] for more information.
 pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+}
+
+#[cfg(feature = "std")]
+impl<K, V> CopyType for std::collections::HashMap<K, V> {
+    type Copy = False;
 }
 
 #[cfg(feature = "std")]
@@ -1178,6 +1203,11 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
 }
 
 #[cfg(feature = "std")]
+impl<T> CopyType for std::collections::BTreeSet<T> {
+    type Copy = False;
+}
+
+#[cfg(feature = "std")]
 impl<T: CopyType> MemSize for std::collections::BTreeSet<T>
 where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
@@ -1213,6 +1243,11 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<
                     .sum::<usize>(),
             )
     }
+}
+
+#[cfg(feature = "std")]
+impl<K, V> CopyType for std::collections::BTreeMap<K, V> {
+    type Copy = False;
 }
 
 #[cfg(feature = "std")]

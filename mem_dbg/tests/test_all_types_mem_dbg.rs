@@ -6,6 +6,7 @@ mod all_types_helper;
 use all_types_helper::run_all_types_test;
 
 #[test]
+#[cfg_attr(miri, ignore)] // too slow under miri
 /// Test mem_dbg on AllTypesStruct with various flags.
 fn test_all_types_mem_dbg() {
     // Test with all combinations of depth and flags
@@ -20,7 +21,7 @@ fn test_all_types_mem_dbg() {
         DbgFlags::SEPARATOR,
         DbgFlags::RUST_LAYOUT,
         DbgFlags::COLOR,
-        DbgFlags::FOLLOW_RC,
+        DbgFlags::FOLLOW_RCS,
     ];
     for first in flags_set {
         for second in flags_set {
