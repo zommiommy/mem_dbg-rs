@@ -262,7 +262,6 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
-                    #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
                         _memdbg_writer: &mut impl ::core::fmt::Write,
@@ -479,7 +478,6 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemDbgImpl  for #input_ident #ty_generics #where_clause {
-                    #[inline(always)]
                     fn _mem_dbg_rec_on(
                         &self,
                         _memdbg_writer: &mut impl ::core::fmt::Write,
