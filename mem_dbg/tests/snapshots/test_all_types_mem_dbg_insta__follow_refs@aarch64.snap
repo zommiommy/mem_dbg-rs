@@ -116,9 +116,7 @@ expression: output
     64 B   0.15% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
     36 B   0.08% ├╴cursor: std::io::cursor::Cursor<alloc::vec::Vec<u8>>
      8 B   0.02% ├╴arc: alloc::sync::Arc<i32>
-     4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴rc: alloc::rc::Rc<i32>
-     4 B   0.01% │ ├╴: i32
     92 B   0.21% ├╴vec_deque_nested: alloc::collections::vec_deque::VecDeque<alloc::vec::Vec<i32>>
     16 B   0.04% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<'_, i32>
     22 B   0.05% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<'_, alloc::string::String>

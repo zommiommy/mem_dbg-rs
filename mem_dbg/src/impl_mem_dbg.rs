@@ -81,11 +81,16 @@ macro_rules! impl_mem_dbg_for_deref {
             flags: DbgFlags,
             dbg_refs: &mut HashSet<usize>,
         ) -> core::fmt::Result {
-            let inner = &**self;
-            let padded_size = core::mem::size_of_val(inner);
-            inner._mem_dbg_depth_on(
-                writer, total_size, max_depth, prefix, None, is_last, padded_size, flags, dbg_refs,
-            )
+            // Only display inner type when following refs
+            if flags.contains(DbgFlags::$flag) {
+                let inner = &**self;
+                let padded_size = core::mem::size_of_val(inner);
+                inner._mem_dbg_depth_on(
+                    writer, total_size, max_depth, prefix, None, is_last, padded_size, flags, dbg_refs,
+                )
+            } else {
+                Ok(())
+            }
         }
     };
 }

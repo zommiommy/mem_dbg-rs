@@ -4,17 +4,5 @@ expression: output
 ---
 24 B 100.00% ⏺: test_ref_dedup_insta::ArcToStruct
  8 B  33.33% ├╴first: alloc::sync::Arc<test_ref_dedup_insta::Inner>
-46 B 191.67% │ ├╴: test_ref_dedup_insta::Inner
- 4 B  16.67% │ │ ├╴x: i32 [4B]
- 8 B  33.33% │ │ ├╴y: i64
-30 B 125.00% │ │ ╰╴name: alloc::string::String
  8 B  33.33% ├╴second: alloc::sync::Arc<test_ref_dedup_insta::Inner>
-46 B 191.67% │ ├╴: test_ref_dedup_insta::Inner
- 4 B  16.67% │ │ ├╴x: i32 [4B]
- 8 B  33.33% │ │ ├╴y: i64
-30 B 125.00% │ │ ╰╴name: alloc::string::String
  8 B  33.33% ╰╴different: alloc::sync::Arc<test_ref_dedup_insta::Inner>
-45 B 187.50%   ╰╴: test_ref_dedup_insta::Inner
- 4 B  16.67%     ├╴x: i32 [4B]
- 8 B  33.33%     ├╴y: i64
-29 B 120.83%     ╰╴name: alloc::string::String
