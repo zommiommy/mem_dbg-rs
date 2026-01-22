@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-43262 B 
+43334 B 
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -70,18 +70,18 @@ expression: depth_output
    16 B ├╴ref_cell
     4 B ├╴unsafe_cell
    35 B ├╴once_cell
-   16 B ├╴mutex
+   12 B ├╴mutex
    46 B ├╴rw_lock
-   76 B ├╴hash_set
-  157 B ├╴hash_set_str
-  176 B ├╴hash_map
-   92 B ├╴hash_map_copy
+   84 B ├╴hash_set
+  165 B ├╴hash_set_str
+  184 B ├╴hash_map
+  100 B ├╴hash_map_copy
    84 B ├╴btree_set
   305 B ├╴btree_set_str
   352 B ├╴btree_map
   128 B ├╴btree_map_copy
    36 B ├╴vec_deque
-    0 B ├╴build_hasher [2B]
+    0 B ├╴build_hasher [6B]
    16 B ├╴random_state
    24 B ├╴path_buf
    16 B ├╴path
@@ -104,12 +104,12 @@ expression: depth_output
    16 B ├╴rw_lock_read_guard
    16 B ├╴rw_lock_write_guard
    48 B ├╴hash_set_empty
-  696 B ├╴hash_set_100
+  704 B ├╴hash_set_100
    48 B ├╴hash_map_empty
- 1208 B ├╴hash_map_cc_100
- 3958 B ├╴hash_map_cn_100
- 3958 B ├╴hash_map_nc_100
- 6708 B ├╴hash_map_nn_100
+ 1216 B ├╴hash_map_cc_100
+ 3966 B ├╴hash_map_cn_100
+ 3966 B ├╴hash_map_nc_100
+ 6716 B ├╴hash_map_nn_100
    24 B ├╴btree_set_empty
  1208 B ├╴btree_set_100
    24 B ├╴btree_map_empty
