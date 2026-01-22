@@ -47,7 +47,9 @@ expression: output
      0 B   0.00% ├╴phantom_data: core::marker::PhantomData<i32>
     29 B   0.06% ├╴string: alloc::string::String
     16 B   0.03% ├╴reference: &str
+    14 B   0.03% │ ├╴: str
      8 B   0.02% ├╴mut_reference: &mut i32
+     4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴opt_some: core::option::Option<i32>
     24 B   0.05% ├╴opt_none: core::option::Option<alloc::string::String>
     16 B   0.03% ├╴boxed: alloc::boxed::Box<u64>
@@ -99,8 +101,10 @@ expression: output
     16 B   0.03% ├╴random_state: std::hash::random::RandomState
     33 B   0.07% ├╴path_buf: std::path::PathBuf
     16 B   0.03% ├╴path: &std::path::Path
+     0 B   0.00% │ ├╴: std::path::Path
     33 B   0.07% ├╴os_string: std::ffi::os_str::OsString
     16 B   0.03% ├╴os_str: &std::ffi::os_str::OsStr
+     0 B   0.00% │ ├╴: std::ffi::os_str::OsStr
      8 B   0.02% ├╴fn_ptr0: fn() -> i32
      8 B   0.02% ├╴fn_ptr1: fn(i32) -> i32
      8 B   0.02% ├╴fn_ptr2: fn(i32, i32) -> i32
@@ -112,7 +116,9 @@ expression: output
     64 B   0.13% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
     36 B   0.07% ├╴cursor: std::io::cursor::Cursor<alloc::vec::Vec<u8>>
      8 B   0.02% ├╴arc: alloc::sync::Arc<i32>
+     4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴rc: alloc::rc::Rc<i32>
+     4 B   0.01% │ ├╴: i32
     92 B   0.18% ├╴vec_deque_nested: alloc::collections::vec_deque::VecDeque<alloc::vec::Vec<i32>>
     16 B   0.03% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<'_, i32>
     16 B   0.03% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<'_, alloc::string::String>

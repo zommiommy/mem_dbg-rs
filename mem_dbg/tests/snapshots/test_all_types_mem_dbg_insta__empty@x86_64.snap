@@ -47,7 +47,9 @@ expression: output
     0 B ├╴phantom_data
    29 B ├╴string
    16 B ├╴reference
+   14 B │ ├╴
     8 B ├╴mut_reference
+    4 B │ ├╴
     8 B ├╴opt_some
    24 B ├╴opt_none
    16 B ├╴boxed
@@ -99,8 +101,10 @@ expression: output
    16 B ├╴random_state
    24 B ├╴path_buf
    16 B ├╴path
+    0 B │ ├╴
    33 B ├╴os_string
    16 B ├╴os_str
+    0 B │ ├╴
     8 B ├╴fn_ptr0
     8 B ├╴fn_ptr1
     8 B ├╴fn_ptr2
@@ -112,7 +116,9 @@ expression: output
    64 B ├╴buf_writer
    36 B ├╴cursor
     8 B ├╴arc
+    4 B │ ├╴
     8 B ├╴rc
+    4 B │ ├╴
    92 B ├╴vec_deque_nested
    16 B ├╴mutex_guard
    16 B ├╴rw_lock_read_guard
