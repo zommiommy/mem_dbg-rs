@@ -505,7 +505,14 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             _memdbg_writer.write_char(' ')?;
                         }
                         if !_memdbg_prefix.is_empty() {
-                            _memdbg_writer.write_str(&_memdbg_prefix[2..])?;
+                            // Find the byte index of the 3rd character (skip first 2 chars)
+                            // to handle multi-byte UTF-8 characters like "│"
+                            let start_byte = _memdbg_prefix
+                                .char_indices()
+                                .nth(2)
+                                .map(|(idx, _)| idx)
+                                .unwrap_or(_memdbg_prefix.len());
+                            _memdbg_writer.write_str(&_memdbg_prefix[start_byte..])?;
                         }
                         match self {
                             #(
