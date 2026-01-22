@@ -2,11 +2,24 @@
 
 ## [0.4.0]
 
+### New
+
+* The occupency of references and counted references are now counted once
+  when using `FOLLOW_REFS`/`FOLLOW_RCS`.
+
 ### Changed
 
 * Removed no-op `alloc` feature.
 
 * `FOLLOW_RC` has been renamed `FOLLOW_RCS` for uniformity with `FOLLOW_REFS`.
+
+* The size of `Rc`/`Arc` does not inclue anymore the space used by
+  `RcInner`/`ArcInner` unless `FOLLOW_RCS` is set.
+
+### Fixed
+
+* A proper replica of `ArcInner` is now used to measure the occupancy of
+  `Arc`.
 
 ## [0.3.4] - 2026-01-20
 
