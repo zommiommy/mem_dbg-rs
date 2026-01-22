@@ -400,7 +400,9 @@ pub trait MemDbgImpl: MemSize {
         dbg_refs: &mut HashSet<usize>,
         ref_display: RefDisplay,
     ) -> core::fmt::Result {
-        if prefix.len() > max_depth {
+        // Each depth level adds 2 characters to prefix ("│ " or "  ")
+        // Use chars().count() since prefix contains multi-byte UTF-8 chars
+        if prefix.chars().count() / 2 > max_depth {
             return Ok(());
         }
 
