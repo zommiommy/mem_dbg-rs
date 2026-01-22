@@ -419,6 +419,14 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for VecDeque<T> {
 
 // Tuples
 
+type And<A, B> = <A as Boolean>::And<B>;
+
+/// Helper macro to build the And chain: and_chain!(A, B, C) => And<A, And<B, C>>
+macro_rules! and_chain {
+    ($single:ty) => { $single };
+    ($first:ty, $($rest:ty),+) => { And<$first, and_chain!($($rest),+)> };
+}
+
 macro_rules! impl_tuples_muncher {
     () => {};
 
@@ -436,13 +444,12 @@ macro_rules! impl_tuples_muncher {
 
     // Implement on reversed list
     ([($idx:tt => $ty:ident); $( ($nidx:tt => $nty:ident); )*]) => {
-        impl<$ty, $($nty,)*> CopyType for ($ty, $($nty,)*)  {
-            type Copy = False;
-		}
+        impl<$ty: CopyType, $($nty: CopyType,)*> CopyType for ($ty, $($nty,)*) {
+            type Copy = and_chain!(<$ty as CopyType>::Copy $(, <$nty as CopyType>::Copy)*);
+        }
 
-		impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*)
-        {
-                        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*) {
+            fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
                 let mut bytes = ::core::mem::size_of::<Self>();
                 bytes += <$ty as MemSize>::mem_size_rec(&self.$idx, flags, refs) - ::core::mem::size_of::<$ty>();
                 $( bytes += <$nty as MemSize>::mem_size_rec(&self.$nidx, flags, refs) - ::core::mem::size_of::<$nty>(); )*
@@ -455,12 +462,11 @@ macro_rules! impl_tuples_muncher {
         }
 
         impl<$ty, $($nty,)* R> MemSize for fn($ty, $($nty,)*) -> R {
-                        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
                 ::core::mem::size_of::<Self>()
             }
         }
     }
-
 }
 
 impl_tuples_muncher!(

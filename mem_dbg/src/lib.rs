@@ -37,13 +37,31 @@ on whether a type is [`Copy`] or not.
 It has only two implementations, [`True`] and [`False`].
 
 */
-pub trait Boolean {}
+
+/// Marker trait for type-level booleans with logical AND operation.
+///
+/// The `And` associated type computes the logical AND with another [`Boolean`]:
+/// - `True::And<B> = B` (true AND x = x)
+/// - `False::And<B> = False` (false AND x = false)
+///
+/// This is used to determine [`CopyType`] for composite types like tuples:
+/// a tuple is `CopyType<Copy=True>` only if all its components are
+/// `CopyType<Copy=True>`.
+pub trait Boolean {
+    type And<B: Boolean>: Boolean;
+}
+
 /// One of the two possible implementations of [`Boolean`].
 pub struct True {}
-impl Boolean for True {}
+impl Boolean for True {
+    type And<B: Boolean> = B;
+}
+
 /// One of the two possible implementations of [`Boolean`].
 pub struct False {}
-impl Boolean for False {}
+impl Boolean for False {
+    type And<B: Boolean> = False;
+}
 
 /// How to display a reference address in [`MemDbgImpl::_mem_dbg_depth_on_impl`].
 #[derive(Clone, Copy)]

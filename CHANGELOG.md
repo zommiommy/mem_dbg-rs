@@ -21,6 +21,9 @@
 * A proper replica of `ArcInner` is now used to measure the occupancy of
   `Arc`.
 
+* Now tuples get the correct `CopyType::Copy` (it used to be always
+  `False`).
+
 ## [0.3.4] - 2026-01-20
 
 ### New
