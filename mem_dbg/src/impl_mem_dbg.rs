@@ -10,7 +10,7 @@ use core::marker::PhantomPinned;
 use core::num::*;
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{CopyType, DbgFlags, MemDbgImpl, impl_mem_size::MemSizeHelper};
+use crate::{CopyType, DbgFlags, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
@@ -27,6 +27,69 @@ macro_rules! impl_mem_dbg {
      )*};
  }
 
+/// Implements `_mem_dbg_depth_on` and `_mem_dbg_rec_on` for pointer-like types.
+/// Used by `&T`, `&mut T`, `Rc<T>`, and `Arc<T>`.
+///
+/// Arguments:
+/// - `$flag`: The `DbgFlags` flag to check (e.g., `FOLLOW_REFS` or `FOLLOW_RCS`)
+/// - `$get_ptr`: A closure that takes `self` and returns the pointer address as `usize`
+macro_rules! impl_mem_dbg_for_deref {
+    ($flag:ident, |$self:ident| $get_ptr:expr) => {
+        #[allow(clippy::too_many_arguments)]
+        fn _mem_dbg_depth_on(
+            &self,
+            writer: &mut impl core::fmt::Write,
+            total_size: usize,
+            max_depth: usize,
+            prefix: &mut String,
+            field_name: Option<&str>,
+            is_last: bool,
+            padded_size: usize,
+            flags: DbgFlags,
+            dbg_refs: &mut HashSet<usize>,
+        ) -> core::fmt::Result {
+            if flags.contains(DbgFlags::$flag) {
+                let $self = self;
+                let ptr: usize = $get_ptr;
+                if dbg_refs.contains(&ptr) {
+                    self._mem_dbg_depth_on_impl(
+                        writer, total_size, max_depth, prefix, field_name, is_last,
+                        padded_size, flags, dbg_refs, RefDisplay::BackReference(ptr),
+                    )
+                } else {
+                    dbg_refs.insert(ptr);
+                    self._mem_dbg_depth_on_impl(
+                        writer, total_size, max_depth, prefix, field_name, is_last,
+                        padded_size, flags, dbg_refs, RefDisplay::FirstEncounter(ptr),
+                    )
+                }
+            } else {
+                self._mem_dbg_depth_on_impl(
+                    writer, total_size, max_depth, prefix, field_name, is_last,
+                    padded_size, flags, dbg_refs, RefDisplay::None,
+                )
+            }
+        }
+
+        fn _mem_dbg_rec_on(
+            &self,
+            writer: &mut impl core::fmt::Write,
+            total_size: usize,
+            max_depth: usize,
+            prefix: &mut String,
+            is_last: bool,
+            flags: DbgFlags,
+            dbg_refs: &mut HashSet<usize>,
+        ) -> core::fmt::Result {
+            let inner = &**self;
+            let padded_size = core::mem::size_of_val(inner);
+            inner._mem_dbg_depth_on(
+                writer, total_size, max_depth, prefix, None, is_last, padded_size, flags, dbg_refs,
+            )
+        }
+    };
+}
+
 impl_mem_dbg! {
     (), bool, char, f32, f64,
     u8, u16, u32, u64, u128, usize,
@@ -41,41 +104,13 @@ impl_mem_dbg! {
 
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 
-// References: we recurse only if FOLLOW_REFS is set
+// References: we recurse only if FOLLOW_REFS is set, with deduplication
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ T {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| *s as *const T as *const () as usize);
 }
 
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            (**self)._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| *s as *const T as *const () as usize);
 }
 
 // Option
@@ -93,50 +128,29 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.as_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
 // Rc
 
-/// This implementation displays the referenced data, but not
-/// the inner fields of the `Rc` itself.
+/// This implementation displays the referenced data with deduplication
+/// when FOLLOW_RCS is set.
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        self.as_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::rc::Rc::as_ptr(s) as usize);
 }
 
 // Arc
 
-/// This implementation displays the referenced data, but not
-/// the inner fields of the `Arc` itself.
+/// This implementation displays the referenced data with deduplication
+/// when FOLLOW_RCS is set.
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-    ) -> core::fmt::Result {
-        self.as_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::sync::Arc::as_ptr(s) as usize);
 }
 
 // Slices
@@ -198,6 +212,7 @@ macro_rules! impl_tuples_muncher {
                 prefix: &mut String,
                 _is_last: bool,
                 flags: DbgFlags,
+                dbg_refs: &mut HashSet<usize>,
             ) -> core::fmt::Result {
                 // Compute size of tuple minus one for last-field check.
                 let mut _max_idx = $idx;
@@ -223,9 +238,9 @@ macro_rules! impl_tuples_muncher {
                     id_sizes.sort_by_key(|x| x.0);
                 }
 
-                self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags)?;
+                self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags, dbg_refs)?;
                 $(
-                    self.$nidx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, id_sizes[$nidx].1, flags)?;
+                    self.$nidx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($nidx)), $nidx == _max_idx, id_sizes[$nidx].1, flags, dbg_refs)?;
                 )*
                 Ok(())
             }
@@ -319,11 +334,12 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::Range<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.start
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)?;
         self.end
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -336,9 +352,10 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeFrom<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.start
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -351,11 +368,12 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeInclusive<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.start()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)?;
         self.end()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -368,9 +386,10 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeTo<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.end
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -383,9 +402,10 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeToInclusive<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.end
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -413,9 +433,10 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.borrow()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -428,10 +449,11 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         // SAFETY: we temporarily take a shared reference to the inner value
         unsafe {
-            (&*self.as_ptr())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            (&*self.as_ptr())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
         }
     }
 }
@@ -445,10 +467,11 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         unsafe {
             // SAFETY: we temporarily take a shared reference to the inner value
-            (&*self.get())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            (&*self.get())._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
         }
     }
 }
@@ -465,10 +488,11 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.lock()
             .unwrap()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -482,10 +506,11 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.read()
             .unwrap()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -499,9 +524,10 @@ impl<T: MemDbgImpl> MemDbgImpl for std::cell::OnceCell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.get()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -515,11 +541,12 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             self.deref()
-                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
         } else {
             Ok(())
         }
@@ -536,11 +563,12 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockReadGuard<'_, T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             self.deref()
-                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
         } else {
             Ok(())
         }
@@ -557,11 +585,12 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
             self.deref()
-                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+                ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
         } else {
             Ok(())
         }
@@ -596,9 +625,10 @@ impl<T: MemDbgImpl + std::io::Read> MemDbgImpl for std::io::BufReader<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.get_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -612,9 +642,10 @@ impl<T: MemDbgImpl + std::io::Write> MemDbgImpl for std::io::BufWriter<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.get_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -628,9 +659,10 @@ impl<T: MemDbgImpl> MemDbgImpl for std::io::Cursor<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         self.get_ref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 
@@ -659,10 +691,11 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         self.deref()
-            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)
+            ._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)
     }
 }
 

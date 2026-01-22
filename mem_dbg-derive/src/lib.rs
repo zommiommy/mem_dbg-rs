@@ -255,7 +255,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 // This is the arm of the match statement that invokes
                 // _mem_dbg_depth_on on the field.
                 match_code.push(quote!{
-                    #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                    #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                 });
             }
 
@@ -270,6 +270,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_prefix: &mut String,
                         _memdbg_is_last: bool,
                         _memdbg_flags: ::mem_dbg::DbgFlags,
+                        _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
                     ) -> ::core::fmt::Result {
                         let mut id_sizes: Vec<(usize, usize)> = vec![];
                         #(#id_offset_pushes)*
@@ -342,7 +343,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                             });
                             args.extend([field_ident.to_token_stream()]);
                             args.extend([quote! {,}]);
@@ -394,7 +395,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                             });
 
                             args.extend([field_ident]);
@@ -486,6 +487,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_prefix: &mut String,
                         _memdbg_is_last: bool,
                         _memdbg_flags: ::mem_dbg::DbgFlags,
+                        _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
                     ) -> ::core::fmt::Result {
                         let mut _memdbg_digits_number = ::mem_dbg::n_of_digits(_memdbg_total_size);
                         if _memdbg_flags.contains(::mem_dbg::DbgFlags::SEPARATOR) {
@@ -542,8 +544,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 _memdbg_prefix: &mut String,
                                 _memdbg_is_last: bool,
                                 _memdbg_flags: ::mem_dbg::DbgFlags,
+                                _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
                             ) -> ::core::fmt::Result {
-                                unsafe{ <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, ::core::mem::size_of::<#field_ty>(), _memdbg_flags) }
+                                unsafe{ <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, None, _memdbg_is_last, ::core::mem::size_of::<#field_ty>(), _memdbg_flags, _memdbg_refs) }
                             }
                         }
                     }

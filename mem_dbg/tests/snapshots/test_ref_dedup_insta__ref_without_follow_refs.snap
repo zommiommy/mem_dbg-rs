@@ -1,0 +1,13 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+expression: output
+---
+40 B 100.00% ⏺: test_ref_dedup_insta::SharedRef<'_>
+16 B  40.00% ├╴name: &str
+12 B  30.00% │ ├╴: str
+ 8 B  20.00% ├╴first: &i32
+ 4 B  10.00% │ ├╴: i32
+ 8 B  20.00% ├╴second: &i32
+ 4 B  10.00% │ ├╴: i32
+ 8 B  20.00% ╰╴different: &i32
+ 4 B  10.00%   ╰╴: i32

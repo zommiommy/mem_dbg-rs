@@ -46,8 +46,10 @@ expression: output
      0 B   0.00% ├╴phantom_pinned: core::marker::PhantomPinned
      0 B   0.00% ├╴phantom_data: core::marker::PhantomData<i32>
     29 B   0.07% ├╴string: alloc::string::String
-    30 B   0.07% ├╴reference: &str
-    12 B   0.03% ├╴mut_reference: &mut i32
+    30 B   0.07% ├╴reference: &str @ 0x[ADDR_1]
+    14 B   0.03% │ ├╴: str
+    12 B   0.03% ├╴mut_reference: &mut i32 @ 0x[ADDR_2]
+     4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴opt_some: core::option::Option<i32>
     24 B   0.06% ├╴opt_none: core::option::Option<alloc::string::String>
     16 B   0.04% ├╴boxed: alloc::boxed::Box<u64>
@@ -98,9 +100,11 @@ expression: output
      0 B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [2B]
     16 B   0.04% ├╴random_state: std::hash::random::RandomState
     33 B   0.08% ├╴path_buf: std::path::PathBuf
-    25 B   0.06% ├╴path: &std::path::Path
+    25 B   0.06% ├╴path: &std::path::Path @ 0x[ADDR_3]
+     9 B   0.02% │ ├╴: std::path::Path
     33 B   0.08% ├╴os_string: std::ffi::os_str::OsString
-    25 B   0.06% ├╴os_str: &std::ffi::os_str::OsStr
+    25 B   0.06% ├╴os_str: &std::ffi::os_str::OsStr @ 0x[ADDR_4]
+     9 B   0.02% │ ├╴: std::ffi::os_str::OsStr
      8 B   0.02% ├╴fn_ptr0: fn() -> i32
      8 B   0.02% ├╴fn_ptr1: fn(i32) -> i32
      8 B   0.02% ├╴fn_ptr2: fn(i32, i32) -> i32
@@ -112,7 +116,9 @@ expression: output
     64 B   0.15% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
     36 B   0.08% ├╴cursor: std::io::cursor::Cursor<alloc::vec::Vec<u8>>
      8 B   0.02% ├╴arc: alloc::sync::Arc<i32>
+     4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴rc: alloc::rc::Rc<i32>
+     4 B   0.01% │ ├╴: i32
     92 B   0.21% ├╴vec_deque_nested: alloc::collections::vec_deque::VecDeque<alloc::vec::Vec<i32>>
     16 B   0.04% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<'_, i32>
     22 B   0.05% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<'_, alloc::string::String>

@@ -1,0 +1,16 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+expression: output
+---
+ 115 B 100.00% ⏺: test_ref_dedup_insta::RefToStruct<'_>
+  54 B  46.96% ├╴first: &test_ref_dedup_insta::Inner @ 0x[ADDR_1]
+  46 B  40.00% │ ├╴: test_ref_dedup_insta::Inner
+   4 B   3.48% │ │ ├╴x: i32 [4B]
+   8 B   6.96% │ │ ├╴y: i64
+  30 B  26.09% │ │ ╰╴name: alloc::string::String
+   8 B   6.96% ├╴second: &test_ref_dedup_insta::Inner → 0x[ADDR_1]
+  53 B  46.09% ╰╴different: &test_ref_dedup_insta::Inner @ 0x[ADDR_2]
+  45 B  39.13%   ╰╴: test_ref_dedup_insta::Inner
+   4 B   3.48%     ├╴x: i32 [4B]
+   8 B   6.96%     ├╴y: i64
+  29 B  25.22%     ╰╴name: alloc::string::String
