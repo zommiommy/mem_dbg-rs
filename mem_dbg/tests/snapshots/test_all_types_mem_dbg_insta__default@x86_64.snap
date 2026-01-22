@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: output
 ---
-43_382 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
+43_334 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
      0 B   0.00% ├╴unit: ()
      1 B   0.00% ├╴boolean: bool
      4 B   0.01% ├╴character: char
@@ -111,8 +111,8 @@ expression: output
     48 B   0.11% ├╴buf_reader: std::io::buffered::bufreader::BufReader<std::fs::File>
     64 B   0.15% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
     36 B   0.08% ├╴cursor: std::io::cursor::Cursor<alloc::vec::Vec<u8>>
-    32 B   0.07% ├╴arc: alloc::sync::Arc<i32>
-    32 B   0.07% ├╴rc: alloc::rc::Rc<i32>
+     8 B   0.02% ├╴arc: alloc::sync::Arc<i32>
+     8 B   0.02% ├╴rc: alloc::rc::Rc<i32>
     92 B   0.21% ├╴vec_deque_nested: alloc::collections::vec_deque::VecDeque<alloc::vec::Vec<i32>>
     16 B   0.04% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<'_, i32>
     16 B   0.04% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<'_, alloc::string::String>
@@ -120,15 +120,15 @@ expression: output
     48 B   0.11% ├╴hash_set_empty: std::collections::hash::set::HashSet<i32>
    704 B   1.62% ├╴hash_set_100: std::collections::hash::set::HashSet<i32>
     48 B   0.11% ├╴hash_map_empty: std::collections::hash::map::HashMap<i32, i32>
- 1_216 B   2.80% ├╴hash_map_cc_100: std::collections::hash::map::HashMap<i32, i32>
- 3_966 B   9.14% ├╴hash_map_cn_100: std::collections::hash::map::HashMap<i32, alloc::string::String>
- 3_966 B   9.14% ├╴hash_map_nc_100: std::collections::hash::map::HashMap<alloc::string::String, i32>
- 6_716 B  15.48% ├╴hash_map_nn_100: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+ 1_216 B   2.81% ├╴hash_map_cc_100: std::collections::hash::map::HashMap<i32, i32>
+ 3_966 B   9.15% ├╴hash_map_cn_100: std::collections::hash::map::HashMap<i32, alloc::string::String>
+ 3_966 B   9.15% ├╴hash_map_nc_100: std::collections::hash::map::HashMap<alloc::string::String, i32>
+ 6_716 B  15.50% ├╴hash_map_nn_100: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
     24 B   0.06% ├╴btree_set_empty: alloc::collections::btree::set::BTreeSet<i32>
- 1_208 B   2.78% ├╴btree_set_100: alloc::collections::btree::set::BTreeSet<i32>
+ 1_208 B   2.79% ├╴btree_set_100: alloc::collections::btree::set::BTreeSet<i32>
     24 B   0.06% ├╴btree_map_empty: alloc::collections::btree::map::BTreeMap<i32, i32>
- 1_896 B   4.37% ├╴btree_map_cc_100: alloc::collections::btree::map::BTreeMap<i32, i32>
- 5_670 B  13.07% ├╴btree_map_cn_100: alloc::collections::btree::map::BTreeMap<i32, alloc::string::String>
- 5_622 B  12.96% ├╴btree_map_nc_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
- 9_316 B  21.47% ├╴btree_map_nn_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>
+ 1_896 B   4.38% ├╴btree_map_cc_100: alloc::collections::btree::map::BTreeMap<i32, i32>
+ 5_670 B  13.08% ├╴btree_map_cn_100: alloc::collections::btree::map::BTreeMap<i32, alloc::string::String>
+ 5_622 B  12.97% ├╴btree_map_nc_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
+ 9_316 B  21.50% ├╴btree_map_nn_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>
     72 B   0.17% ╰╴default_hasher: std::hash::random::DefaultHasher

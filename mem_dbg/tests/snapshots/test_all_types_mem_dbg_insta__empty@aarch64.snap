@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: output
 ---
-43310 B ⏺
+43262 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -111,8 +111,8 @@ expression: output
    48 B ├╴buf_reader
    64 B ├╴buf_writer
    36 B ├╴cursor
-   32 B ├╴arc
-   32 B ├╴rc
+    8 B ├╴arc
+    8 B ├╴rc
    92 B ├╴vec_deque_nested
    16 B ├╴mutex_guard
    16 B ├╴rw_lock_read_guard

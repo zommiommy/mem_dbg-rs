@@ -15,6 +15,11 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 
+// HashMap for pointer deduplication in mem_size (re-exported for derive macro)
+pub use hashbrown::HashMap;
+// HashSet for pointer deduplication in mem_dbg
+pub use hashbrown::HashSet;
+
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
 
@@ -24,21 +29,44 @@ mod impl_mem_size;
 mod utils;
 pub use utils::*;
 
-/**
+/// Internal trait used within [`CopyType`] to implement [`MemSize`] depending
+/// on whether a type is [`Copy`] or not.
+///
+/// It has only two implementations, [`True`] and [`False`].
+///
+/// The `And` associated type computes the logical AND with another [`Boolean`]:
+/// - `True::And<B> = B` (true AND x = x)
+/// - `False::And<B> = False` (false AND x = false)
+///
+/// This is used to determine [`CopyType`] for composite types like tuples:
+/// a tuple is `CopyType<Copy=True>` only if all its components are
+/// `CopyType<Copy=True>`.
+pub trait Boolean {
+    type And<B: Boolean>: Boolean;
+}
 
-Internal trait used within [`CopyType`] to implement [`MemSize`] depending
-on whether a type is [`Copy`] or not.
-
-It has only two implementations, [`True`] and [`False`].
-
-*/
-pub trait Boolean {}
 /// One of the two possible implementations of [`Boolean`].
 pub struct True {}
-impl Boolean for True {}
+impl Boolean for True {
+    type And<B: Boolean> = B;
+}
+
 /// One of the two possible implementations of [`Boolean`].
 pub struct False {}
-impl Boolean for False {}
+impl Boolean for False {
+    type And<B: Boolean> = False;
+}
+
+/// How to display a reference address in [`MemDbgImpl::_mem_dbg_depth_on_impl`].
+#[derive(Clone, Copy)]
+pub enum RefDisplay {
+    /// No address display.
+    None,
+    /// First encounter of a reference: display `@ 0x...` after type name.
+    FirstEncounter(usize),
+    /// Back-reference to already-seen pointer: display `→ 0x...`, use pointer size, skip recursion.
+    BackReference(usize),
+}
 
 /**
 
@@ -82,13 +110,10 @@ bitflags::bitflags! {
         /// Follow references.
         ///
         /// By default [`MemSize::mem_size`] does not follow references and
-        /// computes only the size of the reference itself.
-        ///
-        /// # Warning
-        ///
-        /// Note that all references are followed independently. If the same
-        /// region of memory is reachable by different paths, it will be
-        /// counted multiple times.
+        /// computes only the size of the reference itself. Note that the size
+        /// of every reference will be added once (i.e., if you have two
+        /// identical references to the same memory region, the size of that
+        /// region will be added only once).
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///
@@ -106,13 +131,10 @@ bitflags::bitflags! {
         /// [`Arc`](std::sync::Arc)).
         ///
         /// By default [`MemSize::mem_size`] does not follow counted references
-        /// and computes only the size of the reference itself.
-        ///
-        /// # Warning
-        ///
-        /// Note that all counted references are followed independently. If the same
-        /// region of memory is reachable by different paths, it will be
-        /// counted multiple times.
+        /// and computes only the size of the reference itself. Note that the
+        /// size of every counted reference will be added once (i.e., if you
+        /// have two identical counted references to the same memory region,
+        /// the size of that region will be added only once).
         const FOLLOW_RCS = 1 << 2;
     }
 }
@@ -129,10 +151,30 @@ impl Default for SizeFlags {
 ///
 /// You can derive this trait with `#[derive(MemSize)]` if all the fields of
 /// your type implement [`MemSize`].
+///
+/// When implementing this trait manually, you should implement
+/// [`mem_size_rec`](MemSize::mem_size_rec).
 pub trait MemSize {
-    /// Returns the (recursively computed) overall
-    /// memory size of the structure in bytes.
-    fn mem_size(&self, flags: SizeFlags) -> usize;
+    /// Returns the (recursively computed) overall memory size of the structure
+    /// in bytes.
+    fn mem_size(&self, flags: SizeFlags) -> usize {
+        let mut refs = HashMap::new();
+        let base = self.mem_size_rec(flags, &mut refs);
+        base + refs.into_values().sum::<usize>()
+    }
+
+    /// Recursive implementation that tracks visited references for deduplication.
+    ///
+    /// The parameter `refs` is a map from pointer addresses (coming from
+    /// references) to their computed size that is used to count the space
+    /// occupied by references only once in case any of the flags
+    /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RCS`] is set.
+    ///
+    /// In case of custom (non-derive) implementations: types that do not
+    /// contain references can simply ignore the `refs` parameter; otherwise,
+    /// please have a look at the [implementation for
+    /// references](#impl-MemSize-for-%26T).
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
 
 bitflags::bitflags! {
@@ -193,7 +235,7 @@ impl Default for DbgFlags {
 /// type implement [`MemDbg`]. Note that you will also need to derive
 /// [`MemSize`].
 pub trait MemDbg: MemDbgImpl {
-    /// Writes to stderr debug infos about the structure memory usage, expanding
+    /// Writes to stderr debug info about the structure memory usage, expanding
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
@@ -206,10 +248,11 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage, expanding all levels of nested structures.
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
         // TODO: fix padding
+        let mut dbg_refs = HashSet::new();
         self._mem_dbg_depth_on(
             writer,
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
@@ -219,11 +262,12 @@ pub trait MemDbg: MemDbgImpl {
             true,
             core::mem::size_of_val(self),
             flags,
+            &mut dbg_refs,
         )
     }
 
     #[cfg(feature = "std")]
-    /// Writes to stderr debug infos about the structure memory usage as
+    /// Writes to stderr debug info about the structure memory usage as
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
@@ -235,7 +279,7 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    /// Writes to a [`core::fmt::Write`] debug infos about the structure memory
+    /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage as [`mem_dbg_on`](MemDbg::mem_dbg_on), but expanding only up to
     /// `max_depth` levels of nested structures.
     fn mem_dbg_depth_on(
@@ -244,6 +288,7 @@ pub trait MemDbg: MemDbgImpl {
         max_depth: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
+        let mut dbg_refs = HashSet::new();
         self._mem_dbg_depth_on(
             writer,
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
@@ -253,11 +298,12 @@ pub trait MemDbg: MemDbgImpl {
             false,
             core::mem::size_of_val(self),
             flags,
+            &mut dbg_refs,
         )
     }
 }
 
-/// Implemens [`MemDbg`] for all types that implement [`MemDbgImpl`].
+/// Implements [`MemDbg`] for all types that implement [`MemDbgImpl`].
 ///
 /// This is done so that no one can change the implementation of [`MemDbg`],
 /// which ensures consistency in printing.
@@ -270,6 +316,7 @@ impl<T: MemDbgImpl> MemDbg for T {}
 ///
 /// The default no-op implementation is used by all types in which it does not
 /// make sense, or it is impossible, to recurse.
+#[allow(clippy::too_many_arguments)]
 pub trait MemDbgImpl: MemSize {
     fn _mem_dbg_rec_on(
         &self,
@@ -279,6 +326,7 @@ pub trait MemDbgImpl: MemSize {
         _prefix: &mut String,
         _is_last: bool,
         _flags: DbgFlags,
+        _dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         Ok(())
     }
@@ -304,6 +352,7 @@ pub trait MemDbgImpl: MemSize {
                     .map(|_| ())
             }
         }
+        let mut dbg_refs = HashSet::new();
         self._mem_dbg_depth_on(
             &mut Wrapper(std::io::stderr()),
             total_size,
@@ -313,10 +362,10 @@ pub trait MemDbgImpl: MemSize {
             true,
             padded_size,
             flags,
+            &mut dbg_refs,
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn _mem_dbg_depth_on(
         &self,
         writer: &mut impl core::fmt::Write,
@@ -327,19 +376,65 @@ pub trait MemDbgImpl: MemSize {
         is_last: bool,
         padded_size: usize,
         flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        if prefix.len() > max_depth {
+        self._mem_dbg_depth_on_impl(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            field_name,
+            is_last,
+            padded_size,
+            flags,
+            dbg_refs,
+            RefDisplay::None,
+        )
+    }
+
+    /// Internal implementation for depth display.
+    ///
+    /// The `ref_display` parameter controls how reference addresses are shown:
+    /// - `RefDisplay::None`: no address display
+    /// - `RefDisplay::FirstEncounter(ptr)`: show `@ 0x...` after type name
+    /// - `RefDisplay::BackReference(ptr)`: show `→ 0x...`, use pointer size, skip recursion
+    #[allow(clippy::too_many_arguments)]
+    fn _mem_dbg_depth_on_impl(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        field_name: Option<&str>,
+        is_last: bool,
+        padded_size: usize,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+        ref_display: RefDisplay,
+    ) -> core::fmt::Result {
+        // Each depth level adds 2 characters to prefix ("│ " or "  ")
+        // Use chars().count() since prefix contains multi-byte UTF-8 chars
+        if prefix.chars().count() / 2 > max_depth {
             return Ok(());
         }
-        let real_size = <Self as MemSize>::mem_size(self, flags.to_size_flags());
+
+        // For back-references, use pointer size; otherwise compute full size
+        let is_backref = matches!(ref_display, RefDisplay::BackReference(_));
+        let display_size = if is_backref {
+            core::mem::size_of_val(self)
+        } else {
+            <Self as MemSize>::mem_size(self, flags.to_size_flags())
+        };
+
         if flags.contains(DbgFlags::COLOR) {
-            let color = utils::color(real_size);
+            let color = utils::color(display_size);
             writer.write_fmt(format_args!("{color}"))?;
         };
+
         if flags.contains(DbgFlags::HUMANIZE) {
-            let (value, uom) = crate::utils::humanize_float(real_size);
+            let (value, uom) = crate::utils::humanize_float(display_size);
             if uom == " B" {
-                writer.write_fmt(format_args!("{:>5}  B ", real_size))?;
+                writer.write_fmt(format_args!("{:>5}  B ", display_size))?;
             } else {
                 let precision = if value >= 100.0 {
                     1
@@ -354,9 +449,9 @@ pub trait MemDbgImpl: MemSize {
             }
         } else if flags.contains(DbgFlags::SEPARATOR) {
             let mut align = crate::utils::n_of_digits(total_size);
-            let mut real_size = real_size;
+            let mut size_for_sep = display_size;
             align += align / 3;
-            let mut digits = crate::utils::n_of_digits(real_size);
+            let mut digits = crate::utils::n_of_digits(size_for_sep);
             let digit_align = digits + digits / 3;
             for _ in digit_align..align {
                 writer.write_char(' ')?;
@@ -365,24 +460,24 @@ pub trait MemDbgImpl: MemSize {
             let first_digits = digits % 3;
             let mut multiplier = 10_usize.pow((digits - first_digits) as u32);
             if first_digits != 0 {
-                writer.write_fmt(format_args!("{}", real_size / multiplier))?;
+                writer.write_fmt(format_args!("{}", size_for_sep / multiplier))?;
             } else {
                 multiplier /= 1000;
                 digits -= 3;
-                writer.write_fmt(format_args!(" {}", real_size / multiplier))?;
+                writer.write_fmt(format_args!(" {}", size_for_sep / multiplier))?;
             }
 
             while digits >= 3 {
-                real_size %= multiplier;
+                size_for_sep %= multiplier;
                 multiplier /= 1000;
-                writer.write_fmt(format_args!("_{:03}", real_size / multiplier))?;
+                writer.write_fmt(format_args!("_{:03}", size_for_sep / multiplier))?;
                 digits -= 3;
             }
 
             writer.write_str(" B ")?;
         } else {
             let align = crate::utils::n_of_digits(total_size);
-            writer.write_fmt(format_args!("{:>align$} B ", real_size, align = align))?;
+            writer.write_fmt(format_args!("{:>align$} B ", display_size))?;
         }
 
         if flags.contains(DbgFlags::PERCENTAGE) {
@@ -391,7 +486,7 @@ pub trait MemDbgImpl: MemSize {
                 if total_size == 0 {
                     100.0
                 } else {
-                    100.0 * real_size as f64 / total_size as f64
+                    100.0 * display_size as f64 / total_size as f64
                 }
             ))?;
         }
@@ -429,24 +524,55 @@ pub trait MemDbgImpl: MemSize {
             }
         }
 
-        let padding = padded_size - core::mem::size_of_val(self);
+        // Display reference address based on RefDisplay
+        match ref_display {
+            RefDisplay::FirstEncounter(ptr) => {
+                if flags.contains(DbgFlags::COLOR) {
+                    writer.write_fmt(format_args!("{}", utils::ref_color()))?;
+                }
+                writer.write_fmt(format_args!(" @ 0x{:016x}", ptr))?;
+                if flags.contains(DbgFlags::COLOR) {
+                    writer.write_fmt(format_args!("{}", utils::reset_color()))?;
+                }
+            }
+            RefDisplay::BackReference(ptr) => {
+                if flags.contains(DbgFlags::COLOR) {
+                    writer.write_fmt(format_args!("{}", utils::backref_color()))?;
+                }
+                writer.write_fmt(format_args!(" → 0x{:016x}", ptr))?;
+                if flags.contains(DbgFlags::COLOR) {
+                    writer.write_fmt(format_args!("{}", utils::reset_color()))?;
+                }
+            }
+            RefDisplay::None => {}
+        }
 
-        if padding != 0 {
-            writer.write_fmt(format_args!(" [{}B]", padding))?;
+        // Skip padding and recursion for back-references
+        if !is_backref {
+            let padding = padded_size - core::mem::size_of_val(self);
+
+            if padding != 0 {
+                writer.write_fmt(format_args!(" [{}B]", padding))?;
+            }
         }
 
         writer.write_char('\n')?;
 
-        if is_last {
-            prefix.push_str("  ");
-        } else {
-            prefix.push_str("│ ");
+        // Skip recursion for back-references
+        if !is_backref {
+            if is_last {
+                prefix.push_str("  ");
+            } else {
+                prefix.push_str("│ ");
+            }
+
+            self._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )?;
+
+            prefix.pop();
+            prefix.pop();
         }
-
-        self._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags)?;
-
-        prefix.pop();
-        prefix.pop();
 
         Ok(())
     }

@@ -111,6 +111,34 @@ pub fn reset_color() -> &'static str {
     "\x1B[0m"
 }
 
+/// Returns the color used to print reference addresses (first encounter).
+///
+/// # Examples
+///
+/// ```rust
+/// use mem_dbg::ref_color;
+///
+/// assert_eq!(ref_color(), "\x1B[36m");
+/// ```
+pub fn ref_color() -> &'static str {
+    // cyan
+    "\x1B[36m"
+}
+
+/// Returns the color used to print back-reference arrows (subsequent encounters).
+///
+/// # Examples
+///
+/// ```rust
+/// use mem_dbg::backref_color;
+///
+/// assert_eq!(backref_color(), "\x1B[35m");
+/// ```
+pub fn backref_color() -> &'static str {
+    // magenta
+    "\x1B[35m"
+}
+
 /// Returns the number of digits of a number.
 ///
 /// ```
