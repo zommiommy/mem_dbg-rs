@@ -14,19 +14,15 @@ use syn::{
     Data, DeriveInput, parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned,
 };
 
-/**
-
-Generate a `mem_dbg::MemSize` implementation for custom types.
-
-Presently we do not support unions.
-
-The attribute `copy_type` can be used on [`Copy`] types that do not contain non-`'static` references
-to make `MemSize::mem_size` faster on arrays, vectors and slices. Note that specifying
-`copy_type` will add the bound that the type is `Copy + 'static`.
-
-See `mem_dbg::CopyType` for more details.
-
-*/
+/// Generate a `mem_dbg::MemSize` implementation for custom types.
+///
+/// Presently we do not support unions.
+///
+/// The attribute `copy_type` can be used on [`Copy`] types that do not contain non-`'static` references
+/// to make `MemSize::mem_size` faster on arrays, vectors and slices. Note that specifying
+/// `copy_type` will add the bound that the type is `Copy + 'static`.
+///
+/// See `mem_dbg::CopyType` for more details.
 #[proc_macro_derive(MemSize, attributes(copy_type))]
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);

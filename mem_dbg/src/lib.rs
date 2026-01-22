@@ -29,16 +29,10 @@ mod impl_mem_size;
 mod utils;
 pub use utils::*;
 
-/**
-
-Internal trait used within [`CopyType`] to implement [`MemSize`] depending
-on whether a type is [`Copy`] or not.
-
-It has only two implementations, [`True`] and [`False`].
-
-*/
-
-/// Marker trait for type-level booleans with logical AND operation.
+/// Internal trait used within [`CopyType`] to implement [`MemSize`] depending
+/// on whether a type is [`Copy`] or not.
+///
+/// It has only two implementations, [`True`] and [`False`].
 ///
 /// The `And` associated type computes the logical AND with another [`Boolean`]:
 /// - `True::And<B> = B` (true AND x = x)
@@ -322,6 +316,7 @@ impl<T: MemDbgImpl> MemDbg for T {}
 ///
 /// The default no-op implementation is used by all types in which it does not
 /// make sense, or it is impossible, to recurse.
+#[allow(clippy::too_many_arguments)]
 pub trait MemDbgImpl: MemSize {
     fn _mem_dbg_rec_on(
         &self,
@@ -371,7 +366,6 @@ pub trait MemDbgImpl: MemSize {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn _mem_dbg_depth_on(
         &self,
         writer: &mut impl core::fmt::Write,

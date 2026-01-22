@@ -35,7 +35,6 @@ macro_rules! impl_mem_dbg {
 /// - `$get_ptr`: A closure that takes `self` and returns the pointer address as `usize`
 macro_rules! impl_mem_dbg_for_deref {
     ($flag:ident, |$self:ident| $get_ptr:expr) => {
-        #[allow(clippy::too_many_arguments)]
         fn _mem_dbg_depth_on(
             &self,
             writer: &mut impl core::fmt::Write,

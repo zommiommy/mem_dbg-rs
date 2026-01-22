@@ -23,40 +23,24 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::VecDeque;
 
-#[cfg(feature = "std")]
-/// A basic implementation using [`core::mem::size_of`] for non-[`Copy`] types,
-/// setting [`CopyType::Copy`] to [`False`].
+/// A basic implementation using [`core::mem::size_of`], setting
+/// [`CopyType::Copy`] to the specified type ([`True`] or [`False`].
 macro_rules! impl_size_of {
-    ($($ty:ty),*) => {$(
+    ($copy:ty; $($ty:ty),*) => {$(
         impl CopyType for $ty {
-            type Copy = False;
+            type Copy = $copy;
         }
 
         impl MemSize for $ty {
-                        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            #[inline(always)]
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
                 core::mem::size_of::<Self>()
             }
         }
     )*};
 }
 
-/// A basic implementation using [`core::mem::size_of`] for [`Copy`] types,
-/// setting [`CopyType::Copy`] to [`True`].
-macro_rules! impl_copy_size_of {
-    ($($ty:ty),*) => {$(
-        impl CopyType for $ty {
-            type Copy = True;
-        }
-
-        impl MemSize for $ty {
-                        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-                core::mem::size_of::<Self>()
-            }
-        }
-    )*};
-}
-
-impl_copy_size_of! {
+impl_size_of! {True;
    (), bool, char, f32, f64,
    u8, u16, u32, u64, u128, usize,
    i8, i16, i32, i64, i128, isize,
@@ -419,7 +403,7 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for VecDeque<T> {
 
 // Tuples
 
-/// Helper macro to build the And chain: and_chain!(A, B, C) => A::And<B::And<C>>
+/// Helper macro to build the And chain: and_chain!(A, B, C) => A::And\<B::And\<C>>
 macro_rules! and_chain {
     ($single:ty) => { $single };
     ($first:ty, $($rest:ty),+) => { <$first as Boolean>::And<and_chain!($($rest),+)> };
@@ -556,7 +540,7 @@ impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
 // Rand crate
 
 #[cfg(feature = "rand")]
-impl_copy_size_of!(
+impl_size_of!(True;
     rand::rngs::SmallRng,
     rand::rngs::ThreadRng,
     rand::rngs::StdRng
@@ -769,7 +753,7 @@ impl MemSize for std::ffi::OsString {
 }
 
 #[cfg(feature = "std")]
-impl_size_of!(
+impl_size_of!(False;
     std::fs::File,
     std::fs::OpenOptions,
     std::fs::Metadata,
@@ -821,7 +805,7 @@ impl<T: MemSize> MemSize for std::io::Cursor<T> {
 
 // IpAddr
 #[cfg(feature = "std")]
-impl_copy_size_of!(
+impl_size_of!(True;
     std::net::Ipv4Addr,
     std::net::Ipv6Addr,
     std::net::IpAddr,
@@ -832,7 +816,7 @@ impl_copy_size_of!(
 
 // Time
 #[cfg(feature = "std")]
-impl_copy_size_of!(
+impl_size_of!(True;
     std::time::Duration,
     std::time::Instant,
     std::time::SystemTime,
@@ -1338,7 +1322,7 @@ impl MemSize for std::collections::hash_map::RandomState {
 
 // Memory stuff
 
-impl_copy_size_of!(core::alloc::Layout);
+impl_size_of!(True; core::alloc::Layout);
 
 impl<T: ?Sized> CopyType for core::ptr::NonNull<T> {
     type Copy = True;
@@ -1353,7 +1337,7 @@ impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
 // maligned crate
 
 #[cfg(feature = "maligned")]
-impl_copy_size_of!(
+impl_size_of!(True;
     maligned::A2,
     maligned::A4,
     maligned::A8,
@@ -1382,4 +1366,4 @@ impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
 // half crate
 
 #[cfg(feature = "half")]
-impl_copy_size_of!(half::f16, half::bf16);
+impl_size_of!(True; half::f16, half::bf16);
