@@ -60,7 +60,7 @@ struct SharedArc {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_shared_references_dedup() {
     let shared_value = 42;
     let other_value = 100;
@@ -88,7 +88,7 @@ fn test_shared_references_dedup() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_shared_rc_dedup() {
     let shared = Rc::new(vec![1, 2, 3, 4, 5]);
     let other = Rc::new(vec![10, 20]);
@@ -116,7 +116,7 @@ fn test_shared_rc_dedup() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_shared_arc_dedup() {
     let shared = Arc::new(String::from("shared_string"));
     let other = Arc::new(String::from("different"));
@@ -144,7 +144,7 @@ fn test_shared_arc_dedup() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_combined_refs_and_rcs() {
     let value = 123;
     let rc_data = Rc::new(vec![1, 2, 3]);
@@ -205,7 +205,7 @@ struct ArcToStruct {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_ref_to_struct_with_fields() {
     let shared = Inner {
         x: 42,
@@ -240,7 +240,7 @@ fn test_ref_to_struct_with_fields() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_rc_to_struct_with_fields() {
     let shared = Rc::new(Inner {
         x: 42,
@@ -275,7 +275,7 @@ fn test_rc_to_struct_with_fields() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)] // too slow under miri
+#[cfg_attr(miri, ignore)]
 fn test_arc_to_struct_with_fields() {
     let shared = Arc::new(Inner {
         x: 42,
