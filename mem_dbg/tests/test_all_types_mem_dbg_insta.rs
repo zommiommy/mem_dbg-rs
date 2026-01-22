@@ -26,7 +26,8 @@ fn redact_addresses(s: &str) -> String {
             id
         });
         format!("{}0x[ADDR_{}]", prefix, id)
-    }).to_string()
+    })
+    .to_string()
 }
 
 #[test]

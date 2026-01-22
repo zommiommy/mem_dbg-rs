@@ -552,7 +552,9 @@ pub trait MemDbgImpl: MemSize {
                 prefix.push_str("│ ");
             }
 
-            self._mem_dbg_rec_on(writer, total_size, max_depth, prefix, is_last, flags, dbg_refs)?;
+            self._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )?;
 
             prefix.pop();
             prefix.pop();
