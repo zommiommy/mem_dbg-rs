@@ -81,6 +81,10 @@ possible to follow references when computing the size or displaying the layout
 of a value. Analogously, [`SizeFlags::FOLLOW_RCS`] and [`DbgFlags::FOLLOW_RCS`]
 make it possible to follow [`Rc`]/[`Arc`] smart pointers.
 
+In both cases, references will be accounted for (when computing size) and
+followed (when displaying the layout), only at their first instance. Following
+instances will just display an arrow followed by a pointer.
+
 ## Padding
 
 The trait [`MemDbg`] is useful to display the layout of a value and understand

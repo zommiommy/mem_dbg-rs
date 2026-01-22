@@ -419,12 +419,10 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for VecDeque<T> {
 
 // Tuples
 
-type And<A, B> = <A as Boolean>::And<B>;
-
-/// Helper macro to build the And chain: and_chain!(A, B, C) => And<A, And<B, C>>
+/// Helper macro to build the And chain: and_chain!(A, B, C) => A::And<B::And<C>>
 macro_rules! and_chain {
     ($single:ty) => { $single };
-    ($first:ty, $($rest:ty),+) => { And<$first, and_chain!($($rest),+)> };
+    ($first:ty, $($rest:ty),+) => { <$first as Boolean>::And<and_chain!($($rest),+)> };
 }
 
 macro_rules! impl_tuples_muncher {
