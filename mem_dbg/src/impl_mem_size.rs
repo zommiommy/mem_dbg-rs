@@ -1347,7 +1347,7 @@ impl_size_of!(True;
 );
 
 #[cfg(feature = "maligned")]
-impl<A: maligned::Alignment, T: MemSize> CopyType for maligned::Aligned<A, T> {
+impl<A: maligned::Alignment, T: MemSize + CopyType> CopyType for maligned::Aligned<A, T> {
     type Copy = T::Copy;
 }
 
