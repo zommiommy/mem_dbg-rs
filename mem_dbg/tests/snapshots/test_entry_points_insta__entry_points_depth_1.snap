@@ -1,0 +1,7 @@
+---
+source: mem_dbg/tests/test_entry_points_insta.rs
+expression: output
+---
+64 B 100.00% ⏺: test_entry_points_insta::Outer
+35 B  54.69% ├╴a: test_entry_points_insta::Inner
+29 B  45.31% ╰╴b: alloc::string::String
