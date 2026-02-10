@@ -16,5 +16,6 @@ fn test_pathbuf_in_struct() {
     };
     let size = s.mem_size(SizeFlags::default());
 
-    assert_eq!(size, 24);
+    // 24 bytes stack (PathBuf = ptr + len + capacity) + 9 bytes heap ("/tmp/test")
+    assert_eq!(size, 24 + "/tmp/test".len());
 }

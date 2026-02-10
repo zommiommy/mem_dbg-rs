@@ -26,6 +26,13 @@
 * Now tuples get the correct `CopyType::Copy` (it used to be always
   `False`).
 
+* Now ranges get the correct `CopyType::Copy` (it used to be always
+  `True`).
+
+* Fixed size of `PathBuf` (wasn't considering the buffer).
+
+* Fixed size of `str` (there was a spurious `usize` counted).
+
 ## [0.3.4] - 2026-01-20
 
 ### New

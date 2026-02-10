@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-43_397 B 100.00% : test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
+43_389 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
      0 B   0.00% ├╴unit: ()
      1 B   0.00% ├╴boolean: bool
      4 B   0.01% ├╴character: char
@@ -46,8 +46,8 @@ expression: depth_output
      0 B   0.00% ├╴phantom_pinned: core::marker::PhantomPinned
      0 B   0.00% ├╴phantom_data: core::marker::PhantomData<i32>
     29 B   0.07% ├╴string: alloc::string::String
-    30 B   0.07% ├╴reference: &str @ 0x[ADDR_1]
-    14 B   0.03% │ ├╴: str
+    22 B   0.05% ├╴reference: &str @ 0x[ADDR_1]
+     6 B   0.01% │ ├╴: str
     12 B   0.03% ├╴mut_reference: &mut i32 @ 0x[ADDR_2]
      4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴opt_some: core::option::Option<i32>

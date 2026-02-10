@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-43262 B 
+43271 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -97,7 +97,7 @@ expression: depth_output
    36 B ├╴vec_deque
     0 B ├╴build_hasher [2B]
    16 B ├╴random_state
-   24 B ├╴path_buf
+   33 B ├╴path_buf
    16 B ├╴path
    33 B ├╴os_string
    16 B ├╴os_str

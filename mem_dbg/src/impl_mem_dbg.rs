@@ -300,11 +300,17 @@ impl_tuples_muncher!(
 
 // Function pointers cannot recurse
 
-impl<R> MemDbgImpl for fn() -> R {}
-impl<A, R> MemDbgImpl for fn(A) -> R {}
-impl<A, B, R> MemDbgImpl for fn(A, B) -> R {}
-impl<A, B, C, R> MemDbgImpl for fn(A, B, C) -> R {}
-impl<A, B, C, D, R> MemDbgImpl for fn(A, B, C, D) -> R {}
+macro_rules! impl_mem_dbg_fn {
+    () => {
+        impl<R> MemDbgImpl for fn() -> R {}
+    };
+    ($first:ident $(, $rest:ident)*) => {
+        impl<$first, $($rest,)* R> MemDbgImpl for fn($first, $($rest,)*) -> R {}
+        impl_mem_dbg_fn!($($rest),*);
+    };
+}
+
+impl_mem_dbg_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9);
 
 // Hash-based containers from the standard library
 
@@ -539,9 +545,11 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.lock().unwrap()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        self.lock()
+            .unwrap_or_else(|e| e.into_inner())
+            ._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
     }
 }
 
@@ -557,14 +565,15 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.read().unwrap()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        self.read()
+            .unwrap_or_else(|e| e.into_inner())
+            ._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
     }
 }
 
-#[cfg(feature = "std")]
-impl<T: MemDbgImpl> MemDbgImpl for std::cell::OnceCell<T> {
+impl<T: MemDbgImpl> MemDbgImpl for core::cell::OnceCell<T> {
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,

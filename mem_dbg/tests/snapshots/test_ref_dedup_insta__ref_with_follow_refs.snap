@@ -2,11 +2,11 @@
 source: mem_dbg/tests/test_ref_dedup_insta.rs
 expression: output
 ---
-60 B 100.00% ⏺: test_ref_dedup_insta::SharedRef<'_>
-28 B  46.67% ├╴name: &str @ 0x[ADDR_1]
-12 B  20.00% │ ├╴: str
-12 B  20.00% ├╴first: &i32 @ 0x[ADDR_2]
- 4 B   6.67% │ ├╴: i32
- 8 B  13.33% ├╴second: &i32 → 0x[ADDR_2]
-12 B  20.00% ╰╴different: &i32 @ 0x[ADDR_3]
- 4 B   6.67%   ╰╴: i32
+52 B 100.00% ⏺: test_ref_dedup_insta::SharedRef<'_>
+20 B  38.46% ├╴name: &str @ 0x[ADDR_1]
+ 4 B   7.69% │ ├╴: str
+12 B  23.08% ├╴first: &i32 @ 0x[ADDR_2]
+ 4 B   7.69% │ ├╴: i32
+ 8 B  15.38% ├╴second: &i32 → 0x[ADDR_2]
+12 B  23.08% ╰╴different: &i32 @ 0x[ADDR_3]
+ 4 B   7.69%   ╰╴: i32

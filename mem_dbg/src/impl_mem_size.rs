@@ -60,7 +60,7 @@ impl CopyType for str {
 
 impl MemSize for str {
     fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<usize>() + self.len()
+        self.len()
     }
 }
 
@@ -479,7 +479,7 @@ impl<R> MemSize for fn() -> R {
 // Ranges
 
 impl<Idx: CopyType> CopyType for core::ops::Range<Idx> {
-    type Copy = True;
+    type Copy = Idx::Copy;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
@@ -492,7 +492,7 @@ impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
 }
 
 impl<Idx: CopyType> CopyType for core::ops::RangeFrom<Idx> {
-    type Copy = True;
+    type Copy = Idx::Copy;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
@@ -503,7 +503,7 @@ impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
 }
 
 impl<Idx: CopyType> CopyType for core::ops::RangeInclusive<Idx> {
-    type Copy = True;
+    type Copy = Idx::Copy;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
@@ -516,7 +516,7 @@ impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
 }
 
 impl<Idx: CopyType> CopyType for core::ops::RangeTo<Idx> {
-    type Copy = True;
+    type Copy = Idx::Copy;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
@@ -527,7 +527,7 @@ impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
 }
 
 impl<Idx: CopyType> CopyType for core::ops::RangeToInclusive<Idx> {
-    type Copy = True;
+    type Copy = Idx::Copy;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
@@ -706,12 +706,12 @@ impl CopyType for std::path::PathBuf {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::PathBuf {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
             } else {
-                <std::ffi::OsStr as MemSize>::mem_size_rec(self.as_os_str(), flags, refs)
+                self.as_os_str().len()
             }
     }
 }

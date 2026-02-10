@@ -47,8 +47,8 @@ The first line is the number of bytes allocated by the program as returned by
 [`MemSize`]. Note that the first two crates are just measuring the space used by
 the items, and not by the data structure (i.e., they are not taking into account
 the load factor and the power-of-two size constraint of the hash map). Moreover,
-all other crates are about six orders of magnitude slower than our
-implementation, due to the necessity to iterate over all elements. 
+all other crates are about seven orders of magnitude slower than our
+implementation, due to the necessity to iterate over all elements.
 
 In general, while the size estimation of [`BTreeSet`], [`BTreeMap`], [`HashSet`],
 and [`HashMap`] is heuristic in all libraries, `mem_dbg` is significantly more
@@ -199,7 +199,7 @@ s.mem_dbg(DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE)?;
 
 The previous program prints:
 
-```test
+```text
 size:     807
 capacity: 1207
 
@@ -333,8 +333,8 @@ assert_eq!(
   field `union`, for which we implement both the derive macros `MemSize`/`MemDbg`.
   For the more complex cases of unions with multiple fields, we only provide the
   `MemSize` derive macro with partial support, excluding support for the
-  `SizeFlags::FOLLOW_REFS` flag. If full support for derive macros `MemSize`/`MemDbg`
-  in the case of an union with multiple fields, one can implement the traits manually.
+  `SizeFlags::FOLLOW_REFS` flag. If full support for the derive macros `MemSize`/`MemDbg`
+  is needed in the case of a union with multiple fields, one can implement the traits manually.
 
 [`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
 [`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html

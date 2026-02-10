@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-43.33 kB 100.00% : test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
+43.34 kB 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
     0  B   0.00% ├╴unit: ()
     1  B   0.00% ├╴boolean: bool
     4  B   0.01% ├╴character: char
@@ -97,7 +97,7 @@ expression: depth_output
    36  B   0.08% ├╴vec_deque: alloc::collections::vec_deque::VecDeque<u32>
     0  B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [6B]
    16  B   0.04% ├╴random_state: std::hash::random::RandomState
-   24  B   0.06% ├╴path_buf: std::path::PathBuf
+   33  B   0.08% ├╴path_buf: std::path::PathBuf
    16  B   0.04% ├╴path: &std::path::Path
    33  B   0.08% ├╴os_string: std::ffi::os_str::OsString
    16  B   0.04% ├╴os_str: &std::ffi::os_str::OsStr
