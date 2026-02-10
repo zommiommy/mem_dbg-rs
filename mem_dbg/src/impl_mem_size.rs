@@ -554,8 +554,10 @@ impl<T: CopyType> CopyType for core::cell::RefCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        // SAFETY: we temporarily take a shared reference to the inner value
+        let borrow = unsafe { &*self.as_ptr() };
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_rec(&self.borrow(), flags, refs)
+            + <T as MemSize>::mem_size_rec(borrow, flags, refs)
     }
 }
 
@@ -723,13 +725,8 @@ impl CopyType for std::ffi::OsStr {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsStr {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            // OsStr is unsized, so we can only return the length of the data
-            self.as_encoded_bytes().len()
-        } else {
-            0
-        }
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        self.as_encoded_bytes().len()
     }
 }
 
@@ -1351,7 +1348,7 @@ impl_size_of!(True;
 
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> CopyType for maligned::Aligned<A, T> {
-    type Copy = True;
+    type Copy = T::Copy;
 }
 
 #[cfg(feature = "maligned")]

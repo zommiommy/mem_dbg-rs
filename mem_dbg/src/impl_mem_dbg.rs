@@ -485,7 +485,9 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.borrow()._mem_dbg_rec_on(
+        // SAFETY: we temporarily take a shared reference to the inner value
+        let borrow = unsafe { &*self.as_ptr() };
+        borrow._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
         )
     }

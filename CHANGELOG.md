@@ -13,7 +13,7 @@
 
 * `FOLLOW_RC` has been renamed `FOLLOW_RCS` for uniformity with `FOLLOW_REFS`.
 
-* The size of `Rc`/`Arc` does not inclue anymore the space used by
+* The size of `Rc`/`Arc` does not include anymore the space used by
   `RcInner`/`ArcInner` unless `FOLLOW_RCS` is set.
 
 * Moved to `rand` 0.10.0 and `mmap-rs` 0.7.0.
@@ -32,6 +32,13 @@
 * Fixed size of `PathBuf` (wasn't considering the buffer).
 
 * Fixed size of `str` (there was a spurious `usize` counted).
+
+* Owned `OsStr` instances now correctly report their size.
+
+* Fixed potential panic when traversing a `RefCell`.
+
+* The `CopyType` of a `maligned::Aligned` type is now correctly
+  taken from the wrapped type.
 
 ## [0.3.4] - 2026-01-20
 
@@ -67,7 +74,7 @@
 * Extensive tests uncovered a series of bugs (in particular, in `PathBuf` and
   `OnceCell`) that have been fixed.
 
-* The `std` feature now work as expected. The `alloc` feature is no longer
+* The `std` feature now works as expected. The `alloc` feature is no longer
   supported.
 
 ## [0.3.2] 2025-11-03
