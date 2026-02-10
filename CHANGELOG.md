@@ -4,7 +4,7 @@
 
 ### New
 
-* The occupency of references and counted references are now counted once
+* The occupancy of references and counted references are now counted once
   when using `FOLLOW_REFS`/`FOLLOW_RCS`.
 
 ### Changed
@@ -15,6 +15,8 @@
 
 * The size of `Rc`/`Arc` does not inclue anymore the space used by
   `RcInner`/`ArcInner` unless `FOLLOW_RCS` is set.
+
+* Moved to `rand` 0.10.0 and `mmap-rs` 0.7.0.
 
 ### Fixed
 
