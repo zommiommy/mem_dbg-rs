@@ -323,13 +323,15 @@ assert_eq!(
   might be too complex; this might change in the future (e.g., via a flag)
   should interesting use cases arise.
 
-- Unions are not supported. See the section below for a worked out example.
+- Unions are not supported. See the section below for a manually written
+  example.
 
 ## Unions
 
 Unions have no discriminant tag, so the library cannot know which field is
 active. The recommended solution is to create `#[repr(transparent)]` wrappers,
-one per variant, each encoding which field is active at the type level.
+one per variant, each encoding which field is active at the type level, and
+delegate the implementation of the traits to the active field. For example:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {

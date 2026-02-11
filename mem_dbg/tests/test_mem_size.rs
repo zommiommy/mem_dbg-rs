@@ -816,4 +816,3 @@ test_size!(
     (TestEnumReprU8, 40, 40),
     (Unit, 0, 0)
 );
-
