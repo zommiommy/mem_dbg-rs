@@ -26,6 +26,7 @@ fn make_test_value() -> Outer {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_mem_dbg_on_and_depth_on_consistency() {
     let val = make_test_value();
     let flags = DbgFlags::default();
@@ -46,6 +47,7 @@ fn test_mem_dbg_on_and_depth_on_consistency() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_mem_dbg_depth_on_depth_0() {
     let val = make_test_value();
     let flags = DbgFlags::default();
@@ -57,6 +59,7 @@ fn test_mem_dbg_depth_on_depth_0() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_mem_dbg_depth_on_depth_1() {
     let val = make_test_value();
     let flags = DbgFlags::default();
