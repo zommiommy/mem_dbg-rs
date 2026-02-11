@@ -45,10 +45,9 @@ mem_size:     3416666554 41 ns
 The first line is the number of bytes allocated by the program as returned by
 [`cap`]. Then, we display the result of [`get-size`], [`deepsize`], and our own
 [`MemSize`]. Note that the first two crates are just measuring the space used by
-the items, and not by the data structure (i.e., they are not taking into account
-the load factor and the power-of-two size constraint of the hash map). Moreover,
-all other crates are about seven orders of magnitude slower than our
-implementation, due to the necessity to iterate over all elements.
+the items, and not by the data structure. Moreover, all other crates are about
+seven orders of magnitude slower than our implementation, due to the necessity
+to iterate over all elements.
 
 In general, while the size estimation of [`BTreeSet`], [`BTreeMap`], [`HashSet`],
 and [`HashMap`] is heuristic in all libraries, `mem_dbg` is significantly more

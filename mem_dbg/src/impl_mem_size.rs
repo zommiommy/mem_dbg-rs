@@ -13,7 +13,7 @@ use core::sync::atomic::*;
 #[cfg(feature = "std")]
 use core::ops::Deref;
 
-use crate::{Boolean, FlatType, False, MemSize, SizeFlags, True};
+use crate::{Boolean, False, FlatType, MemSize, SizeFlags, True};
 
 // HashMap for pointer deduplication (always use hashbrown for consistency)
 use hashbrown::HashMap;
@@ -83,7 +83,7 @@ impl MemSize for String {
 
 // PhantomData
 
-impl<T> FlatType for PhantomData<T> {
+impl<T: ?Sized> FlatType for PhantomData<T> {
     type Flat = True;
 }
 
@@ -134,6 +134,22 @@ impl<T: MemSize> MemSize for Option<T> {
             + self.as_ref().map_or(0, |x| {
                 <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>()
             })
+    }
+}
+
+// Result
+
+impl<T: FlatType, E: FlatType> FlatType for Result<T, E> {
+    type Flat = <T::Flat as Boolean>::And<E::Flat>;
+}
+
+impl<T: MemSize, E: MemSize> MemSize for Result<T, E> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + match self {
+                Ok(t) => <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>(),
+                Err(e) => <E as MemSize>::mem_size_rec(e, flags, refs) - core::mem::size_of::<E>(),
+            }
     }
 }
 
@@ -256,6 +272,10 @@ pub trait MemSizeHelper<T: Boolean> {
 }
 
 // Slices
+
+impl<T: FlatType> FlatType for [T] {
+    type Flat = False;
+}
 
 impl<T: FlatType> MemSize for [T]
 where
@@ -570,8 +590,10 @@ impl<T: FlatType> FlatType for core::cell::Cell<T> {
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // SAFETY: we temporarily take a shared reference to the inner value
-        unsafe { <T as MemSize>::mem_size_rec(&*self.as_ptr(), flags, refs) }
+        // SAFETY: we temporarily take a shared reference to the inner value;
+        // since &self exists, &mut self cannot exist.
+        let borrow = unsafe { &*self.as_ptr() };
+        <T as MemSize>::mem_size_rec(borrow, flags, refs)
     }
 }
 
@@ -595,16 +617,18 @@ impl<T: FlatType> FlatType for core::cell::UnsafeCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // SAFETY: we temporarily take a shared reference to the inner value
-        unsafe { <T as MemSize>::mem_size_rec(&*self.get(), flags, refs) }
+        // SAFETY: we temporarily take a shared reference to the inner value;
+        // since &self exists, &mut self cannot exist.
+        let borrow = unsafe { &*self.get() };
+        <T as MemSize>::mem_size_rec(borrow, flags, refs)
     }
 }
 
 // Mutexes
 
 #[cfg(feature = "std")]
-impl<T> FlatType for std::sync::Mutex<T> {
-    type Flat = False;
+impl<T: FlatType> FlatType for std::sync::Mutex<T> {
+    type Flat = T::Flat;
 }
 
 #[cfg(feature = "std")]
@@ -618,8 +642,8 @@ impl<T: MemSize> MemSize for std::sync::Mutex<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T> FlatType for std::sync::RwLock<T> {
-    type Flat = False;
+impl<T: FlatType> FlatType for std::sync::RwLock<T> {
+    type Flat = T::Flat;
 }
 
 #[cfg(feature = "std")]

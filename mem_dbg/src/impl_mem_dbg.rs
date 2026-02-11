@@ -10,7 +10,7 @@ use core::marker::PhantomPinned;
 use core::num::*;
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{FlatType, DbgFlags, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
+use crate::{DbgFlags, FlatType, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
@@ -152,6 +152,10 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
 // Option
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
+
+// Result
+
+impl<T: MemDbgImpl, E: MemDbgImpl> MemDbgImpl for Result<T, E> {}
 
 // Box
 
@@ -562,12 +566,12 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value
-        unsafe {
-            (&*self.as_ptr())._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        }
+        // SAFETY: we temporarily take a shared reference to the inner value;
+        // since &self exists, &mut self cannot exist.
+        let borrow = unsafe { &*self.as_ptr() };
+        borrow._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
     }
 }
 
@@ -582,12 +586,12 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        unsafe {
-            // SAFETY: we temporarily take a shared reference to the inner value
-            (&*self.get())._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        }
+        // SAFETY: we temporarily take a shared reference to the inner value;
+        // since &self exists, &mut self cannot exist.
+        let borrow = unsafe { &*self.get() };
+        borrow._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
     }
 }
 

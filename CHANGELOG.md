@@ -7,6 +7,8 @@
 * New check for potentially `#[mem_size_flat]` types; it causes a compile error, and
   it can be silenced using the `#[mem_size_rec]` attribute.
 
+* Added implementations for `Result`.
+
 ### Changed
 
 * `CopyType` has become `FlatType`. `#[copy_type]` is now `#[mem_size_flat]`.
