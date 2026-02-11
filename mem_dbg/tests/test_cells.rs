@@ -3,7 +3,6 @@
 
 use mem_dbg::*;
 use std::cell::{Cell, OnceCell, RefCell, UnsafeCell};
-use std::mem::size_of;
 
 #[test]
 fn test_cell_in_struct() {
