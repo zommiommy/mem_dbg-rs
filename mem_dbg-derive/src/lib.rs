@@ -18,8 +18,8 @@ use syn::{
 ///
 /// Presently we do not support unions.
 ///
-/// The attribute `mem_size_flat` can be used on flat types (typically [`Copy`]
-/// + `'static`) that do not contain non-`'static` references to make
+/// The attribute `mem_size_flat` can be used on flat types (typically `Copy +
+/// 'static`) that do not contain non-`'static` references to make
 /// `MemSize::mem_size` faster on arrays, vectors, slices, and supported
 /// containers.
 ///
