@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-43343 B ⏺
+59727 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -94,8 +94,8 @@ expression: depth_output
     8 B ├╴fn_ptr4
    16 B ├╴layout
     8 B ├╴non_null
-   48 B ├╴buf_reader
-   64 B ├╴buf_writer
+ 8240 B ├╴buf_reader
+ 8256 B ├╴buf_writer
    36 B ├╴cursor
     8 B ├╴arc
     8 B ├╴rc
