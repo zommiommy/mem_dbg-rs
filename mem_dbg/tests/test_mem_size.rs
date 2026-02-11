@@ -13,12 +13,6 @@ use core::mem::size_of;
 use mem_dbg::*;
 use std::sync::atomic::AtomicU64;
 
-#[derive(MemSize)]
-#[cfg_attr(feature = "std", derive(MemDbg))]
-union SingletonUnion<A: Copy> {
-    a: A,
-}
-
 #[allow(dead_code)]
 #[derive(MemSize)]
 #[cfg_attr(feature = "std", derive(MemDbg))]
@@ -26,7 +20,6 @@ enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
-    Union(SingletonUnion<u8>),
     Unnamed(usize, u8),
     Named {
         first: usize,
@@ -792,18 +785,6 @@ enum TestEnumReprU8 {
     _C(u64, Vec<usize>),
 }
 
-#[cfg_attr(feature = "derive", derive(MemSize))]
-#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
-union TestUnion {
-    a: u64,
-}
-
-impl Default for TestUnion {
-    fn default() -> Self {
-        TestUnion { a: 0 }
-    }
-}
-
 type Unit = ();
 
 test_size!(
@@ -833,56 +814,6 @@ test_size!(
     (char, 4, 4),
     (TestEnum2, 32, 32),
     (TestEnumReprU8, 40, 40),
-    (TestUnion, 8, 8),
     (Unit, 0, 0)
 );
 
-#[cfg_attr(feature = "derive", derive(MemSize))]
-#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
-union TestUnionDeep<'a> {
-    b: &'a TestUnion,
-}
-
-#[cfg_attr(feature = "derive", derive(MemSize))]
-#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
-union TestUnionDeepMut<'a> {
-    b: &'a mut TestUnion,
-}
-
-#[test]
-fn test_single_field_union_follow_ref() {
-    let mut test_union = TestUnion::default();
-    let test_union_deep = TestUnionDeep { b: &test_union };
-
-    // We check that the shallow size of the test union deep is the
-    // size of a reference (i.e. an usize).
-    assert_eq!(
-        <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::default()),
-        core::mem::size_of::<usize>(),
-    );
-
-    // We check that the deep size of the test union deep is the
-    // size of a reference plus the size of the test union.
-    assert_eq!(
-        <TestUnionDeep as MemSize>::mem_size(&test_union_deep, SizeFlags::FOLLOW_REFS),
-        core::mem::size_of::<usize>()
-            + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
-    );
-
-    let test_union_deep_mut = TestUnionDeepMut { b: &mut test_union };
-
-    // We check that the shallow size of the test union mut is the
-    // size of a reference (i.e. an usize)
-    assert_eq!(
-        <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::default()),
-        core::mem::size_of::<usize>(),
-    );
-
-    // We check that the deep size of the test union deep mut is the
-    // size of a reference plus the size of the test union.
-    assert_eq!(
-        <TestUnionDeepMut as MemSize>::mem_size(&test_union_deep_mut, SizeFlags::FOLLOW_REFS),
-        core::mem::size_of::<usize>()
-            + <TestUnion as MemSize>::mem_size(&test_union, SizeFlags::default()),
-    );
-}

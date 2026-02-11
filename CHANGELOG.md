@@ -18,6 +18,9 @@
 
 * Moved to `rand` 0.10.0 and `mmap-rs` 0.7.0.
 
+* Removed single-variant union support. There is now an example
+  showing how to handle unions properly.
+
 ### Fixed
 
 * A proper replica of `ArcInner` is now used to measure the occupancy of

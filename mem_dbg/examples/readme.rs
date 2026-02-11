@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Unit,
         Unit2(),
         Unit3 {},
-        Unnamed(usize, usize),
+        Unnamed(usize, u8),
         Named { first: usize, second: u8 },
     }
 

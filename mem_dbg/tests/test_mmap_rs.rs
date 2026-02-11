@@ -3,6 +3,7 @@
 use mem_dbg::{SizeFlags, *};
 
 #[test]
+#[cfg_attr(miri, ignore)] // mmap-rs uses OS-specific APIs unsupported by miri
 fn test_mmap_types() {
     use mmap_rs::{Mmap, MmapMut, MmapOptions};
     use std::fs::OpenOptions;

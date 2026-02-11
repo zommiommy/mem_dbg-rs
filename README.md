@@ -142,16 +142,10 @@ struct Data<A> {
 }
 
 #[derive(MemSize, MemDbg)]
-union SingletonUnion<A: Copy> {
-    a: A
-}
-
-#[derive(MemSize, MemDbg)]
 enum TestEnum {
     Unit,
     Unit2(),
     Unit3 {},
-    Union(SingletonUnion<u8>),
     Unnamed(usize, u8),
     Named { first: usize, second: u8 },
 }
@@ -329,12 +323,118 @@ assert_eq!(
   might be too complex; this might change in the future (e.g., via a flag)
   should interesting use cases arise.
 
-- Regarding `union`s, we only support completely the special case of the single
-  field `union`, for which we implement both the derive macros `MemSize`/`MemDbg`.
-  For the more complex cases of unions with multiple fields, we only provide the
-  `MemSize` derive macro with partial support, excluding support for the
-  `SizeFlags::FOLLOW_REFS` flag. If full support for the derive macros `MemSize`/`MemDbg`
-  is needed in the case of a union with multiple fields, one can implement the traits manually.
+- Unions are not supported. See the section below for a worked out example.
+
+## Unions
+
+Unions have no discriminant tag, so the library cannot know which field is
+active. The recommended solution is to create `#[repr(transparent)]` wrappers,
+one per variant, each encoding which field is active at the type level.
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+# #[cfg(feature = "std")]
+# {
+use mem_dbg::*;
+
+union IntOrFloat {
+    i: i32,
+    f: f32,
+}
+
+/// Wrapper that tells the library the `i` field is active.
+#[repr(transparent)]
+struct IntOrFloatI(IntOrFloat);
+
+/// Wrapper that tells the library the `f` field is active.
+#[repr(transparent)]
+struct IntOrFloatF(IntOrFloat);
+
+impl CopyType for IntOrFloatI {
+    type Copy = True;
+}
+
+impl MemSize for IntOrFloatI {
+    fn mem_size_rec(
+        &self,
+        _flags: SizeFlags,
+        _refs: &mut HashMap<usize, usize>,
+    ) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+impl MemDbgImpl for IntOrFloatI {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        _is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        unsafe { self.0.i }._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("i"),
+            true,
+            core::mem::size_of::<Self>(),
+            flags,
+            dbg_refs,
+        )
+    }
+}
+
+impl CopyType for IntOrFloatF {
+    type Copy = True;
+}
+
+impl MemSize for IntOrFloatF {
+    fn mem_size_rec(
+        &self,
+        _flags: SizeFlags,
+        _refs: &mut HashMap<usize, usize>,
+    ) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+impl MemDbgImpl for IntOrFloatF {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        _is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        unsafe { self.0.f }._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("f"),
+            true,
+            core::mem::size_of::<Self>(),
+            flags,
+            dbg_refs,
+        )
+    }
+}
+
+let w = IntOrFloatI(IntOrFloat { i: 42 });
+assert_eq!(w.mem_size(SizeFlags::default()), 4);
+w.mem_dbg(DbgFlags::empty())?;
+# }
+# Ok(())
+# }
+```
 
 [`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
 [`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html

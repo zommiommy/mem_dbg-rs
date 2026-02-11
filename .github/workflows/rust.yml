@@ -65,5 +65,4 @@ jobs:
       - name: Install nightly and miri
         run: rustup toolchain install nightly --component miri && rustup default nightly && cargo miri setup
       - name: Run tests with miri
-        # mmap-rs excluded: requires file I/O unsupported by miri
-        run: cargo miri test --features std,derive,half,maligned,rand
+        run: cargo miri test --all-features --all-targets
