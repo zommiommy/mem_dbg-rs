@@ -1,3 +1,4 @@
+#![allow(clippy::approx_constant)]
 #![cfg(feature = "half")]
 #![cfg(feature = "std")]
 #![cfg(feature = "derive")]

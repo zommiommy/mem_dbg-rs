@@ -18,6 +18,7 @@ fn test_mmap_types() {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(true)
         .open("/tmp/test_mmap_comprehensive")
         .unwrap();
     file.set_len(1024).unwrap();

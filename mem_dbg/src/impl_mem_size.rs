@@ -775,7 +775,7 @@ impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: MemSize + std::io::Write> CopyType for std::io::BufWriter<T> {
+impl<T: std::io::Write> CopyType for std::io::BufWriter<T> {
     type Copy = False;
 }
 
