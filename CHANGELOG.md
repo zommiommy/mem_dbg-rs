@@ -40,6 +40,8 @@
 * The `CopyType` of a `maligned::Aligned` type is now correctly
   taken from the wrapped type.
 
+* `BufReader` and `BufWriter` now report the size of their internal buffer.
+
 ## [0.3.4] - 2026-01-20
 
 ### New
