@@ -10,7 +10,7 @@ use core::marker::PhantomPinned;
 use core::num::*;
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{CopyType, DbgFlags, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
+use crate::{FlatType, DbgFlags, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
@@ -192,26 +192,26 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
 
 // Slices
 
-impl<T: CopyType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as CopyType>::Copy> {}
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as FlatType>::Flat> {}
 
 // Arrays
 
-impl<T: CopyType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
-    [T; N]: MemSizeHelper<<T as CopyType>::Copy>
+impl<T: FlatType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
+    [T; N]: MemSizeHelper<<T as FlatType>::Flat>
 {
 }
 
 // Vectors
 
-impl<T: CopyType + MemDbgImpl> MemDbgImpl for Vec<T> where
-    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for Vec<T> where
+    Vec<T>: MemSizeHelper<<T as FlatType>::Flat>
 {
 }
 
 // VecDeque
 
-impl<T: CopyType + MemDbgImpl> MemDbgImpl for VecDeque<T> where
-    VecDeque<T>: MemSizeHelper<<T as CopyType>::Copy>
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for VecDeque<T> where
+    VecDeque<T>: MemSizeHelper<<T as FlatType>::Flat>
 {
 }
 
@@ -315,27 +315,27 @@ impl_mem_dbg_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9);
 // Hash-based containers from the standard library
 
 #[cfg(feature = "std")]
-impl<K: CopyType> MemDbgImpl for std::collections::HashSet<K> where
-    std::collections::HashSet<K>: MemSizeHelper<<K as CopyType>::Copy>
+impl<K: FlatType> MemDbgImpl for std::collections::HashSet<K> where
+    std::collections::HashSet<K>: MemSizeHelper<<K as FlatType>::Flat>
 {
 }
 #[cfg(feature = "std")]
-impl<K: CopyType, V: CopyType> MemDbgImpl for std::collections::HashMap<K, V> where
+impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::HashMap<K, V> where
     std::collections::HashMap<K, V>:
-        crate::impl_mem_size::MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
+        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
 {
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> MemDbgImpl for std::collections::BTreeSet<T> where
-    std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>
+impl<T: FlatType> MemDbgImpl for std::collections::BTreeSet<T> where
+    std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>
 {
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType, V: CopyType> MemDbgImpl for std::collections::BTreeMap<K, V> where
+impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::BTreeMap<K, V> where
     std::collections::BTreeMap<K, V>:
-        crate::impl_mem_size::MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>
+        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
 {
 }
 
@@ -477,8 +477,8 @@ impl_mem_dbg!(
 /// Zero-sized placeholder displayed when a `RefCell` is mutably borrowed.
 struct MutablyBorrowed;
 
-impl crate::CopyType for MutablyBorrowed {
-    type Copy = crate::True;
+impl crate::FlatType for MutablyBorrowed {
+    type Flat = crate::True;
 }
 
 impl crate::MemSize for MutablyBorrowed {

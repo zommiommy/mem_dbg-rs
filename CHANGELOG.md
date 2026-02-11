@@ -1,20 +1,25 @@
 # Change Log
 
-## [0.4.0] - 2026-10-11
+## [0.4.0] - 2026-02-11
 
 ### New
+
+* New check for potentially `#[mem_size_flat]` types; it causes a compile error, and
+  it can be silenced using the `#[mem_size_rec]` attribute.
+
+### Changed
+
+* `CopyType` has become `FlatType`. `#[copy_type]` is now `#[mem_size_flat]`.
+  `#[move_type]` is now `#[mem_size_rec]`. The `Copy + 'static` bound enforced
+  by the derive macro has been removed. This change makes it possible to use
+  optimized code on atomic types, even if they are not `Copy`.
+
+* `FOLLOW_RC` has been renamed `FOLLOW_RCS` for uniformity with `FOLLOW_REFS`.
 
 * The occupancy of references and counted references are now counted once
   when using `FOLLOW_REFS`/`FOLLOW_RCS`.
 
-* New check for potentially `#[copy_type]` types; it causes a compile error, and
-  it can be silenced using the `#[move_type]` attribute.
-
-### Changed
-
 * Removed no-op `alloc` feature.
-
-* `FOLLOW_RC` has been renamed `FOLLOW_RCS` for uniformity with `FOLLOW_REFS`.
 
 * The size of `Rc`/`Arc` does not include anymore the space used by
   `RcInner`/`ArcInner` unless `FOLLOW_RCS` is set.
@@ -22,17 +27,17 @@
 * Moved to `rand` 0.10.0 and `mmap-rs` 0.7.0.
 
 * Removed single-variant union support. There is now an example
-  showing how to handle unions properly.
+  showing how to handle unions properly with a manual implementation.
 
 ### Fixed
 
 * A proper replica of `ArcInner` is now used to measure the occupancy of
   `Arc`.
 
-* Now tuples get the correct `CopyType::Copy` (it used to be always
+* Now tuples get the correct `FlatType::Flat` (it used to be always
   `False`).
 
-* Now ranges get the correct `CopyType::Copy` (it used to be always
+* Now ranges get the correct `FlatType::Flat` (it used to be always
   `True`).
 
 * Fixed size of `PathBuf` (wasn't considering the buffer).
@@ -43,7 +48,7 @@
 
 * Fixed potential panic when traversing a `RefCell`.
 
-* The `CopyType` of a `maligned::Aligned` type is now correctly
+* The `FlatType` of a `maligned::Aligned` type is now correctly
   taken from the wrapped type.
 
 * `BufReader` and `BufWriter` now report the size of their internal buffer.

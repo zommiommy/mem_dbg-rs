@@ -11,7 +11,7 @@
 use mem_dbg::*;
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
-#[copy_type]
+#[mem_size_flat]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -21,11 +21,11 @@ enum TestEnum {
 }
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
-#[copy_type]
+#[mem_size_flat]
 struct TestMarker;
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
-#[copy_type]
+#[mem_size_flat]
 struct TestTuple(usize, u8);
 
 #[derive(MemSize, MemDbg)]

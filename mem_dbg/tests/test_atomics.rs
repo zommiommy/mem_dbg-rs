@@ -7,7 +7,7 @@ use std::sync::atomic::*;
 #[test]
 fn test_atomic_bool_in_struct() {
     #[derive(MemSize)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         atomic: AtomicBool,
     }
@@ -23,7 +23,7 @@ fn test_atomic_bool_in_struct() {
 #[test]
 fn test_atomic_integers_in_struct() {
     #[derive(MemSize)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         atomic_i8: AtomicI8,
         atomic_i16: AtomicI16,
@@ -59,7 +59,7 @@ fn test_atomic_integers_in_struct() {
 #[test]
 fn test_atomic_with_memdbg() {
     #[derive(MemSize, MemDbg)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         atomic_bool: AtomicBool,
         atomic_u32: AtomicU32,

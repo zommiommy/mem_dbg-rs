@@ -8,10 +8,12 @@
 
 use core::marker::{PhantomData, PhantomPinned};
 use core::num::*;
-use core::ops::Deref;
 use core::sync::atomic::*;
 
-use crate::{Boolean, CopyType, False, MemSize, SizeFlags, True};
+#[cfg(feature = "std")]
+use core::ops::Deref;
+
+use crate::{Boolean, FlatType, False, MemSize, SizeFlags, True};
 
 // HashMap for pointer deduplication (always use hashbrown for consistency)
 use hashbrown::HashMap;
@@ -24,11 +26,11 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use std::collections::VecDeque;
 
 /// A basic implementation using [`core::mem::size_of`], setting
-/// [`CopyType::Copy`] to the specified type ([`True`] or [`False`]).
+/// [`FlatType::Flat`] to the specified type ([`True`] or [`False`]).
 macro_rules! impl_size_of {
     ($copy:ty; $($ty:ty),*) => {$(
-        impl CopyType for $ty {
-            type Copy = $copy;
+        impl FlatType for $ty {
+            type Flat = $copy;
         }
 
         impl MemSize for $ty {
@@ -54,8 +56,8 @@ impl_size_of! {True;
 
 // Strings
 
-impl CopyType for str {
-    type Copy = False;
+impl FlatType for str {
+    type Flat = False;
 }
 
 impl MemSize for str {
@@ -64,8 +66,8 @@ impl MemSize for str {
     }
 }
 
-impl CopyType for String {
-    type Copy = False;
+impl FlatType for String {
+    type Flat = False;
 }
 
 impl MemSize for String {
@@ -81,8 +83,8 @@ impl MemSize for String {
 
 // PhantomData
 
-impl<T> CopyType for PhantomData<T> {
-    type Copy = True;
+impl<T> FlatType for PhantomData<T> {
+    type Flat = True;
 }
 
 impl<T: ?Sized> MemSize for PhantomData<T> {
@@ -93,8 +95,8 @@ impl<T: ?Sized> MemSize for PhantomData<T> {
 
 // References: we recurse only if FOLLOW_REFS is set, and use the map for deduplication
 
-impl<T: ?Sized + MemSize> CopyType for &'_ T {
-    type Copy = False;
+impl<T: ?Sized + MemSize> FlatType for &'_ T {
+    type Flat = False;
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ T {
@@ -110,8 +112,8 @@ impl<T: ?Sized + MemSize> MemSize for &'_ T {
     }
 }
 
-impl<T: ?Sized + MemSize> CopyType for &'_ mut T {
-    type Copy = False;
+impl<T: ?Sized + MemSize> FlatType for &'_ mut T {
+    type Flat = False;
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
@@ -122,8 +124,8 @@ impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
 
 // Option
 
-impl<T: CopyType + MemSize> CopyType for Option<T> {
-    type Copy = T::Copy;
+impl<T: FlatType + MemSize> FlatType for Option<T> {
+    type Flat = T::Flat;
 }
 
 impl<T: MemSize> MemSize for Option<T> {
@@ -137,8 +139,8 @@ impl<T: MemSize> MemSize for Option<T> {
 
 // Box: unique ownership, so just recurse directly
 
-impl<T: ?Sized> CopyType for Box<T> {
-    type Copy = False;
+impl<T: ?Sized> FlatType for Box<T> {
+    type Flat = False;
 }
 
 impl<T: ?Sized + MemSize> MemSize for Box<T> {
@@ -151,7 +153,6 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
 
 // Structure used to measure the size of RcInner in std
 #[cfg(feature = "std")]
-#[doc(hidden)]
 #[repr(C, align(2))]
 struct RcInner<T: ?Sized> {
     _strong: std::cell::Cell<usize>,
@@ -160,8 +161,8 @@ struct RcInner<T: ?Sized> {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::rc::Rc<T> {
-    type Copy = False;
+impl<T> FlatType for std::rc::Rc<T> {
+    type Flat = False;
 }
 
 /// This implementation is based on the assumption that `Rc<T>` is
@@ -199,13 +200,12 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
 // Arc: uses map for deduplication when FOLLOW_RCS is set
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::sync::Arc<T> {
-    type Copy = False;
+impl<T> FlatType for std::sync::Arc<T> {
+    type Flat = False;
 }
 
 // Structure used to measure the size of ArcInner in std
 #[cfg(feature = "std")]
-#[doc(hidden)]
 #[repr(C, align(2))]
 struct ArcInner<T: ?Sized> {
     _strong: core::sync::atomic::AtomicUsize,
@@ -248,32 +248,32 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
 
 /// A helper trait that makes it possible to implement differently
 /// the size computation for arrays, vectors, and slices of
-/// [`Copy`] types.
+/// flat types.
 ///
-/// See [`crate::CopyType`] for more information.
+/// See [`crate::FlatType`] for more information.
 pub trait MemSizeHelper<T: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
 
 // Slices
 
-impl<T: CopyType> MemSize for [T]
+impl<T: FlatType> MemSize for [T]
 where
-    [T]: MemSizeHelper<<T as CopyType>::Copy>,
+    [T]: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <[T] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
+        <[T] as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
-impl<T: CopyType + MemSize> MemSizeHelper<True> for [T] {
+impl<T: FlatType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of_val(self)
     }
 }
 
-impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
+impl<T: FlatType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         self.iter()
@@ -284,16 +284,16 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for [T] {
 
 // Arrays
 
-impl<T: CopyType + MemSize, const N: usize> CopyType for [T; N] {
-    type Copy = T::Copy;
+impl<T: FlatType + MemSize, const N: usize> FlatType for [T; N] {
+    type Flat = T::Flat;
 }
 
-impl<T: CopyType, const N: usize> MemSize for [T; N]
+impl<T: FlatType, const N: usize> MemSize for [T; N]
 where
-    [T; N]: MemSizeHelper<<T as CopyType>::Copy>,
+    [T; N]: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <[T; N] as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
+        <[T; N] as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
@@ -317,20 +317,20 @@ impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
 
 // Vectors
 
-impl<T> CopyType for Vec<T> {
-    type Copy = False;
+impl<T> FlatType for Vec<T> {
+    type Flat = False;
 }
 
-impl<T: CopyType> MemSize for Vec<T>
+impl<T: FlatType> MemSize for Vec<T>
 where
-    Vec<T>: MemSizeHelper<<T as CopyType>::Copy>,
+    Vec<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <Vec<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
+        <Vec<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
-impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<True> for Vec<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
@@ -342,7 +342,7 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for Vec<T> {
     }
 }
 
-impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<False> for Vec<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
@@ -360,20 +360,20 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for Vec<T> {
 
 // VecDeque
 
-impl<T> CopyType for VecDeque<T> {
-    type Copy = False;
+impl<T> FlatType for VecDeque<T> {
+    type Flat = False;
 }
 
-impl<T: CopyType> MemSize for VecDeque<T>
+impl<T: FlatType> MemSize for VecDeque<T>
 where
-    VecDeque<T>: MemSizeHelper<<T as CopyType>::Copy>,
+    VecDeque<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <VecDeque<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(self, flags, refs)
+        <VecDeque<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
-impl<T: CopyType + MemSize> MemSizeHelper<True> for VecDeque<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<True> for VecDeque<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
@@ -385,7 +385,7 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for VecDeque<T> {
     }
 }
 
-impl<T: CopyType + MemSize> MemSizeHelper<False> for VecDeque<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<False> for VecDeque<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
@@ -426,8 +426,8 @@ macro_rules! impl_tuples_muncher {
 
     // Implement on reversed list
     ([($idx:tt => $ty:ident); $( ($nidx:tt => $nty:ident); )*]) => {
-        impl<$ty: CopyType, $($nty: CopyType,)*> CopyType for ($ty, $($nty,)*) {
-            type Copy = and_chain!(<$ty as CopyType>::Copy $(, <$nty as CopyType>::Copy)*);
+        impl<$ty: FlatType, $($nty: FlatType,)*> FlatType for ($ty, $($nty,)*) {
+            type Flat = and_chain!(<$ty as FlatType>::Flat $(, <$nty as FlatType>::Flat)*);
         }
 
         impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*) {
@@ -439,8 +439,8 @@ macro_rules! impl_tuples_muncher {
             }
         }
 
-        impl<$ty, $($nty,)* R> CopyType for fn($ty, $($nty,)*) -> R {
-            type Copy = True;
+        impl<$ty, $($nty,)* R> FlatType for fn($ty, $($nty,)*) -> R {
+            type Flat = True;
         }
 
         impl<$ty, $($nty,)* R> MemSize for fn($ty, $($nty,)*) -> R {
@@ -466,8 +466,8 @@ impl_tuples_muncher!(
 
 // Functions
 
-impl<R> CopyType for fn() -> R {
-    type Copy = True;
+impl<R> FlatType for fn() -> R {
+    type Flat = True;
 }
 
 impl<R> MemSize for fn() -> R {
@@ -478,8 +478,8 @@ impl<R> MemSize for fn() -> R {
 
 // Ranges
 
-impl<Idx: CopyType> CopyType for core::ops::Range<Idx> {
-    type Copy = Idx::Copy;
+impl<Idx: FlatType> FlatType for core::ops::Range<Idx> {
+    type Flat = Idx::Flat;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
@@ -491,8 +491,8 @@ impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
     }
 }
 
-impl<Idx: CopyType> CopyType for core::ops::RangeFrom<Idx> {
-    type Copy = Idx::Copy;
+impl<Idx: FlatType> FlatType for core::ops::RangeFrom<Idx> {
+    type Flat = Idx::Flat;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
@@ -502,8 +502,8 @@ impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
     }
 }
 
-impl<Idx: CopyType> CopyType for core::ops::RangeInclusive<Idx> {
-    type Copy = Idx::Copy;
+impl<Idx: FlatType> FlatType for core::ops::RangeInclusive<Idx> {
+    type Flat = Idx::Flat;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
@@ -515,8 +515,8 @@ impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
     }
 }
 
-impl<Idx: CopyType> CopyType for core::ops::RangeTo<Idx> {
-    type Copy = Idx::Copy;
+impl<Idx: FlatType> FlatType for core::ops::RangeTo<Idx> {
+    type Flat = Idx::Flat;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
@@ -526,8 +526,8 @@ impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
     }
 }
 
-impl<Idx: CopyType> CopyType for core::ops::RangeToInclusive<Idx> {
-    type Copy = Idx::Copy;
+impl<Idx: FlatType> FlatType for core::ops::RangeToInclusive<Idx> {
+    type Flat = Idx::Flat;
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
@@ -548,8 +548,8 @@ impl_size_of!(True;
 
 // Cells
 
-impl<T: CopyType> CopyType for core::cell::RefCell<T> {
-    type Copy = T::Copy;
+impl<T: FlatType> FlatType for core::cell::RefCell<T> {
+    type Flat = T::Flat;
 }
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
@@ -564,8 +564,8 @@ impl<T: MemSize> MemSize for core::cell::RefCell<T> {
     }
 }
 
-impl<T: CopyType> CopyType for core::cell::Cell<T> {
-    type Copy = T::Copy;
+impl<T: FlatType> FlatType for core::cell::Cell<T> {
+    type Flat = T::Flat;
 }
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
@@ -575,8 +575,8 @@ impl<T: MemSize> MemSize for core::cell::Cell<T> {
     }
 }
 
-impl<T: CopyType> CopyType for core::cell::OnceCell<T> {
-    type Copy = T::Copy;
+impl<T: FlatType> FlatType for core::cell::OnceCell<T> {
+    type Flat = T::Flat;
 }
 
 impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
@@ -589,8 +589,8 @@ impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
     }
 }
 
-impl<T: CopyType> CopyType for core::cell::UnsafeCell<T> {
-    type Copy = T::Copy;
+impl<T: FlatType> FlatType for core::cell::UnsafeCell<T> {
+    type Flat = T::Flat;
 }
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
@@ -603,8 +603,8 @@ impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
 // Mutexes
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::sync::Mutex<T> {
-    type Copy = False;
+impl<T> FlatType for std::sync::Mutex<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -618,8 +618,8 @@ impl<T: MemSize> MemSize for std::sync::Mutex<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::sync::RwLock<T> {
-    type Copy = False;
+impl<T> FlatType for std::sync::RwLock<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -655,8 +655,8 @@ where
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::sync::MutexGuard<'_, T> {
-    type Copy = False;
+impl<T> FlatType for std::sync::MutexGuard<'_, T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -667,8 +667,8 @@ impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::sync::RwLockReadGuard<'_, T> {
-    type Copy = False;
+impl<T> FlatType for std::sync::RwLockReadGuard<'_, T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -679,8 +679,8 @@ impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::sync::RwLockWriteGuard<'_, T> {
-    type Copy = False;
+impl<T> FlatType for std::sync::RwLockWriteGuard<'_, T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -693,8 +693,8 @@ impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
 // OS stuff
 
 #[cfg(feature = "std")]
-impl CopyType for std::path::Path {
-    type Copy = False;
+impl FlatType for std::path::Path {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -705,8 +705,8 @@ impl MemSize for std::path::Path {
 }
 
 #[cfg(feature = "std")]
-impl CopyType for std::path::PathBuf {
-    type Copy = False;
+impl FlatType for std::path::PathBuf {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -722,8 +722,8 @@ impl MemSize for std::path::PathBuf {
 }
 
 #[cfg(feature = "std")]
-impl CopyType for std::ffi::OsStr {
-    type Copy = False;
+impl FlatType for std::ffi::OsStr {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -734,8 +734,8 @@ impl MemSize for std::ffi::OsStr {
 }
 
 #[cfg(feature = "std")]
-impl CopyType for std::ffi::OsString {
-    type Copy = False;
+impl FlatType for std::ffi::OsString {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -765,8 +765,8 @@ impl_size_of!(False;
 // I/O
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::io::BufReader<T> {
-    type Copy = False;
+impl<T> FlatType for std::io::BufReader<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -779,8 +779,8 @@ impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: std::io::Write> CopyType for std::io::BufWriter<T> {
-    type Copy = False;
+impl<T: std::io::Write> FlatType for std::io::BufWriter<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -793,8 +793,8 @@ impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::io::Cursor<T> {
-    type Copy = False;
+impl<T> FlatType for std::io::Cursor<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
@@ -828,8 +828,8 @@ impl_size_of!(True;
 // mmap-rs crate
 
 #[cfg(feature = "mmap-rs")]
-impl CopyType for mmap_rs::Mmap {
-    type Copy = False;
+impl FlatType for mmap_rs::Mmap {
+    type Flat = False;
 }
 
 #[cfg(feature = "mmap-rs")]
@@ -845,8 +845,8 @@ impl MemSize for mmap_rs::Mmap {
 }
 
 #[cfg(feature = "mmap-rs")]
-impl CopyType for mmap_rs::MmapMut {
-    type Copy = False;
+impl FlatType for mmap_rs::MmapMut {
+    type Flat = False;
 }
 
 #[cfg(feature = "mmap-rs")]
@@ -910,17 +910,17 @@ fn capacity_to_buckets(cap: usize) -> Option<usize> {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::collections::HashSet<T> {
-    type Copy = False;
+impl<T> FlatType for std::collections::HashSet<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> MemSize for std::collections::HashSet<T>
+impl<T: FlatType> MemSize for std::collections::HashSet<T>
 where
-    std::collections::HashSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
+    std::collections::HashSet<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::HashSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(
+        <std::collections::HashSet<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
             self, flags, refs,
         )
     }
@@ -949,7 +949,7 @@ fn fix_set_for_capacity<K>(
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
+impl<K: FlatType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         fix_set_for_capacity(self, core::mem::size_of::<K>() * self.len(), flags)
@@ -957,7 +957,7 @@ impl<K: CopyType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
+impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         fix_set_for_capacity(
@@ -973,27 +973,27 @@ impl<K: CopyType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
 #[cfg(feature = "std")]
 /// A helper trait that makes it possible to implement differently
 /// the size computation for maps in which keys or values are
-/// [`Copy`] types.
+/// flat types.
 ///
-/// See [`crate::CopyType`] for more information.
+/// See [`crate::FlatType`] for more information.
 pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
 
 #[cfg(feature = "std")]
-impl<K, V> CopyType for std::collections::HashMap<K, V> {
-    type Copy = False;
+impl<K, V> FlatType for std::collections::HashMap<K, V> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType, V: CopyType> MemSize for std::collections::HashMap<K, V>
+impl<K: FlatType, V: FlatType> MemSize for std::collections::HashMap<K, V>
 where
-    std::collections::HashMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
+    std::collections::HashMap<K, V>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         <std::collections::HashMap<K, V> as MemSizeHelper2<
-            <K as CopyType>::Copy,
-            <V as CopyType>::Copy,
+            <K as FlatType>::Flat,
+            <V as FlatType>::Flat,
         >>::mem_size_impl(self, flags, refs)
     }
 }
@@ -1021,7 +1021,7 @@ fn fix_map_for_capacity<K, V>(
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
@@ -1035,7 +1035,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
@@ -1053,7 +1053,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
@@ -1070,7 +1070,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
@@ -1157,24 +1157,24 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
 }
 
 #[cfg(feature = "std")]
-impl<T> CopyType for std::collections::BTreeSet<T> {
-    type Copy = False;
+impl<T> FlatType for std::collections::BTreeSet<T> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType> MemSize for std::collections::BTreeSet<T>
+impl<T: FlatType> MemSize for std::collections::BTreeSet<T>
 where
-    std::collections::BTreeSet<T>: MemSizeHelper<<T as CopyType>::Copy>,
+    std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::BTreeSet<T> as MemSizeHelper<<T as CopyType>::Copy>>::mem_size_impl(
+        <std::collections::BTreeSet<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
             self, flags, refs,
         )
     }
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T> {
     #[inline(always)]
     fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeSet<T>>()
@@ -1183,7 +1183,7 @@ impl<T: CopyType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T
 }
 
 #[cfg(feature = "std")]
-impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeSet<T>>()
@@ -1199,25 +1199,25 @@ impl<T: CopyType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<
 }
 
 #[cfg(feature = "std")]
-impl<K, V> CopyType for std::collections::BTreeMap<K, V> {
-    type Copy = False;
+impl<K, V> FlatType for std::collections::BTreeMap<K, V> {
+    type Flat = False;
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType, V: CopyType> MemSize for std::collections::BTreeMap<K, V>
+impl<K: FlatType, V: FlatType> MemSize for std::collections::BTreeMap<K, V>
 where
-    std::collections::BTreeMap<K, V>: MemSizeHelper2<<K as CopyType>::Copy, <V as CopyType>::Copy>,
+    std::collections::BTreeMap<K, V>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         <std::collections::BTreeMap<K, V> as MemSizeHelper2<
-            <K as CopyType>::Copy,
-            <V as CopyType>::Copy,
+            <K as FlatType>::Flat,
+            <V as FlatType>::Flat,
         >>::mem_size_impl(self, flags, refs)
     }
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
@@ -1228,7 +1228,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, True>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
@@ -1246,7 +1246,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<True, False>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
@@ -1264,7 +1264,7 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, True>
 }
 
 #[cfg(feature = "std")]
-impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
@@ -1285,8 +1285,8 @@ impl<K: CopyType + MemSize, V: CopyType + MemSize> MemSizeHelper2<False, False>
 
 // Hash
 
-impl<H> CopyType for core::hash::BuildHasherDefault<H> {
-    type Copy = True;
+impl<H> FlatType for core::hash::BuildHasherDefault<H> {
+    type Flat = True;
 }
 impl<H> MemSize for core::hash::BuildHasherDefault<H> {
     fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
@@ -1297,8 +1297,8 @@ impl<H> MemSize for core::hash::BuildHasherDefault<H> {
 }
 
 #[cfg(feature = "std")]
-impl CopyType for std::hash::DefaultHasher {
-    type Copy = True;
+impl FlatType for std::hash::DefaultHasher {
+    type Flat = True;
 }
 
 #[cfg(feature = "std")]
@@ -1311,8 +1311,8 @@ impl MemSize for std::hash::DefaultHasher {
 }
 
 #[cfg(feature = "std")]
-impl CopyType for std::collections::hash_map::RandomState {
-    type Copy = True;
+impl FlatType for std::collections::hash_map::RandomState {
+    type Flat = True;
 }
 
 #[cfg(feature = "std")]
@@ -1326,8 +1326,8 @@ impl MemSize for std::collections::hash_map::RandomState {
 
 impl_size_of!(True; core::alloc::Layout);
 
-impl<T: ?Sized> CopyType for core::ptr::NonNull<T> {
-    type Copy = True;
+impl<T: ?Sized> FlatType for core::ptr::NonNull<T> {
+    type Flat = True;
 }
 
 impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
@@ -1352,8 +1352,8 @@ impl_size_of!(True;
 );
 
 #[cfg(feature = "maligned")]
-impl<A: maligned::Alignment, T: MemSize + CopyType> CopyType for maligned::Aligned<A, T> {
-    type Copy = T::Copy;
+impl<A: maligned::Alignment, T: MemSize + FlatType> FlatType for maligned::Aligned<A, T> {
+    type Flat = T::Flat;
 }
 
 #[cfg(feature = "maligned")]

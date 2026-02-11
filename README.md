@@ -142,7 +142,7 @@ struct Data<A> {
 }
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
-#[copy_type]
+#[mem_size_flat]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -288,7 +288,7 @@ capacity: 1207
   (e.g., because of the orphan rule) one can implement the traits manually.
 
 - [`RefCell`] contents can be followed only if the [`RefCell`] not mutably
-  borrowed; `MemDbg` will show a `<mutable borrowed>` message, but `MemSize`
+  borrowed; `MemDbg` will show a `<mutably borrowed>` message, but `MemSize`
   will just silently return the size of the `RefCell` itself.
 
 - If you invoke the methods of this crate on a shared reference, the compiler
@@ -322,12 +322,12 @@ assert_eq!(
 - Computation of the size of arrays, slices, vectors, or container types, will
   be performed by iterating over their elements unless the type is a copy type
   that does not contain non-`'static` references and it is declared as such
-  using the attribute `#[copy_type]`. See [`CopyType`] for more details.
+  using the attribute `#[mem_size_flat]`. See [`FlatType`] for more details.
 
-- Atomic primitive types are a special case: they satisfy `CopyType<Copy =
-  True>`, but they are not [`Copy`]. As a result, containers of atomic types
-  will not be iterated over, but you cannot use the `#[copy_type]` attribute
-  on a structure containing atomic types, as the structure will not be [`Copy`].
+- When all fields of a struct or enum implement `FlatType<Flat=True>`, a
+  compile-time error will suggest adding `#[mem_size_flat]` (if the type is
+  flat) or `#[mem_size_rec]` (to explicitly opt out of the
+  optimization and silence the error).
 
 - The content of vectors and slices is not expanded recursively as the output
   might be too complex; this might change in the future (e.g., via a flag)
@@ -362,8 +362,8 @@ struct IntOrFloatI(IntOrFloat);
 #[repr(transparent)]
 struct IntOrFloatF(IntOrFloat);
 
-impl CopyType for IntOrFloatI {
-    type Copy = True;
+impl FlatType for IntOrFloatI {
+    type Flat = True;
 }
 
 impl MemSize for IntOrFloatI {
@@ -401,8 +401,8 @@ impl MemDbgImpl for IntOrFloatI {
     }
 }
 
-impl CopyType for IntOrFloatF {
-    type Copy = True;
+impl FlatType for IntOrFloatF {
+    type Flat = True;
 }
 
 impl MemSize for IntOrFloatF {
@@ -453,7 +453,7 @@ w.mem_dbg(DbgFlags::empty())?;
 [`std::mem::size_of`]: https://doc.rust-lang.org/std/mem/fn.size_of.html
 [`DbgFlags::RUST_LAYOUT`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT
 [`DbgFlags::COLOR`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.COLOR
-[`CopyType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.CopyType.html
+[`FlatType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.FlatType.html
 [`cap`]: https://crates.io/crates/cap
 [`get-size`]: https://crates.io/crates/get_size
 [`deepsize`]: https://crates.io/crates/deepsize

@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
+#![doc = include_str!("../README.md")]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #[cfg(not(feature = "std"))]
@@ -29,8 +29,8 @@ mod impl_mem_size;
 mod utils;
 pub use utils::*;
 
-/// Internal trait used within [`CopyType`] to implement [`MemSize`] depending
-/// on whether a type is [`Copy`] or not.
+/// Internal trait used within [`FlatType`] to implement [`MemSize`] depending
+/// on whether a type is flat or not.
 ///
 /// It has only two implementations, [`True`] and [`False`].
 ///
@@ -38,9 +38,9 @@ pub use utils::*;
 /// - `True::And<B> = B` (true AND x = x)
 /// - `False::And<B> = False` (false AND x = false)
 ///
-/// This is used to determine [`CopyType`] for composite types like tuples:
-/// a tuple is `CopyType<Copy=True>` only if all its components are
-/// `CopyType<Copy=True>`.
+/// This is used to determine [`FlatType`] for composite types like tuples:
+/// a tuple is `FlatType<Flat=True>` only if all its components are
+/// `FlatType<Flat=True>`.
 pub trait Boolean {
     type And<B: Boolean>: Boolean;
     const VALUE: bool;
@@ -71,42 +71,42 @@ pub enum RefDisplay {
     BackReference(usize),
 }
 
-/// Marker trait for copy types.
+/// Marker trait for flat types.
 ///
-/// The trait comes in two flavors: `CopyType<Copy=True>` and
-/// `CopyType<Copy=False>`. In the first case, [`MemSize::mem_size`] can be computed on
+/// The trait comes in two flavors: `FlatType<Flat=True>` and
+/// `FlatType<Flat=False>`. In the first case, [`MemSize::mem_size`] can be computed on
 /// arrays, vectors, and slices by multiplying the length or capacity
 /// by the size of the element type; in the second case, it
 /// is necessary to iterate on each element.
 ///
 /// The scope of the trait is slightly wider than that of [`Copy`] because, for
 /// example, atomic types are not [`Copy`] but they implement
-/// `CopyType<Copy=True>`.
+/// `FlatType<Flat=True>`. "Flat" means that the type has no heap
+/// indirection to account for.
 ///
 /// Since we cannot use negative trait bounds, every type that is used as a parameter of
-/// an array, vector, slice, or container type, must implement either `CopyType<Copy=True>` or
-/// `CopyType<Copy=False>`. If you do not implement either of these traits,
+/// an array, vector, slice, or container type, must implement either `FlatType<Flat=True>` or
+/// `FlatType<Flat=False>`. If you do not implement either of these traits,
 /// you will not be able to compute the size of arrays, vectors, and slices but error
 /// messages will be very unhelpful due to the contrived way we have to implement
 /// mutually exclusive types [working around the bug that prevents the compiler
-/// from understanding that implementations for the two flavors of `CopyType` are mutually
+/// from understanding that implementations for the two flavors of `FlatType` are mutually
 /// exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
 ///
 /// If you use the provided derive macros all this logic will be hidden from
-/// you. You'll just have to add the attribute `#[copy_type]` to your structures
-/// if they are [`Copy`] types and they do not contain non-`'static` references.
-/// We enforce this property by adding a bound `Copy + 'static` to the type in
-/// the procedural macro.
+/// you. You'll just have to add the attribute `#[mem_size_flat]` to your structures
+/// if they are flat types that do not contain non-`'static` references (typically
+/// [`Copy`] + `'static` types).
 ///
-/// When all fields of a struct or enum implement `CopyType<Copy=True>` but the
-/// type itself is not annotated with `#[copy_type]`, a compile-time error will
-/// suggest adding `#[copy_type]` (if the type is [`Copy`] + `'static`) or
-/// `#[move_type]` (to explicitly opt out of the optimization and silence
+/// When all fields of a struct or enum implement `FlatType<Flat=True>` but the
+/// type itself is not annotated with `#[mem_size_flat]`, a compile-time error will
+/// suggest adding `#[mem_size_flat]` (if the type is flat) or
+/// `#[mem_size_rec]` (to explicitly opt out of the optimization and silence
 /// the error).
 ///
 /// For example, the following will not compile because `usize` implements
-/// `CopyType<Copy=True>`, but the struct is not annotated with `#[copy_type]`
-/// or `#[move_type]`:
+/// `FlatType<Flat=True>`, but the struct is not annotated with `#[mem_size_flat]`
+/// or `#[mem_size_rec]`:
 ///
 /// ```compile_fail
 /// #[derive(mem_dbg::MemSize)]
@@ -116,8 +116,8 @@ pub enum RefDisplay {
 /// Note that this approach forces us to compute the size of [`Copy`] types that
 /// contain references by iteration _even if you do not specify_
 /// [`SizeFlags::FOLLOW_REFS`].
-pub trait CopyType {
-    type Copy: Boolean;
+pub trait FlatType {
+    type Flat: Boolean;
 }
 
 bitflags::bitflags! {
@@ -256,7 +256,6 @@ pub trait MemDbg: MemDbgImpl {
     /// all levels of nested structures.
     #[cfg(feature = "std")]
     fn mem_dbg(&self, flags: DbgFlags) -> core::fmt::Result {
-        // TODO: fix padding
         self._mem_dbg_depth(
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
             usize::MAX,
@@ -268,7 +267,6 @@ pub trait MemDbg: MemDbgImpl {
     /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage, expanding all levels of nested structures.
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
-        // TODO: fix padding
         let mut dbg_refs = HashSet::new();
         self._mem_dbg_depth_on(
             writer,

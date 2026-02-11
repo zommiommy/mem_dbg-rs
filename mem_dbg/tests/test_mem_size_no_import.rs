@@ -3,7 +3,7 @@
 #[allow(dead_code)]
 #[cfg_attr(feature = "derive", derive(mem_dbg::MemSize))]
 #[cfg_attr(all(feature = "std", feature = "derive"), derive(mem_dbg::MemDbg))]
-#[cfg_attr(feature = "derive", move_type)]
+#[cfg_attr(feature = "derive", mem_size_rec)]
 struct MyTestStruct(i32);
 
 #[test]

@@ -18,18 +18,17 @@ use syn::{
 ///
 /// Presently we do not support unions.
 ///
-/// The attribute `copy_type` can be used on [`Copy`] types that do not contain
-/// non-`'static` references to make `MemSize::mem_size` faster on arrays,
-/// vectors and slices. Note that specifying `copy_type` will add the bound that
-/// the type is `Copy + 'static`.
+/// The attribute `mem_size_flat` can be used on flat types (typically [`Copy`] +
+/// `'static`) that do not contain non-`'static` references to make
+/// `MemSize::mem_size` faster on arrays, vectors and slices.
 ///
-/// When all fields implement `CopyType<Copy=True>` but neither `#[copy_type]`
-/// nor `#[move_type]` is present, a compile-time error is emitted. Use
-/// `#[move_type]` to explicitly silence this check when the type is
-/// intentionally not #[copy_type].
+/// When all fields implement `FlatType<Flat=True>` but neither `#[mem_size_flat]`
+/// nor `#[mem_size_rec]` is present, a compile-time error is emitted. Use
+/// `#[mem_size_rec]` to explicitly silence this check when the type is
+/// intentionally not `#[mem_size_flat]`.
 ///
-/// See `mem_dbg::CopyType` for more details.
-#[proc_macro_derive(MemSize, attributes(copy_type, move_type))]
+/// See `mem_dbg::FlatType` for more details.
+#[proc_macro_derive(MemSize, attributes(mem_size_flat, mem_size_rec))]
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);
 
@@ -38,30 +37,26 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let mut where_clause = where_clause.unwrap().clone(); // We just created it
 
-    let is_copy_type = input
+    let is_flat = input
         .attrs
         .iter()
-        .any(|x| x.meta.path().is_ident("copy_type"));
+        .any(|x| x.meta.path().is_ident("mem_size_flat"));
 
-    let is_move_type = input
+    let is_rec = input
         .attrs
         .iter()
-        .any(|x| x.meta.path().is_ident("move_type"));
+        .any(|x| x.meta.path().is_ident("mem_size_rec"));
 
-    if is_copy_type && is_move_type {
+    if is_flat && is_rec {
         return syn::Error::new_spanned(
             &input_ident,
-            "cannot use both #[copy_type] and #[move_type] on the same type",
+            "cannot use both #[mem_size_flat] and #[mem_size_rec] on the same type",
         )
         .to_compile_error()
         .into();
     }
 
-    // If copy_type, add the Copy + 'static bound
-    let copy_type: syn::Expr = if is_copy_type {
-        where_clause
-            .predicates
-            .push(parse_quote_spanned!(input_ident.span()=> Self: Copy + 'static));
+    let flat_type: syn::Expr = if is_flat {
         parse_quote!(::mem_dbg::True)
     } else {
         parse_quote!(::mem_dbg::False)
@@ -82,20 +77,20 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 );
                 fields_ty.push(field.ty.to_token_stream());
                 let field_ty = &field.ty;
-                // Add MemSize and CopyType bounds to all fields
+                // Add MemSize and FlatType bounds to all fields
                 where_clause
                     .predicates
-                    .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize + ::mem_dbg::CopyType));
+                    .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize + ::mem_dbg::FlatType));
             }
 
-            let const_assert = if !is_copy_type && !is_move_type {
+            let const_assert = if !is_flat && !is_rec {
                 let msg = format!(
-                    "Structure {} could be #[copy_type], but it has not been declared as such; use either the #[copy_type] or the #[move_type] attribute to silence this error",
+                    "Structure {} could be #[mem_size_flat], but it has not been declared as such; use either the #[mem_size_flat] or the #[mem_size_rec] attribute to silence this error",
                     input_ident
                 );
                 quote! {
                     const { assert!(
-                        !(true #(&& <<#fields_ty as ::mem_dbg::CopyType>::Copy
+                        !(true #(&& <<#fields_ty as ::mem_dbg::FlatType>::Flat
                                       as ::mem_dbg::Boolean>::VALUE)*),
                         #msg
                     ); }
@@ -106,9 +101,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl #impl_generics ::mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                impl #impl_generics ::mem_dbg::FlatType for #input_ident #ty_generics #where_clause
                 {
-                    type Copy = #copy_type;
+                    type Flat = #flat_type;
                 }
 
                 #[automatically_derived]
@@ -139,8 +134,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemSize + ::mem_dbg::CopyType));
-                            if !is_copy_type && !is_move_type {
+                                .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemSize + ::mem_dbg::FlatType));
+                            if !is_flat && !is_rec {
                                 all_field_types.push(field.ty.to_token_stream());
                             }
                             let field_ident = field.ident.as_ref().unwrap();
@@ -179,8 +174,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize + ::mem_dbg::CopyType));
-                            if !is_copy_type && !is_move_type {
+                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize + ::mem_dbg::FlatType));
+                            if !is_flat && !is_rec {
                                 all_field_types.push(field.ty.to_token_stream());
                             }
                         }
@@ -194,14 +189,14 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 variants_size.push(var_args_size);
             }
 
-            let const_assert = if !is_copy_type && !is_move_type {
+            let const_assert = if !is_flat && !is_rec {
                 let msg = format!(
-                    "Enum {} could be #[copy_type], but it has not been declared as such; use either the #[copy_type] or the #[move_type] attribute to silence this error",
+                    "Enum {} could be #[mem_size_flat], but it has not been declared as such; use either the #[mem_size_flat] or the #[mem_size_rec] attribute to silence this error",
                     input_ident
                 );
                 quote! {
                     const { assert!(
-                        !(true #(&& <<#all_field_types as ::mem_dbg::CopyType>::Copy
+                        !(true #(&& <<#all_field_types as ::mem_dbg::FlatType>::Flat
                                       as ::mem_dbg::Boolean>::VALUE)*),
                         #msg
                     ); }
@@ -212,9 +207,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             quote! {
                 #[automatically_derived]
-                impl #impl_generics ::mem_dbg::CopyType for #input_ident #ty_generics #where_clause
+                impl #impl_generics ::mem_dbg::FlatType for #input_ident #ty_generics #where_clause
                 {
-                    type Copy = #copy_type;
+                    type Flat = #flat_type;
                 }
 
                 #[automatically_derived]
@@ -278,7 +273,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 let field_ty = &field.ty;
                 where_clause
                     .predicates
-                    .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::CopyType));
+                    .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::FlatType));
 
                 // We push the field index and its offset
                 id_offset_pushes.push(quote!{
@@ -388,7 +383,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::CopyType));
+                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::FlatType));
                         }
                         // Extend res with the args surrounded by curly braces
                         res.extend(quote! {
@@ -439,7 +434,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
-                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::CopyType));
+                                .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::FlatType));
                         }
                         // extend res with the args surrounded by curly braces
                         res.extend(quote! {

@@ -7,7 +7,7 @@ use std::cell::{Cell, OnceCell, RefCell, UnsafeCell};
 #[test]
 fn test_cell_in_struct() {
     #[derive(MemSize)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         cell: Cell<i32>,
     }
@@ -23,7 +23,7 @@ fn test_cell_in_struct() {
 #[test]
 fn test_cell_with_different_types() {
     #[derive(MemSize)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         cell_u8: Cell<u8>,
         cell_u64: Cell<u64>,
@@ -43,7 +43,7 @@ fn test_cell_with_different_types() {
 #[test]
 fn test_cell_with_memdbg() {
     #[derive(MemSize, MemDbg)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         value: Cell<i32>,
     }
@@ -68,7 +68,7 @@ fn test_cell_with_memdbg() {
 #[test]
 fn test_refcell_in_struct() {
     #[derive(MemSize)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         ref_cell: RefCell<i32>,
     }
@@ -124,7 +124,7 @@ fn test_refcell_with_memdbg() {
 #[test]
 fn test_unsafe_cell_in_struct() {
     #[derive(MemSize)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         unsafe_cell: UnsafeCell<i32>,
     }
@@ -156,7 +156,7 @@ fn test_unsafe_cell_with_vec() {
 #[test]
 fn test_unsafe_cell_with_memdbg() {
     #[derive(MemSize, MemDbg)]
-    #[move_type]
+    #[mem_size_rec]
     struct Test {
         value: UnsafeCell<u64>,
     }
