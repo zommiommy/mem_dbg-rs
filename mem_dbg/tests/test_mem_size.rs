@@ -16,6 +16,7 @@ use std::sync::atomic::AtomicU64;
 #[allow(dead_code)]
 #[derive(MemSize)]
 #[cfg_attr(feature = "std", derive(MemDbg))]
+#[move_type]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -43,6 +44,7 @@ fn test_vec_capacity() {
 fn test_vec_copy_or_not() {
     #[derive(Clone, MemSize)]
     #[cfg_attr(feature = "std", derive(MemDbg))]
+    #[move_type]
     struct NewType(usize);
 
     assert_eq!(
@@ -55,6 +57,7 @@ fn test_vec_copy_or_not() {
 fn test_boxed_slice_copy_or_not() {
     #[derive(Clone, MemSize)]
     #[cfg_attr(feature = "std", derive(MemDbg))]
+    #[move_type]
     struct NewType(usize);
 
     assert_eq!(
@@ -71,6 +74,7 @@ fn test_boxed_slice_copy_or_not() {
 fn test_slice_copy_or_not() {
     #[derive(Clone, MemSize)]
     #[cfg_attr(feature = "std", derive(MemDbg))]
+    #[move_type]
     struct NewType(usize);
 
     assert_eq!(
@@ -89,6 +93,7 @@ fn test_slice_copy_or_not() {
 fn test_array_copy_or_not() {
     #[derive(Clone, Copy, MemSize)]
     #[cfg_attr(feature = "std", derive(MemDbg))]
+    #[copy_type]
     struct NewType(usize);
 
     assert_eq!(
@@ -135,6 +140,7 @@ fn test_struct() {
 #[test]
 fn test_empty_tuple_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Data();
     let v = Data();
     assert_eq!(v.mem_size(SizeFlags::default()), 0);
@@ -162,11 +168,13 @@ fn test_tuple_struct() {
 fn test_padding() {
     assert_eq!((0_u8, 0_u64).mem_size(SizeFlags::default()), 16);
     #[cfg_attr(feature = "derive", derive(MemSize))]
+    #[move_type]
     struct TuplePadded((u8, u64));
     let v = TuplePadded((0, 0));
     assert_eq!(v.mem_size(SizeFlags::default()), 16);
 
     #[cfg_attr(feature = "derive", derive(MemSize))]
+    #[move_type]
     struct StructPadded(u8, u64);
     let v = StructPadded(0, 0);
     assert_eq!(v.mem_size(SizeFlags::default()), 16);
@@ -261,6 +269,7 @@ fn test_exotic() {
     );
 
     #[cfg_attr(feature = "derive", derive(MemSize))]
+    #[move_type]
     enum Data1 {
         A,
         B,
@@ -316,6 +325,7 @@ fn test_phantom() {
     struct Dummy();
     #[cfg_attr(feature = "derive", derive(MemSize))]
     #[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
+    #[move_type]
     struct Example<A>(PhantomData<A>);
 
     Example::<Dummy>(PhantomData)
@@ -355,6 +365,7 @@ fn test_array_u8() {
 #[cfg(feature = "std")]
 fn test_array_empty_struct() {
     #[derive(MemSize, MemDbg, Clone, Copy)]
+    #[copy_type]
     struct Dummy;
     let data = [Dummy; 10];
     assert_eq!(data.mem_size(SizeFlags::default()), 0);
@@ -384,6 +395,7 @@ fn test_slice_u8() {
 #[test]
 fn test_slice_empty_struct() {
     #[derive(MemSize, MemDbg, Clone, Copy)]
+    #[copy_type]
     struct Dummy;
     let data = [Dummy; 10].as_slice();
     assert_eq!((*data).mem_size(SizeFlags::default()), 0);

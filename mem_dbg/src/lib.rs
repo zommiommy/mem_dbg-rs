@@ -43,18 +43,21 @@ pub use utils::*;
 /// `CopyType<Copy=True>`.
 pub trait Boolean {
     type And<B: Boolean>: Boolean;
+    const VALUE: bool;
 }
 
 /// One of the two possible implementations of [`Boolean`].
 pub struct True {}
 impl Boolean for True {
     type And<B: Boolean> = B;
+    const VALUE: bool = true;
 }
 
 /// One of the two possible implementations of [`Boolean`].
 pub struct False {}
 impl Boolean for False {
     type And<B: Boolean> = False;
+    const VALUE: bool = false;
 }
 
 /// How to display a reference address in [`MemDbgImpl::_mem_dbg_depth_on_impl`].
@@ -81,8 +84,8 @@ pub enum RefDisplay {
 /// `CopyType<Copy=True>`.
 ///
 /// Since we cannot use negative trait bounds, every type that is used as a parameter of
-/// an array, vector, or slice must implement either `CopyType<Copy=True>` or
-/// `CopyType<Copy=False>`.  If you do not implement either of these traits,
+/// an array, vector, slice, or container type, must implement either `CopyType<Copy=True>` or
+/// `CopyType<Copy=False>`. If you do not implement either of these traits,
 /// you will not be able to compute the size of arrays, vectors, and slices but error
 /// messages will be very unhelpful due to the contrived way we have to implement
 /// mutually exclusive types [working around the bug that prevents the compiler
@@ -95,8 +98,24 @@ pub enum RefDisplay {
 /// We enforce this property by adding a bound `Copy + 'static` to the type in
 /// the procedural macro.
 ///
-/// Note that this approach forces us to compute the size of [`Copy`] types that contain
-/// references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
+/// When all fields of a struct or enum implement `CopyType<Copy=True>` but the
+/// type itself is not annotated with `#[copy_type]`, a compile-time error will
+/// suggest adding `#[copy_type]` (if the type is [`Copy`] + `'static`) or
+/// `#[move_type]` (to explicitly opt out of the optimization and silence
+/// the error).
+///
+/// For example, the following will not compile because `usize` implements
+/// `CopyType<Copy=True>`, but the struct is not annotated with `#[copy_type]`
+/// or `#[move_type]`:
+///
+/// ```compile_fail
+/// #[derive(mem_dbg::MemSize)]
+/// struct MyStruct(usize);
+/// ```
+///
+/// Note that this approach forces us to compute the size of [`Copy`] types that
+/// contain references by iteration _even if you do not specify_
+/// [`SizeFlags::FOLLOW_REFS`].
 pub trait CopyType {
     type Copy: Boolean;
 }

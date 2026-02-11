@@ -7,6 +7,7 @@ use std::num::*;
 #[test]
 fn test_nonzero_u8_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         value: NonZeroU8,
     }
@@ -22,6 +23,7 @@ fn test_nonzero_u8_in_struct() {
 #[test]
 fn test_nonzero_integers_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         nz_i8: NonZeroI8,
         nz_i16: NonZeroI16,
@@ -61,6 +63,7 @@ fn test_nonzero_integers_in_struct() {
 #[test]
 fn test_nonzero_with_memdbg() {
     #[derive(MemSize, MemDbg)]
+    #[move_type]
     struct Test {
         nz_u32: NonZeroU32,
         nz_u64: NonZeroU64,

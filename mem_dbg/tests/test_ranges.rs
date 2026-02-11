@@ -7,6 +7,7 @@ use std::ops::*;
 #[test]
 fn test_range_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         range: Range<usize>,
     }
@@ -20,6 +21,7 @@ fn test_range_in_struct() {
 #[test]
 fn test_range_from_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         range: RangeFrom<usize>,
     }
@@ -33,6 +35,7 @@ fn test_range_from_in_struct() {
 #[test]
 fn test_range_inclusive_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         range: RangeInclusive<usize>,
     }
@@ -46,6 +49,7 @@ fn test_range_inclusive_in_struct() {
 #[test]
 fn test_range_to_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         range: RangeTo<usize>,
     }
@@ -59,6 +63,7 @@ fn test_range_to_in_struct() {
 #[test]
 fn test_range_to_inclusive_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         range: RangeToInclusive<usize>,
     }
@@ -72,6 +77,7 @@ fn test_range_to_inclusive_in_struct() {
 #[test]
 fn test_all_ranges_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         range: Range<usize>,
         range_from: RangeFrom<usize>,
@@ -97,6 +103,7 @@ fn test_all_ranges_in_struct() {
 #[test]
 fn test_ranges_with_memdbg() {
     #[derive(MemSize, MemDbg)]
+    #[move_type]
     struct Test {
         range: Range<i32>,
         range_from: RangeFrom<i32>,

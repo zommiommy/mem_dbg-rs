@@ -7,6 +7,7 @@ use std::marker::{PhantomData, PhantomPinned};
 #[test]
 fn test_phantom_data_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test<T> {
         phantom: PhantomData<T>,
     }
@@ -22,6 +23,7 @@ fn test_phantom_data_in_struct() {
 #[test]
 fn test_phantom_pinned_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test {
         pinned: PhantomPinned,
     }
@@ -37,6 +39,7 @@ fn test_phantom_pinned_in_struct() {
 #[test]
 fn test_phantom_types_in_struct() {
     #[derive(MemSize)]
+    #[move_type]
     struct Test<T, U> {
         phantom_data: PhantomData<T>,
         phantom_pinned: PhantomPinned,
@@ -58,6 +61,7 @@ fn test_phantom_types_in_struct() {
 #[test]
 fn test_phantom_with_memdbg() {
     #[derive(MemSize, MemDbg)]
+    #[move_type]
     struct Test<T> {
         phantom_data: PhantomData<T>,
         phantom_pinned: PhantomPinned,

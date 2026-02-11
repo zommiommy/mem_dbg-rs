@@ -7,6 +7,9 @@
 * The occupancy of references and counted references are now counted once
   when using `FOLLOW_REFS`/`FOLLOW_RCS`.
 
+* New check for potentially `#[copy_type]` types; it causes a compile error, and
+  it can be silenced using the `#[move_type]` attribute.
+
 ### Changed
 
 * Removed no-op `alloc` feature.

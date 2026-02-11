@@ -141,7 +141,8 @@ struct Data<A> {
     c: (u8, String),
 }
 
-#[derive(MemSize, MemDbg)]
+#[derive(Clone, Copy, MemSize, MemDbg)]
+#[copy_type]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -318,10 +319,15 @@ assert_eq!(
 # }
 ```
 
-- Computation of the size of arrays, slices, and vectors will be performed by
-  iterating over their elements unless the type is a copy type that does not
-  contain non-`'static` references and it is declared as such using the attribute
-  `#[copy_type]`. See [`CopyType`] for more details.
+- Computation of the size of arrays, slices, vectors, or container types, will
+  be performed by iterating over their elements unless the type is a copy type
+  that does not contain non-`'static` references and it is declared as such
+  using the attribute `#[copy_type]`. See [`CopyType`] for more details.
+
+- Atomic primitive types are a special case: they satisfy `CopyType<Copy =
+  True>`, but they are not [`Copy`]. As a result, containers of atomic types
+  will not be iterated over, but you cannot use the `#[copy_type]` attribute
+  on a structure containing atomic types, as the structure will not be [`Copy`].
 
 - The content of vectors and slices is not expanded recursively as the output
   might be too complex; this might change in the future (e.g., via a flag)
@@ -465,3 +471,5 @@ w.mem_dbg(DbgFlags::empty())?;
 [`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+[`RefCell`]: https://doc.rust-lang.org/std/cell/struct.RefCell.html
+[`Copy`]: https://doc.rust-lang.org/std/marker/trait.Copy.html

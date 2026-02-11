@@ -26,6 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     #[derive(MemSize, MemDbg)]
+    #[move_type]
     enum TestEnum {
         Unit,
         Unit2(),

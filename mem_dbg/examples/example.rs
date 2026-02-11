@@ -21,9 +21,11 @@ enum TestEnum {
 }
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
+#[copy_type]
 struct TestMarker;
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
+#[copy_type]
 struct TestTuple(usize, u8);
 
 #[derive(MemSize, MemDbg)]
