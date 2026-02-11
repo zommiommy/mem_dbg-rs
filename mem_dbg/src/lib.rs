@@ -73,30 +73,33 @@ pub enum RefDisplay {
 
 /// Marker trait for flat types.
 ///
+/// "Flat" means that the type has no heap indirection to account for, so its
+/// size can be computed using [`size_of`]. The scope of the trait is slightly
+/// wider than that of [`Copy`] because, for example, atomic types are not
+/// [`Copy`] but they are considered to be flat. In a non-flat type the
+/// computation of size must be done by iterating recursively on the size of the
+/// fields.
+///
 /// The trait comes in two flavors: `FlatType<Flat=True>` and
-/// `FlatType<Flat=False>`. In the first case, [`MemSize::mem_size`] can be computed on
-/// arrays, vectors, and slices by multiplying the length or capacity
-/// by the size of the element type; in the second case, it
-/// is necessary to iterate on each element.
+/// `FlatType<Flat=False>`. In the first case, [`MemSize::mem_size`] can be
+/// computed on arrays, vectors, slices, and supported containers by multiplying
+/// the length or capacity by the size of the element type; in the second case,
+/// it is necessary to iterate on each element.
 ///
-/// The scope of the trait is slightly wider than that of [`Copy`] because, for
-/// example, atomic types are not [`Copy`] but they implement
-/// `FlatType<Flat=True>`. "Flat" means that the type has no heap
-/// indirection to account for.
-///
-/// Since we cannot use negative trait bounds, every type that is used as a parameter of
-/// an array, vector, slice, or container type, must implement either `FlatType<Flat=True>` or
-/// `FlatType<Flat=False>`. If you do not implement either of these traits,
-/// you will not be able to compute the size of arrays, vectors, and slices but error
-/// messages will be very unhelpful due to the contrived way we have to implement
-/// mutually exclusive types [working around the bug that prevents the compiler
-/// from understanding that implementations for the two flavors of `FlatType` are mutually
+/// Since we cannot use negative trait bounds, every type that is used as a
+/// parameter of an array, vector, slice, or container type, must implement
+/// either `FlatType<Flat=True>` or `FlatType<Flat=False>`. If you do not
+/// implement either of these traits, you will not be able to compute the size
+/// of arrays, vectors, slices, and containers, but error messages will be very
+/// unhelpful due to the contrived way we have to implement mutually exclusive
+/// types [working around the bug that prevents the compiler from understanding
+/// that implementations for the two flavors of `FlatType` are mutually
 /// exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
 ///
 /// If you use the provided derive macros all this logic will be hidden from
-/// you. You'll just have to add the attribute `#[mem_size_flat]` to your structures
-/// if they are flat types that do not contain non-`'static` references (typically
-/// [`Copy`] + `'static` types).
+/// you. You'll just have to add the attribute `#[mem_size_flat]` to your
+/// structures if they are flat types that do not contain non-`'static`
+/// references (typically [`Copy`] + `'static` types, but this is not enforced).
 ///
 /// When all fields of a struct or enum implement `FlatType<Flat=True>` but the
 /// type itself is not annotated with `#[mem_size_flat]`, a compile-time error will
@@ -113,7 +116,7 @@ pub enum RefDisplay {
 /// struct MyStruct(usize);
 /// ```
 ///
-/// Note that this approach forces us to compute the size of [`Copy`] types that
+/// Note that this approach forces us to compute the size of non-flat types that
 /// contain references by iteration _even if you do not specify_
 /// [`SizeFlags::FOLLOW_REFS`].
 pub trait FlatType {

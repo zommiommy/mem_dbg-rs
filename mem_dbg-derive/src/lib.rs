@@ -18,9 +18,10 @@ use syn::{
 ///
 /// Presently we do not support unions.
 ///
-/// The attribute `mem_size_flat` can be used on flat types (typically [`Copy`] +
-/// `'static`) that do not contain non-`'static` references to make
-/// `MemSize::mem_size` faster on arrays, vectors and slices.
+/// The attribute `mem_size_flat` can be used on flat types (typically [`Copy`]
+/// + `'static`) that do not contain non-`'static` references to make
+/// `MemSize::mem_size` faster on arrays, vectors, slices, and supported
+/// containers.
 ///
 /// When all fields implement `FlatType<Flat=True>` but neither `#[mem_size_flat]`
 /// nor `#[mem_size_rec]` is present, a compile-time error is emitted. Use
@@ -234,13 +235,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     }.into()
 }
 
-/**
-
-Generate a `mem_dbg::MemDbg` implementation for custom types.
-
-Presently we do not support unions.
-
-*/
+/// Generate a `mem_dbg::MemDbg` implementation for custom types.
+///
+/// Presently we do not support unions.
 #[proc_macro_derive(MemDbg)]
 pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);
