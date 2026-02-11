@@ -287,7 +287,7 @@ capacity: 1207
   enums whose fields implement the associated interface: if this is not the case
   (e.g., because of the orphan rule) one can implement the traits manually.
 
-- [`RefCell`] contents can be followed only if the [`RefCell`] not mutably
+- [`RefCell`] contents can be followed only if the [`RefCell`] is not mutably
   borrowed; `MemDbg` will show a `<mutably borrowed>` message, but `MemSize`
   will just silently return the size of the `RefCell` itself.
 
@@ -320,9 +320,8 @@ assert_eq!(
 ```
 
 - Computation of the size of arrays, slices, vectors, or container types, will
-  be performed by iterating over their elements unless the type is a copy type
-  that does not contain non-`'static` references and it is declared as such
-  using the attribute `#[mem_size_flat]`. See [`FlatType`] for more details.
+  be performed by iterating over their elements unless the type is flat.
+  See [`FlatType`] for more details.
 
 - When all fields of a struct or enum implement `FlatType<Flat=True>`, a
   compile-time error will suggest adding `#[mem_size_flat]` (if the type is

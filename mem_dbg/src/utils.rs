@@ -64,14 +64,14 @@ pub fn humanize_float(x: usize) -> (f64, &'static str) {
 /// use mem_dbg::reset_color;
 ///
 /// assert_eq!(color(100), reset_color());
-/// assert_eq!(color(1024), "\x1B[32m");
-/// assert_eq!(color(1024 * 1024), "\x1B[33m");
-/// assert_eq!(color(1024 * 1024 * 1024), "\x1B[31m");
+/// assert_eq!(color(1000), "\x1B[32m");
+/// assert_eq!(color(1_000_000), "\x1B[33m");
+/// assert_eq!(color(1_000_000_000), "\x1B[31m");
 /// ```
 pub fn color(x: usize) -> &'static str {
-    const KB: usize = 1024;
-    const MB: usize = KB * KB;
-    const GB: usize = MB * KB;
+    const KB: usize = 1000;
+    const MB: usize = 1_000_000;
+    const GB: usize = 1_000_000_000;
     match x {
         // white
         ..KB => reset_color(),

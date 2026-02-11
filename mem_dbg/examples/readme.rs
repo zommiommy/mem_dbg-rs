@@ -25,8 +25,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         c: (u8, String),
     }
 
-    #[derive(MemSize, MemDbg)]
-    #[mem_size_rec]
+    #[derive(Clone, Copy, MemSize, MemDbg)]
+    #[mem_size_flat]
     enum TestEnum {
         Unit,
         Unit2(),
