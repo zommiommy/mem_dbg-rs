@@ -91,7 +91,7 @@
 
 * Updated all dependencies.
 
-## [0.3.0] 2024-02-09
+## [0.3.0] 2025-02-09
 
 ### Fixed
 
@@ -103,7 +103,7 @@
   by adding an `offset_of_enum` feature. Now all checks are in the
   code of the derive macro.
   
-## [0.2.5] 2024-02-06
+## [0.2.5] 2025-02-06
 
 ### New
 

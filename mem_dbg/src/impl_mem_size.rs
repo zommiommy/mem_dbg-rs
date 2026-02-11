@@ -770,6 +770,7 @@ impl<T> CopyType for std::io::BufReader<T> {
 impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + self.capacity()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
 }
@@ -783,6 +784,7 @@ impl<T: std::io::Write> CopyType for std::io::BufWriter<T> {
 impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + self.capacity()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
 }
