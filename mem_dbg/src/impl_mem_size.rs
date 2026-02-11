@@ -24,7 +24,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use std::collections::VecDeque;
 
 /// A basic implementation using [`core::mem::size_of`], setting
-/// [`CopyType::Copy`] to the specified type ([`True`] or [`False`].
+/// [`CopyType::Copy`] to the specified type ([`True`] or [`False`]).
 macro_rules! impl_size_of {
     ($copy:ty; $($ty:ty),*) => {$(
         impl CopyType for $ty {
@@ -554,10 +554,13 @@ impl<T: CopyType> CopyType for core::cell::RefCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // SAFETY: we temporarily take a shared reference to the inner value
-        let borrow = unsafe { &*self.as_ptr() };
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_rec(borrow, flags, refs)
+        if let Ok(borrow) = self.try_borrow() {
+            core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                + <T as MemSize>::mem_size_rec(&*borrow, flags, refs)
+        } else {
+            // A mutable borrow is active; just report the struct size.
+            core::mem::size_of::<Self>()
+        }
     }
 }
 

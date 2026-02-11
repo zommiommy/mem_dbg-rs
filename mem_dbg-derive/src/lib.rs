@@ -101,15 +101,20 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             where_clause
                                 .predicates
                                 .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemSize));
-                                let field_ident = &field.ident;
-                                let field_ty = field.ty.to_token_stream();
-                                var_args_size.extend([quote! {
-                                    + <#field_ty as ::mem_dbg::MemSize>::mem_size_rec(#field_ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#field_ty>()
-                                }]);
-                                args.extend([field_ident.to_token_stream()]);
-                                args.extend([quote! {,}]);
-                            }
-                        // extend res with the args sourrounded by curly braces
+                            let field_ident = field.ident.as_ref().unwrap();
+                            // Use a prefixed binding to avoid shadowing
+                            // generated locals.
+                            let binding_ident = syn::Ident::new(
+                                &format!("_memsize_{}", field_ident),
+                                field_ident.span(),
+                            );
+                            let field_ty = field.ty.to_token_stream();
+                            var_args_size.extend([quote! {
+                                + <#field_ty as ::mem_dbg::MemSize>::mem_size_rec(#binding_ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#field_ty>()
+                            }]);
+                            args.extend([quote! { #field_ident: #binding_ident, }]);
+                        }
+                        // Extend res with the args surrounded by curly braces
                         res.extend(quote! {
                             { #args }
                         });
@@ -134,7 +139,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 .predicates
                                 .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize));
                         }
-                        // extend res with the args sourrounded by curly braces
+                        // extend res with the args surrounded by curly braces
                         res.extend(quote! {
                             ( #args )
                         });
@@ -164,7 +169,11 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             }
         }
 
-        Data::Union(_) => unimplemented!("MemSize for unions is not supported."),
+        Data::Union(u) => {
+            return syn::Error::new_spanned(u.union_token, "MemSize for unions is not supported; see the Unions section in the README for a manual implementation pattern")
+                .to_compile_error()
+                .into();
+        }
     }.into()
 }
 
@@ -284,6 +293,12 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             let field_ident = field.ident.as_ref().unwrap();
                             let field_ident_str = format!("{}", field_ident);
+                            // Use a prefixed binding to avoid shadowing
+                            // generated locals such as `n`, `i`, etc.
+                            let binding_ident = syn::Ident::new(
+                                &format!("_memdbg_{}", field_ident),
+                                field_ident.span(),
+                            );
 
                             #[cfg(feature = "offset_of_enum")]
                             id_offset_pushes.push({
@@ -298,26 +313,23 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push(quote!{
                                 // We push the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#field_ident)));
+                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#binding_ident)));
                             });
 
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#binding_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                             });
-                            args.extend([field_ident.to_token_stream()]);
-                            args.extend([quote! {,}]);
+                            args.extend([quote! { #field_ident: #binding_ident, }]);
 
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
                                 .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl));
                         }
-                        // extend res with the args sourrounded by curly braces
+                        // Extend res with the args surrounded by curly braces
                         res.extend(quote! {
-                            // TODO: sanitize somehow the names or it'll be
-                            // havoc.
                             { #args }
                         });
                     }
@@ -367,7 +379,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 .predicates
                                 .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl));
                         }
-                        // extend res with the args sourrounded by curly braces
+                        // extend res with the args surrounded by curly braces
                         res.extend(quote! {
                             ( #args )
                         });
@@ -486,6 +498,10 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             }
         }
 
-        Data::Union(_) => unimplemented!("MemDbg for unions is not supported."),
+        Data::Union(u) => {
+            return syn::Error::new_spanned(u.union_token, "MemDbg for unions is not supported; see the Unions section in the README for a manual implementation pattern")
+                .to_compile_error()
+                .into();
+        }
     }.into()
 }

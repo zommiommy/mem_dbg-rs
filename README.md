@@ -286,6 +286,10 @@ capacity: 1207
   enums whose fields implement the associated interface: if this is not the case
   (e.g., because of the orphan rule) one can implement the traits manually.
 
+- [`RefCell`] contents can be followed only if the [`RefCell`] not mutably
+  borrowed; `MemDbg` will show a `<mutable borrowed>` message, but `MemSize`
+  will just silently return the size of the `RefCell` itself.
+
 - If you invoke the methods of this crate on a shared reference, the compiler
   will automatically dereference it, and the method will be invoked on the
   referenced type:

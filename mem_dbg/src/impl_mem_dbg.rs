@@ -474,6 +474,52 @@ impl_mem_dbg!(
 
 // Cells
 
+/// Zero-sized placeholder displayed when a `RefCell` is mutably borrowed.
+struct MutablyBorrowed;
+
+impl crate::CopyType for MutablyBorrowed {
+    type Copy = crate::True;
+}
+
+impl crate::MemSize for MutablyBorrowed {
+    fn mem_size_rec(
+        &self,
+        _flags: crate::SizeFlags,
+        _refs: &mut crate::HashMap<usize, usize>,
+    ) -> usize {
+        0
+    }
+}
+
+impl MemDbgImpl for MutablyBorrowed {
+    fn _mem_dbg_depth_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        field_name: Option<&str>,
+        is_last: bool,
+        padded_size: usize,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        // Suppress the type name so the output shows only "<mutably borrowed>".
+        self._mem_dbg_depth_on_impl(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            field_name,
+            is_last,
+            padded_size,
+            flags & !DbgFlags::TYPE_NAME,
+            dbg_refs,
+            RefDisplay::None,
+        )
+    }
+}
+
 impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
     fn _mem_dbg_rec_on(
         &self,
@@ -485,11 +531,23 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value
-        let borrow = unsafe { &*self.as_ptr() };
-        borrow._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        if let Ok(borrow) = self.try_borrow() {
+            borrow._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        } else {
+            MutablyBorrowed._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("<mutably borrowed>"),
+                true,
+                0,
+                flags,
+                dbg_refs,
+            )
+        }
     }
 }
 

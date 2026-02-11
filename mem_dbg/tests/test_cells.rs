@@ -3,6 +3,7 @@
 
 use mem_dbg::*;
 use std::cell::{Cell, OnceCell, RefCell, UnsafeCell};
+use std::mem::size_of;
 
 #[test]
 fn test_cell_in_struct() {
@@ -280,4 +281,28 @@ fn test_all_cells_in_struct() {
         let result = s.mem_dbg_depth(depth, DbgFlags::default());
         assert!(result.is_ok());
     }
+}
+
+/// When a `RefCell` is mutably borrowed, `mem_dbg` should print
+/// `<mutably borrowed>` instead of inspecting the inner value.
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_refcell_mem_dbg_during_borrow_mut() {
+    #[derive(MemSize, MemDbg)]
+    struct Test {
+        data: RefCell<Vec<i32>>,
+        other: u64,
+    }
+
+    let s = Test {
+        data: RefCell::new(vec![1, 2, 3]),
+        other: 42,
+    };
+
+    let _guard = s.data.borrow_mut();
+
+    let mut output = String::new();
+    s.mem_dbg_on(&mut output, DbgFlags::default()).unwrap();
+
+    insta::assert_snapshot!("refcell_mutably_borrowed", output);
 }

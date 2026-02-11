@@ -68,37 +68,35 @@ pub enum RefDisplay {
     BackReference(usize),
 }
 
-/**
-
-Marker trait for copy types.
-
-The trait comes in two flavors: `CopyType<Copy=True>` and
-`CopyType<Copy=False>`. In the first case, [`MemSize::mem_size`] can be computed on
-arrays, vectors, and slices by multiplying the length or capacity
-by the size of the element type; in the second case, it
-is necessary to iterate on each element.
-
-The trait is made necessary by the impossibility of checking that a type
-implements [`Copy`] from a procedural macro.
-
-Since we cannot use negative trait bounds, every type that is used as a parameter of
-an array, vector, or slice must implement either `CopyType<Copy=True>` or
-`CopyType<Copy=False>`.  If you do not implement either of these traits,
-you will not be able to compute the size of arrays, vectors, and slices but error
-messages will be very unhelpful due to the contrived way we have to implement
-mutually exclusive types [working around the bug that prevents the compiler
-from understanding that implementations for the two flavors of `CopyType` are mutually
-exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
-
-If you use the provided derive macros all this logic will be hidden from you. You'll
-just have to add the attribute `#[copy_type]` to your structures if they
-are [`Copy`] types and they do not contain non-`'static` references. We enforce this property by
-adding a bound `Copy + 'static` to the type in the procedural macro.
-
-Note that this approach forces us to compute the size of [`Copy`] types that contain
-references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
-
-*/
+/// Marker trait for copy types.
+///
+/// The trait comes in two flavors: `CopyType<Copy=True>` and
+/// `CopyType<Copy=False>`. In the first case, [`MemSize::mem_size`] can be computed on
+/// arrays, vectors, and slices by multiplying the length or capacity
+/// by the size of the element type; in the second case, it
+/// is necessary to iterate on each element.
+///
+/// The scope of the trait is slightly wider than that of [`Copy`] because, for
+/// example, atomic types are not [`Copy`] but they implement
+/// `CopyType<Copy=True>`.
+///
+/// Since we cannot use negative trait bounds, every type that is used as a parameter of
+/// an array, vector, or slice must implement either `CopyType<Copy=True>` or
+/// `CopyType<Copy=False>`.  If you do not implement either of these traits,
+/// you will not be able to compute the size of arrays, vectors, and slices but error
+/// messages will be very unhelpful due to the contrived way we have to implement
+/// mutually exclusive types [working around the bug that prevents the compiler
+/// from understanding that implementations for the two flavors of `CopyType` are mutually
+/// exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
+///
+/// If you use the provided derive macros all this logic will be hidden from
+/// you. You'll just have to add the attribute `#[copy_type]` to your structures
+/// if they are [`Copy`] types and they do not contain non-`'static` references.
+/// We enforce this property by adding a bound `Copy + 'static` to the type in
+/// the procedural macro.
+///
+/// Note that this approach forces us to compute the size of [`Copy`] types that contain
+/// references by iteration _even if you do not specify_ [`SizeFlags::FOLLOW_REFS`].
 pub trait CopyType {
     type Copy: Boolean;
 }

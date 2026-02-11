@@ -45,6 +45,8 @@
 
 * `BufReader` and `BufWriter` now report the size of their internal buffer.
 
+* Fixed possible identifier clash in derive code for enums.
+
 ## [0.3.4] - 2026-01-20
 
 ### New

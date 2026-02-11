@@ -17,9 +17,6 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-#[cfg(not(miri))]
-use std::fs::File;
-#[cfg(not(miri))]
 use std::io::BufReader;
 use std::io::BufWriter;
 
@@ -163,8 +160,7 @@ pub struct AllTypesStruct<'a> {
     non_null: NonNull<i32>,
 
     // I/O types
-    #[cfg(not(miri))]
-    buf_reader: BufReader<File>,
+    buf_reader: BufReader<Cursor<Vec<u8>>>,
     buf_writer: BufWriter<Cursor<Vec<u8>>>,
     cursor: Cursor<Vec<u8>>,
 
@@ -252,8 +248,8 @@ where
     let mut_ref1 = &mut data1;
 
     let mutex_source = Mutex::new(0);
-    let rwlock_source = RwLock::new("source".to_string());
-    let rwlock_source_write = RwLock::new("source_write".to_string());
+    let rw_lock_source = RwLock::new("source".to_string());
+    let rw_lock_source_write = RwLock::new("source_write".to_string());
 
     let all_types = AllTypesStruct {
         unit: (),
@@ -369,8 +365,7 @@ where
 
         non_null: NonNull::from(mut_ref1),
 
-        #[cfg(not(miri))]
-        buf_reader: BufReader::new(File::open("/dev/null").unwrap()),
+        buf_reader: BufReader::new(Cursor::new(vec![])),
         buf_writer: BufWriter::new(Cursor::new(vec![])),
         cursor: Cursor::new(vec![1, 2, 3, 4]),
 
@@ -383,8 +378,8 @@ where
 
         // Guards
         mutex_guard: mutex_source.lock().unwrap(),
-        rw_lock_read_guard: rwlock_source.read().unwrap(),
-        rw_lock_write_guard: rwlock_source_write.write().unwrap(),
+        rw_lock_read_guard: rw_lock_source.read().unwrap(),
+        rw_lock_write_guard: rw_lock_source_write.write().unwrap(),
 
         // Collections
         hash_set_empty: HashSet::new(),
