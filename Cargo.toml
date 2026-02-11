@@ -9,4 +9,4 @@ members = [
 
 [workspace.dependencies]
 mem_dbg = {path = "./mem_dbg" }
-mem_dbg-derive = {path = "./mem_dbg-derive" }
+mem_dbg-derive = {path = "./mem_dbg-derive", version = "0.3.0" }
