@@ -586,8 +586,9 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value;
-        // since &self exists, &mut self cannot exist.
+        // SAFETY: we temporarily take a shared reference to the inner value; no
+        // concurrent mutation through UnsafeCell::get() can occur during the
+        // temporary borrow.
         let borrow = unsafe { &*self.get() };
         borrow._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,

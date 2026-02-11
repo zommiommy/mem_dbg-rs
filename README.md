@@ -51,8 +51,7 @@ to iterate over all elements.
 
 In general, while the size estimation of [`BTreeSet`], [`BTreeMap`], [`HashSet`],
 and [`HashMap`] is heuristic in all libraries, `mem_dbg` is significantly more
-precise, and takes into account the load factor and the power-of-two size
-constraint of the hash table.
+precise.
 
 The following table compares the [`MemSize`] trait from this crate against the
 crates [`deepsize`] and [`get-size`]. The true memory usage (0% error) is

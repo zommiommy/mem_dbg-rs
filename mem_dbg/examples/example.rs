@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!();
 
-    println!("DbgFlags::default() | DbgFlags::CAPACITY | DbgFlags::HUMANIZE:");
+    println!("DbgFlags::default() | DbgFlags::HUMANIZE:");
     println!();
     s.mem_dbg(DbgFlags::default() | DbgFlags::HUMANIZE)?;
 

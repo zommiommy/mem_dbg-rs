@@ -28,9 +28,9 @@ use std::collections::VecDeque;
 /// A basic implementation using [`core::mem::size_of`], setting
 /// [`FlatType::Flat`] to the specified type ([`True`] or [`False`]).
 macro_rules! impl_size_of {
-    ($copy:ty; $($ty:ty),*) => {$(
+    ($flat:ty; $($ty:ty),*) => {$(
         impl FlatType for $ty {
-            type Flat = $copy;
+            type Flat = $flat;
         }
 
         impl MemSize for $ty {
@@ -124,7 +124,7 @@ impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
 
 // Option
 
-impl<T: FlatType + MemSize> FlatType for Option<T> {
+impl<T: FlatType> FlatType for Option<T> {
     type Flat = T::Flat;
 }
 
@@ -304,7 +304,7 @@ impl<T: FlatType + MemSize> MemSizeHelper<False> for [T] {
 
 // Arrays
 
-impl<T: FlatType + MemSize, const N: usize> FlatType for [T; N] {
+impl<T: FlatType, const N: usize> FlatType for [T; N] {
     type Flat = T::Flat;
 }
 
@@ -617,8 +617,9 @@ impl<T: FlatType> FlatType for core::cell::UnsafeCell<T> {
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // SAFETY: we temporarily take a shared reference to the inner value;
-        // since &self exists, &mut self cannot exist.
+        // SAFETY: we temporarily take a shared reference to the inner value; no
+        // concurrent mutation through UnsafeCell::get() can occur during the
+        // temporary borrow.
         let borrow = unsafe { &*self.get() };
         <T as MemSize>::mem_size_rec(borrow, flags, refs)
     }
