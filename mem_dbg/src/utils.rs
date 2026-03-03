@@ -32,10 +32,9 @@
 /// assert!(x > 1.0);
 /// assert_eq!(uom, "EB");
 /// ```
-pub fn humanize_float(x: usize) -> (f64, &'static str) {
-    const UOM: &[&str] = &[" B", "kB", "MB", "GB", "TB", "PB", "EB"];
+pub const fn humanize_float(x: usize) -> (f64, &'static str) {
+    const UOM: [&str; 7] = [" B", "kB", "MB", "GB", "TB", "PB", "EB"];
     let mut uom_idx = 0;
-    debug_assert_eq!(UOM[uom_idx], " B");
 
     if x == 0 {
         return (0.0, UOM[uom_idx]);
@@ -68,7 +67,7 @@ pub fn humanize_float(x: usize) -> (f64, &'static str) {
 /// assert_eq!(color(1_000_000), "\x1B[33m");
 /// assert_eq!(color(1_000_000_000), "\x1B[31m");
 /// ```
-pub fn color(x: usize) -> &'static str {
+pub const fn color(x: usize) -> &'static str {
     const KB: usize = 1000;
     const MB: usize = 1_000_000;
     const GB: usize = 1_000_000_000;
@@ -93,7 +92,7 @@ pub fn color(x: usize) -> &'static str {
 ///
 /// assert_eq!(type_color(), "\x1B[38;2;128;128;128m");
 /// ```
-pub fn type_color() -> &'static str {
+pub const fn type_color() -> &'static str {
     // custom grey
     "\x1B[38;2;128;128;128m"
 }
@@ -107,7 +106,7 @@ pub fn type_color() -> &'static str {
 ///
 /// assert_eq!(reset_color(), "\x1B[0m");
 /// ```
-pub fn reset_color() -> &'static str {
+pub const fn reset_color() -> &'static str {
     "\x1B[0m"
 }
 
@@ -120,7 +119,7 @@ pub fn reset_color() -> &'static str {
 ///
 /// assert_eq!(ref_color(), "\x1B[36m");
 /// ```
-pub fn ref_color() -> &'static str {
+pub const fn ref_color() -> &'static str {
     // cyan
     "\x1B[36m"
 }
@@ -134,7 +133,7 @@ pub fn ref_color() -> &'static str {
 ///
 /// assert_eq!(backref_color(), "\x1B[35m");
 /// ```
-pub fn backref_color() -> &'static str {
+pub const fn backref_color() -> &'static str {
     // magenta
     "\x1B[35m"
 }
@@ -152,7 +151,7 @@ pub fn backref_color() -> &'static str {
 /// assert_eq!(n_of_digits(10000), 5);
 /// assert_eq!(n_of_digits(100000), 6);
 /// ```
-pub fn n_of_digits(x: usize) -> usize {
+pub const fn n_of_digits(x: usize) -> usize {
     if x == 0 {
         return 1;
     }

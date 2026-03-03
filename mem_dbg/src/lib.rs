@@ -225,16 +225,16 @@ bitflags::bitflags! {
 
 impl DbgFlags {
     /// Translates flags that are in common with [`MemSize`] into [`SizeFlags`].
-    pub fn to_size_flags(&self) -> SizeFlags {
+    pub const fn to_size_flags(&self) -> SizeFlags {
         let mut flags = SizeFlags::empty();
         if self.contains(DbgFlags::FOLLOW_REFS) {
-            flags |= SizeFlags::FOLLOW_REFS;
+            flags = flags.union(SizeFlags::FOLLOW_REFS);
         }
         if self.contains(DbgFlags::CAPACITY) {
-            flags |= SizeFlags::CAPACITY;
+            flags = flags.union(SizeFlags::CAPACITY);
         }
         if self.contains(DbgFlags::FOLLOW_RCS) {
-            flags |= SizeFlags::FOLLOW_RCS;
+            flags = flags.union(SizeFlags::FOLLOW_RCS);
         }
         flags
     }
