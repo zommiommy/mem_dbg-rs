@@ -28,11 +28,13 @@ fn test_atomic_integers_in_struct() {
         atomic_i8: AtomicI8,
         atomic_i16: AtomicI16,
         atomic_i32: AtomicI32,
+        #[cfg(target_has_atomic = "64")]
         atomic_i64: AtomicI64,
         atomic_isize: AtomicIsize,
         atomic_u8: AtomicU8,
         atomic_u16: AtomicU16,
         atomic_u32: AtomicU32,
+        #[cfg(target_has_atomic = "64")]
         atomic_u64: AtomicU64,
         atomic_usize: AtomicUsize,
     }
@@ -41,11 +43,13 @@ fn test_atomic_integers_in_struct() {
         atomic_i8: AtomicI8::new(1),
         atomic_i16: AtomicI16::new(2),
         atomic_i32: AtomicI32::new(3),
+        #[cfg(target_has_atomic = "64")]
         atomic_i64: AtomicI64::new(4),
         atomic_isize: AtomicIsize::new(5),
         atomic_u8: AtomicU8::new(6),
         atomic_u16: AtomicU16::new(7),
         atomic_u32: AtomicU32::new(8),
+        #[cfg(target_has_atomic = "64")]
         atomic_u64: AtomicU64::new(9),
         atomic_usize: AtomicUsize::new(10),
     };

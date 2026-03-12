@@ -52,11 +52,13 @@ pub struct AllTypesStruct<'a> {
     atomic_i8: AtomicI8,
     atomic_i16: AtomicI16,
     atomic_i32: AtomicI32,
+    #[cfg(target_has_atomic = "64")]
     atomic_i64: AtomicI64,
     atomic_isize: AtomicIsize,
     atomic_u8: AtomicU8,
     atomic_u16: AtomicU16,
     atomic_u32: AtomicU32,
+    #[cfg(target_has_atomic = "64")]
     atomic_u64: AtomicU64,
     atomic_usize: AtomicUsize,
 
@@ -276,11 +278,13 @@ where
         atomic_i8: AtomicI8::new(8),
         atomic_i16: AtomicI16::new(16),
         atomic_i32: AtomicI32::new(32),
+        #[cfg(target_has_atomic = "64")]
         atomic_i64: AtomicI64::new(64),
         atomic_isize: AtomicIsize::new(1024),
         atomic_u8: AtomicU8::new(8),
         atomic_u16: AtomicU16::new(16),
         atomic_u32: AtomicU32::new(32),
+        #[cfg(target_has_atomic = "64")]
         atomic_u64: AtomicU64::new(64),
         atomic_usize: AtomicUsize::new(1024),
 

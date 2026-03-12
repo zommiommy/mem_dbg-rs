@@ -47,12 +47,15 @@ impl_size_of! {True;
    u8, u16, u32, u64, u128, usize,
    i8, i16, i32, i64, i128, isize,
    AtomicBool,
-   AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize,
-   AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize,
+   AtomicI8, AtomicI16, AtomicI32, AtomicIsize,
+   AtomicU8, AtomicU16, AtomicU32, AtomicUsize,
    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize,
    NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
    PhantomPinned
 }
+
+#[cfg(target_has_atomic = "64")]
+impl_size_of! {True; AtomicI64, AtomicU64}
 
 // Strings
 
@@ -1135,9 +1138,9 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
     let ptr_size = core::mem::size_of::<usize>();
 
     // A node header typically contains parent pointers and metadata (height, len).
-    // On 64-bit systems, this is roughly 16 bytes (2 usizes or similar).
+    // This is roughly 2 usizes (16 bytes on 64-bit, 8 bytes on 32-bit).
     // This is an approximation as it relies on specific internal implementation details.
-    let header_size = 16;
+    let header_size = 2 * core::mem::size_of::<usize>();
 
     // Helper to align a size to the next multiple of `align`.
     let align_up = |size: usize, align: usize| -> usize { (size + align - 1) & !(align - 1) };

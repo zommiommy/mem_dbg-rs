@@ -11,6 +11,7 @@
 use core::marker::PhantomData;
 use core::mem::size_of;
 use mem_dbg::*;
+#[cfg(target_has_atomic = "64")]
 use std::sync::atomic::AtomicU64;
 
 #[allow(dead_code)]
@@ -310,6 +311,7 @@ fn test_tuple() {
 }
 
 #[test]
+#[cfg(target_has_atomic = "64")]
 fn test_atomic() {
     assert_eq!(AtomicU64::new(0).mem_size(SizeFlags::default()), 8);
 }

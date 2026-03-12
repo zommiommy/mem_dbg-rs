@@ -13,7 +13,7 @@ use all_types_helper::run_all_types_test;
 fn redact_addresses(s: &str) -> String {
     use std::collections::HashMap;
     // Capture the prefix and the hex address separately
-    let re = Regex::new(r"(@ |→ )(0x[a-fA-F0-9]{16})").unwrap();
+    let re = Regex::new(r"(@ |→ )(0x[a-fA-F0-9]{8,16})").unwrap();
     let mut addr_map: HashMap<String, usize> = HashMap::new();
     let mut counter = 1;
 

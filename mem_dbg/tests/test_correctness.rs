@@ -129,11 +129,13 @@ fn test_correctness() {
     check!(AtomicI8::new(0));
     check!(AtomicI16::new(0));
     check!(AtomicI32::new(0));
+    #[cfg(target_has_atomic = "64")]
     check!(AtomicI64::new(0));
     check!(AtomicIsize::new(0));
     check!(AtomicU8::new(0));
     check!(AtomicU16::new(0));
     check!(AtomicU32::new(0));
+    #[cfg(target_has_atomic = "64")]
     check!(AtomicU64::new(0));
     check!(AtomicUsize::new(0));
 

@@ -131,12 +131,15 @@ impl_mem_dbg! {
     u8, u16, u32, u64, u128, usize,
     i8, i16, i32, i64, i128, isize,
     AtomicBool,
-    AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize,
-    AtomicU8, AtomicU16, AtomicU32, AtomicU64, AtomicUsize,
+    AtomicI8, AtomicI16, AtomicI32, AtomicIsize,
+    AtomicU8, AtomicU16, AtomicU32, AtomicUsize,
     NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize,
     NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
     PhantomPinned, str, String
 }
+
+#[cfg(target_has_atomic = "64")]
+impl_mem_dbg! { AtomicI64, AtomicU64 }
 
 impl<T: ?Sized> MemDbgImpl for PhantomData<T> {}
 

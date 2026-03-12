@@ -548,7 +548,11 @@ pub trait MemDbgImpl: MemSize {
                 if flags.contains(DbgFlags::COLOR) {
                     writer.write_fmt(format_args!("{}", utils::ref_color()))?;
                 }
-                writer.write_fmt(format_args!(" @ 0x{:016x}", ptr))?;
+                writer.write_fmt(format_args!(
+                    " @ 0x{:0width$x}",
+                    ptr,
+                    width = 2 * core::mem::size_of::<usize>()
+                ))?;
                 if flags.contains(DbgFlags::COLOR) {
                     writer.write_fmt(format_args!("{}", utils::reset_color()))?;
                 }
@@ -557,7 +561,11 @@ pub trait MemDbgImpl: MemSize {
                 if flags.contains(DbgFlags::COLOR) {
                     writer.write_fmt(format_args!("{}", utils::backref_color()))?;
                 }
-                writer.write_fmt(format_args!(" → 0x{:016x}", ptr))?;
+                writer.write_fmt(format_args!(
+                    " → 0x{:0width$x}",
+                    ptr,
+                    width = 2 * core::mem::size_of::<usize>()
+                ))?;
                 if flags.contains(DbgFlags::COLOR) {
                     writer.write_fmt(format_args!("{}", utils::reset_color()))?;
                 }

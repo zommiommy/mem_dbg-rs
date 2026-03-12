@@ -1,5 +1,11 @@
 # Change Log
 
+## Unreleased
+
+### Fixed
+
+* Fixed a few quirks on 32-bit platforms.
+
 ## [0.4.0] - 2026-02-11
 
 ### New
