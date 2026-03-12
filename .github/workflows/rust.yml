@@ -15,11 +15,11 @@ jobs:
       - name: Build
         run: cargo build
       - name: Run tests on all non-nightly features
-        run: cargo test --features std,derive,half,maligned,mmap-rs,rand -- --skip _insta
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand -- --skip _snapshot
       - name: Run no default features tests
-        run: cargo test --no-default-features -- --skip _insta
+        run: cargo test --no-default-features -- --skip _snapshot
       - name: Run tests with alloc and derive feature
-        run: cargo test --no-default-features --features derive -- --skip _insta
+        run: cargo test --no-default-features --features derive -- --skip _snapshot
       - name: Run examples
         working-directory: ./mem_dbg
         run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release; done
@@ -35,7 +35,7 @@ jobs:
       - name: Build with all features
         run: cargo build --all-features
       - name: Run tests with all features (including offset_of_enum)
-        run: cargo test --all-features -- --skip _insta
+        run: cargo test --all-features -- --skip _snapshot
 
   coverage:
     needs: [build-stable, build-nightly]
@@ -65,4 +65,4 @@ jobs:
       - name: Install nightly and miri
         run: rustup toolchain install nightly --component miri && rustup default nightly && cargo miri setup
       - name: Run tests with miri
-        run: cargo miri test --all-features --all-targets -- --skip _insta
+        run: cargo miri test --all-features --all-targets -- --skip _snapshot
