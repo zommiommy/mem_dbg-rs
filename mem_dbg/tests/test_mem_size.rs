@@ -827,7 +827,15 @@ test_size!(
     (f64, 8, 8),
     (bool, 1, 1),
     (char, 4, 4),
-    (TestEnum2, core::mem::size_of::<TestEnum2>(), core::mem::size_of::<TestEnum2>()),
-    (TestEnumReprU8, core::mem::size_of::<TestEnumReprU8>(), core::mem::size_of::<TestEnumReprU8>()),
+    (
+        TestEnum2,
+        core::mem::size_of::<TestEnum2>(),
+        core::mem::size_of::<TestEnum2>()
+    ),
+    (
+        TestEnumReprU8,
+        core::mem::size_of::<TestEnumReprU8>(),
+        core::mem::size_of::<TestEnumReprU8>()
+    ),
     (Unit, 0, 0)
 );
