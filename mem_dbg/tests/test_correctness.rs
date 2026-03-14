@@ -337,27 +337,27 @@ fn test_correctness() {
         ));
     }
     // These are hard to get right due because we would need to guess the nodes occupancy
-    let btree_thresold = 2.0; // 200%
+    let btree_threshold = 2.0; // 200%
     for &cap in POWERS {
         check!(
             std::collections::BTreeSet::<u32>::from_iter((0..cap).map(|x| x as u32)),
-            btree_thresold
+            btree_threshold
         );
         check!(
             std::collections::BTreeMap::<u32, u32>::from_iter(
                 (0..cap).map(|x| (x as u32, x as u32))
             ),
-            btree_thresold
+            btree_threshold
         );
         check!(
             std::collections::BTreeSet::<String>::from_iter((0..cap).map(|x| x.to_string())),
-            btree_thresold
+            btree_threshold
         );
         check!(
             std::collections::BTreeMap::<String, String>::from_iter(
                 (0..cap).map(|x| (x.to_string(), x.to_string()))
             ),
-            btree_thresold
+            btree_threshold
         );
     }
 }

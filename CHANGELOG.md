@@ -107,13 +107,13 @@
 - The `std` feature now works as expected. The `alloc` feature is no longer
   supported.
 
-## [0.3.2] 2025-11-03
+## [0.3.2] - 2025-11-03
 
 ### New
 
 - Added support for `std::hash::DefaultHasher`.
 
-## [0.3.1] 2025-10-16
+## [0.3.1] - 2025-10-16
 
 ### Changed
 
@@ -121,7 +121,7 @@
 
 - Updated all dependencies.
 
-## [0.3.0] 2025-02-09
+## [0.3.0] - 2025-02-09
 
 ### Fixed
 
@@ -133,7 +133,7 @@
   by adding an `offset_of_enum` feature. Now all checks are in the
   code of the derive macro.
 
-## [0.2.5] 2025-02-06
+## [0.2.5] - 2025-02-06
 
 ### New
 
@@ -153,7 +153,7 @@
 
 - Mutable and non-mutable slices were returning different sizes within
   structures. At the top level, this is however unavoidable due to
-  different autodeferentiation policies in the compiler, and this behavior
+  different auto-dereferencing policies in the compiler, and this behavior
   has been documented. The same problem was affecting `MemDbg`.
 
 ## [0.2.2] - 2024-06-03

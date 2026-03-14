@@ -383,7 +383,7 @@ fn test_array_empty_struct() {
 fn test_slice_u8() {
     let data = [0_u8; 10].as_slice();
     assert_eq!((*data).mem_size(SizeFlags::default()), 10);
-    // Autodereferentiation
+    // Auto-dereferencing
     assert_eq!(data.mem_size(SizeFlags::default()), 10);
     assert_eq!(
         <&[u8] as MemSize>::mem_size(&data, SizeFlags::default()),
@@ -402,7 +402,7 @@ fn test_slice_empty_struct() {
     struct Dummy;
     let data = [Dummy; 10].as_slice();
     assert_eq!((*data).mem_size(SizeFlags::default()), 0);
-    // Autodereferentiation
+    // Auto-dereferencing
     assert_eq!(data.mem_size(SizeFlags::default()), 0);
     assert_eq!(
         <&[Dummy] as MemSize>::mem_size(&data, SizeFlags::default()),

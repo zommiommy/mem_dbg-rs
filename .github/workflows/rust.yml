@@ -9,7 +9,7 @@ jobs:
   build-stable:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Build
@@ -22,20 +22,26 @@ jobs:
         run: cargo test --no-default-features --features derive -- --skip _snapshot
       - name: Run examples
         working-directory: ./mem_dbg
-        run: for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release; done
+        run: |
+          set -e
+          for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release; done
       - name: Run clippy
-        run: cargo clippy #-- -Dclippy::all -Dclippy::cargo
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand --all-targets
 
   build-nightly:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install nightly toolchain
         run: rustup toolchain install nightly && rustup default nightly
       - name: Build with all features
         run: cargo build --all-features
       - name: Run tests with all features (including offset_of_enum)
         run: cargo test --all-features -- --skip _snapshot
+      - name: Check documentation
+        run: cargo doc --all-features --document-private-items --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
 
   coverage:
     needs: [build-stable, build-nightly]
@@ -46,7 +52,7 @@ jobs:
       options: --security-opt seccomp=unconfined
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Generate code coverage
         run: |
           cargo +nightly tarpaulin --verbose --engine llvm --all-features  --run-types AllTargets --run-types Doctests --workspace --out Lcov --exclude mem_dbg-derive --exclude-files "mem_dbg/examples/*" --exclude-files "mem_dbg/tests/*insta*" -- --skip _snapshot
@@ -61,7 +67,7 @@ jobs:
     name: miri
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install nightly and miri
         run: rustup toolchain install nightly --component miri && rustup default nightly && cargo miri setup
       - name: Run tests with miri

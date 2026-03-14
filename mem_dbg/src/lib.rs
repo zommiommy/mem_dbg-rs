@@ -5,7 +5,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
-#![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
 #![doc = include_str!("../README.md")]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -284,10 +283,10 @@ pub trait MemDbg: MemDbgImpl {
         )
     }
 
-    #[cfg(feature = "std")]
     /// Writes to stderr debug info about the structure memory usage as
     /// [`mem_dbg`](MemDbg::mem_dbg), but expanding only up to `max_depth`
     /// levels of nested structures.
+    #[cfg(feature = "std")]
     fn mem_dbg_depth(&self, max_depth: usize, flags: DbgFlags) -> core::fmt::Result {
         self._mem_dbg_depth(
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
@@ -529,14 +528,14 @@ pub trait MemDbgImpl: MemSize {
         }
 
         if let Some(field_name) = field_name {
-            writer.write_fmt(format_args!("{:}", field_name))?;
+            writer.write_fmt(format_args!("{}", field_name))?;
         }
 
         if flags.contains(DbgFlags::TYPE_NAME) {
             if flags.contains(DbgFlags::COLOR) {
                 writer.write_fmt(format_args!("{}", utils::type_color()))?;
             }
-            writer.write_fmt(format_args!(": {:}", core::any::type_name::<Self>()))?;
+            writer.write_fmt(format_args!(": {}", core::any::type_name::<Self>()))?;
             if flags.contains(DbgFlags::COLOR) {
                 writer.write_fmt(format_args!("{}", utils::reset_color()))?;
             }

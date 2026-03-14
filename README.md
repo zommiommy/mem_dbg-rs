@@ -57,20 +57,20 @@ The following table compares the [`MemSize`] trait from this crate against the
 crates [`deepsize`] and [`get-size`]. The true memory usage (0% error) is
 again calculated using the allocator from the [`cap`] crate.
 
-| Type   | Container | Crate          | Error (%)       | Type   | Container | Crate          | Error (%)       |
-|--------|-----------|----------------|-----------------|--------|-----------|----------------|-----------------|
-| usize  | BTreeMap  | `deep_size_of` | 36.51 ± 20.88   | String | BTreeMap  | `deep_size_of` | 21.53 ± 8.88    |
-|        |           | `get_size`     | 42.01 ± 21.73   |        |           | `get_size`     | 16.04 ± 7.74    |
-|        |           | `mem_size`     | **1.25 ± 2.59** |        |           | `mem_size`     | **3.17 ± 1.45** |
-|        | BTreeSet  | `deep_size_of` | 28.18 ± 12.41   |        | BTreeSet  | `deep_size_of` | 18.58 ± 8.51    |
-|        |           | `get_size`     | 46.91 ± 23.70   |        |           | `get_size`     | 17.54 ± 8.38    |
-|        |           | `mem_size`     | **1.57 ± 2.97** |        |           | `mem_size`     | **3.73 ± 2.65** |
-|        | HashMap   | `deep_size_of` | 15.64 ± 6.34    |        | HashMap   | `deep_size_of` | 6.12 ± 3.42     |
-|        |           | `get_size`     | 15.64 ± 6.34    |        |           | `get_size`     | 6.12 ± 3.42     |
-|        |           | `mem_size`     | **0.00 ± 0.00** |        |           | `mem_size`     | **0.62 ± 1.30** |
-|        | HashSet   | `deep_size_of` | 19.57 ± 7.91    |        | HashSet   | `deep_size_of` | 6.91 ± 3.82     |
-|        |           | `get_size`     | 19.57 ± 7.91    |        |           | `get_size`     | 6.91 ± 3.82     |
-|        |           | `mem_size`     | **0.00 ± 0.00** |        |           | `mem_size`     | **1.13 ± 2.32** |
+| Type  | Container | Crate          | Error (%)       | Type   | Container | Crate          | Error (%)       |
+| ----- | --------- | -------------- | --------------- | ------ | --------- | -------------- | --------------- |
+| usize | BTreeMap  | `deep_size_of` | 36.51 ± 20.88   | String | BTreeMap  | `deep_size_of` | 21.53 ± 8.88    |
+|       |           | `get_size`     | 42.01 ± 21.73   |        |           | `get_size`     | 16.04 ± 7.74    |
+|       |           | `mem_size`     | **1.25 ± 2.59** |        |           | `mem_size`     | **3.17 ± 1.45** |
+|       | BTreeSet  | `deep_size_of` | 28.18 ± 12.41   |        | BTreeSet  | `deep_size_of` | 18.58 ± 8.51    |
+|       |           | `get_size`     | 46.91 ± 23.70   |        |           | `get_size`     | 17.54 ± 8.38    |
+|       |           | `mem_size`     | **1.57 ± 2.97** |        |           | `mem_size`     | **3.73 ± 2.65** |
+|       | HashMap   | `deep_size_of` | 15.64 ± 6.34    |        | HashMap   | `deep_size_of` | 6.12 ± 3.42     |
+|       |           | `get_size`     | 15.64 ± 6.34    |        |           | `get_size`     | 6.12 ± 3.42     |
+|       |           | `mem_size`     | **0.00 ± 0.00** |        |           | `mem_size`     | **0.62 ± 1.30** |
+|       | HashSet   | `deep_size_of` | 19.57 ± 7.91    |        | HashSet   | `deep_size_of` | 6.91 ± 3.82     |
+|       |           | `get_size`     | 19.57 ± 7.91    |        |           | `get_size`     | 6.91 ± 3.82     |
+|       |           | `mem_size`     | **0.00 ± 0.00** |        |           | `mem_size`     | **1.13 ± 2.32** |
 
 ## References
 
@@ -80,7 +80,7 @@ of a value. Analogously, [`SizeFlags::FOLLOW_RCS`] and [`DbgFlags::FOLLOW_RCS`]
 make it possible to follow [`Rc`]/[`Arc`] smart pointers.
 
 In both cases, references will be accounted for (when computing size) and
-followed (when displaying the layout), only at their first instance. Following
+followed (when displaying the layout), only at their first instance. Subsequent
 instances will just display an arrow followed by a pointer.
 
 ## Padding
@@ -90,7 +90,7 @@ how much memory is used by each part. In particular, it exploits the new stable
 macro [`std::mem::offset_of`] to display the padding of each field in square
 brackets; moreover, the flag [`DbgFlags::RUST_LAYOUT`] makes it possible to
 display structures in the layout used by the Rust compiler, rather than
-that given by declaration order.
+the one given by declaration order.
 
 These features are also available for enums using the feature `offset_of_enum`,
 which however needs the nightly compiler, as it enables the unstable feature
@@ -118,7 +118,6 @@ sizes depending on their magnitude.
 
 ```rust
 # #![cfg_attr(feature = "offset_of_enum", feature(offset_of_enum))]
-
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 # #[cfg(all(feature = "std", feature = "derive"))]
