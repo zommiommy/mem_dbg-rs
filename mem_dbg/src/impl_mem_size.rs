@@ -895,17 +895,17 @@ impl MemSize for mmap_rs::MmapMut {
 // accordingly.
 
 // Group width for Swiss Tables (hashbrown). This depends on SIMD support:
-// - x86_64 with SSE2: 16 bytes
+// - x86/x86_64 with SSE2: 16 bytes
 // - Other platforms (ARM64 NEON, generic): 8 bytes
 #[cfg(feature = "std")]
 #[cfg(all(
-    target_arch = "x86_64",
+    any(target_arch = "x86_64", target_arch = "x86"),
     any(target_feature = "sse2", target_env = "msvc")
 ))]
 const GROUP_WIDTH: usize = 16;
 #[cfg(feature = "std")]
 #[cfg(not(all(
-    target_arch = "x86_64",
+    any(target_arch = "x86_64", target_arch = "x86"),
     any(target_feature = "sse2", target_env = "msvc")
 )))]
 const GROUP_WIDTH: usize = 8;

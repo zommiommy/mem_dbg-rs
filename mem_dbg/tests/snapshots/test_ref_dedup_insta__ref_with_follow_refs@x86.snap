@@ -1,0 +1,13 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+assertion_line: 92
+expression: output
+---
+32 B 100.00% ⏺: test_ref_dedup_insta::SharedRef<'_>
+12 B  37.50% ├╴name: &str @ 0x[ADDR_1]
+ 4 B  12.50% │ ├╴: str
+ 8 B  25.00% ├╴first: &i32 @ 0x[ADDR_2]
+ 4 B  12.50% │ ├╴: i32
+ 4 B  12.50% ├╴second: &i32 → 0x[ADDR_2]
+ 8 B  25.00% ╰╴different: &i32 @ 0x[ADDR_3]
+ 4 B  12.50%   ╰╴: i32

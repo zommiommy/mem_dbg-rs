@@ -309,5 +309,8 @@ fn test_refcell_mem_dbg_during_borrow_mut() {
     let mut output = String::new();
     s.mem_dbg_on(&mut output, DbgFlags::default()).unwrap();
 
-    insta::assert_snapshot!("refcell_mutably_borrowed", output);
+    let arch = std::env::consts::ARCH;
+    insta::with_settings!({snapshot_suffix => arch}, {
+        insta::assert_snapshot!("refcell_mutably_borrowed", output);
+    });
 }

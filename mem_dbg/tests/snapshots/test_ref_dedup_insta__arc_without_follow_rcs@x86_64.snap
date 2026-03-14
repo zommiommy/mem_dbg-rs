@@ -1,0 +1,9 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+expression: output
+---
+40 B 100.00% ⏺: test_ref_dedup_insta::SharedArc
+16 B  40.00% ├╴name: &str
+ 8 B  20.00% ├╴first: alloc::sync::Arc<alloc::string::String>
+ 8 B  20.00% ├╴second: alloc::sync::Arc<alloc::string::String>
+ 8 B  20.00% ╰╴different: alloc::sync::Arc<alloc::string::String>

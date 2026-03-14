@@ -1,0 +1,135 @@
+---
+source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
+assertion_line: 70
+expression: depth_output
+---
+42635 B ⏺
+    0 B ├╴unit
+    1 B ├╴boolean [6B]
+    4 B ├╴character
+    4 B ├╴f32_val
+    8 B ├╴f64_val
+    1 B ├╴u8_val
+    2 B ├╴u16_val
+    4 B ├╴u32_val
+    8 B ├╴u64_val
+   16 B ├╴u128_val
+    4 B ├╴usize_val
+    1 B ├╴i8_val
+    2 B ├╴i16_val
+    4 B ├╴i32_val
+    8 B ├╴i64_val
+   16 B ├╴i128_val
+    4 B ├╴isize_val
+    1 B ├╴atomic_bool
+    1 B ├╴atomic_i8
+    2 B ├╴atomic_i16
+    4 B ├╴atomic_i32
+    8 B ├╴atomic_i64
+    4 B ├╴atomic_isize
+    1 B ├╴atomic_u8
+    2 B ├╴atomic_u16
+    4 B ├╴atomic_u32
+    8 B ├╴atomic_u64
+    4 B ├╴atomic_usize
+    1 B ├╴nz_i8
+    2 B ├╴nz_i16
+    4 B ├╴nz_i32
+    8 B ├╴nz_i64
+   16 B ├╴nz_i128
+    4 B ├╴nz_isize
+    1 B ├╴nz_u8
+    2 B ├╴nz_u16
+    4 B ├╴nz_u32
+    8 B ├╴nz_u64
+   16 B ├╴nz_u128
+    4 B ├╴nz_usize
+    0 B ├╴phantom_pinned
+    0 B ├╴phantom_data
+   17 B ├╴string
+    8 B ├╴reference
+    4 B ├╴mut_reference
+    8 B ├╴opt_some
+   12 B ├╴opt_none
+   12 B ├╴boxed
+   32 B ├╴vec
+   40 B ├╴vec_str
+   10 B ├╴array
+   28 B ├╴array_str
+   20 B ├╴slice
+   22 B ├╴slice_str
+   22 B ├╴tuple2
+    4 B │ ├╴0
+   18 B │ ╰╴1
+   27 B ├╴tuple3
+    4 B │ ├╴0
+   15 B │ ├╴1
+    8 B │ ╰╴2
+   31 B ├╴tuple4
+    4 B │ ├╴0
+   15 B │ ├╴1
+    8 B │ ├╴2
+    1 B │ ╰╴3 [3B]
+   31 B ├╴tuple5
+    4 B │ ├╴0
+   15 B │ ├╴1
+    8 B │ ├╴2
+    1 B │ ├╴3
+    1 B │ ╰╴4 [2B]
+    8 B ├╴range
+    4 B ├╴range_from
+   12 B ├╴range_inclusive
+    4 B ├╴range_to
+    4 B ├╴range_to_inclusive
+    4 B ├╴cell
+    8 B ├╴ref_cell
+    4 B ├╴unsafe_cell
+   23 B ├╴once_cell
+   12 B ├╴mutex
+   30 B ├╴rw_lock
+   68 B ├╴hash_set
+  101 B ├╴hash_set_str
+  120 B ├╴hash_map
+   84 B ├╴hash_map_copy
+   64 B ├╴btree_set
+  153 B ├╴btree_set_str
+  200 B ├╴btree_map
+  108 B ├╴btree_map_copy
+   20 B ├╴vec_deque
+    0 B ├╴build_hasher
+   16 B ├╴random_state
+   21 B ├╴path_buf
+    8 B ├╴path
+   21 B ├╴os_string
+    8 B ├╴os_str
+    4 B ├╴fn_ptr0
+    4 B ├╴fn_ptr1
+    4 B ├╴fn_ptr2
+    4 B ├╴fn_ptr3
+    4 B ├╴fn_ptr4
+    8 B ├╴layout
+    4 B ├╴non_null
+ 8232 B ├╴buf_reader
+ 8228 B ├╴buf_writer
+   24 B ├╴cursor
+    4 B ├╴arc
+    4 B ├╴rc
+   52 B ├╴vec_deque_nested
+    8 B ├╴mutex_guard
+    8 B ├╴rw_lock_read_guard
+    8 B ├╴rw_lock_write_guard
+   32 B ├╴hash_set_empty
+  688 B ├╴hash_set_100
+   32 B ├╴hash_map_empty
+ 1200 B ├╴hash_map_cc_100
+ 2414 B ├╴hash_map_cn_100
+ 2414 B ├╴hash_map_nc_100
+ 3628 B ├╴hash_map_nn_100
+   12 B ├╴btree_set_empty
+  940 B ├╴btree_set_100
+   12 B ├╴btree_map_empty
+ 1644 B ├╴btree_map_cc_100
+ 3242 B ├╴btree_map_cn_100
+ 3242 B ├╴btree_map_nc_100
+ 4840 B ├╴btree_map_nn_100
+   64 B ╰╴default_hasher

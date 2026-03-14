@@ -1,0 +1,17 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+assertion_line: 342
+expression: output
+---
+87 B 100.00% ⏺: test_ref_dedup_insta::ArcToStruct
+42 B  48.28% ├╴first: alloc::sync::Arc<test_ref_dedup_insta::Inner> @ 0x[ADDR_1]
+30 B  34.48% │ ├╴: test_ref_dedup_insta::Inner
+ 4 B   4.60% │ │ ├╴x: i32
+ 8 B   9.20% │ │ ├╴y: i64
+18 B  20.69% │ │ ╰╴name: alloc::string::String
+ 4 B   4.60% ├╴second: alloc::sync::Arc<test_ref_dedup_insta::Inner> → 0x[ADDR_1]
+41 B  47.13% ╰╴different: alloc::sync::Arc<test_ref_dedup_insta::Inner> @ 0x[ADDR_2]
+29 B  33.33%   ╰╴: test_ref_dedup_insta::Inner
+ 4 B   4.60%     ├╴x: i32
+ 8 B   9.20%     ├╴y: i64
+17 B  19.54%     ╰╴name: alloc::string::String

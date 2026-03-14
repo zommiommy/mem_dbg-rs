@@ -167,23 +167,24 @@ fn test_tuple_struct() {
 
 #[test]
 fn test_padding() {
-    assert_eq!((0_u8, 0_u64).mem_size(SizeFlags::default()), 16);
+    let expected = size_of::<(u8, u64)>();
+    assert_eq!((0_u8, 0_u64).mem_size(SizeFlags::default()), expected);
     #[cfg_attr(feature = "derive", derive(MemSize))]
     #[mem_size_rec]
     struct TuplePadded((u8, u64));
     let v = TuplePadded((0, 0));
-    assert_eq!(v.mem_size(SizeFlags::default()), 16);
+    assert_eq!(v.mem_size(SizeFlags::default()), expected);
 
     #[cfg_attr(feature = "derive", derive(MemSize))]
     #[mem_size_rec]
     struct StructPadded(u8, u64);
     let v = StructPadded(0, 0);
-    assert_eq!(v.mem_size(SizeFlags::default()), 16);
+    assert_eq!(v.mem_size(SizeFlags::default()), expected);
 
     #[cfg_attr(feature = "derive", derive(MemSize))]
     struct StructStructPadded(StructPadded);
     let v = StructStructPadded(StructPadded(0, 0));
-    assert_eq!(v.mem_size(SizeFlags::default()), 16);
+    assert_eq!(v.mem_size(SizeFlags::default()), expected);
 }
 
 #[test]
@@ -386,11 +387,11 @@ fn test_slice_u8() {
     assert_eq!(data.mem_size(SizeFlags::default()), 10);
     assert_eq!(
         <&[u8] as MemSize>::mem_size(&data, SizeFlags::default()),
-        16
+        size_of::<&[u8]>()
     );
     assert_eq!(
         <&[u8] as MemSize>::mem_size(&data, SizeFlags::default() | SizeFlags::FOLLOW_REFS),
-        26
+        size_of::<&[u8]>() + 10
     );
 }
 
@@ -405,11 +406,11 @@ fn test_slice_empty_struct() {
     assert_eq!(data.mem_size(SizeFlags::default()), 0);
     assert_eq!(
         <&[Dummy] as MemSize>::mem_size(&data, SizeFlags::default()),
-        16
+        size_of::<&[Dummy]>()
     );
     assert_eq!(
         <&[Dummy] as MemSize>::mem_size(&data, SizeFlags::default() | SizeFlags::FOLLOW_REFS),
-        16
+        size_of::<&[Dummy]>()
     );
 }
 
@@ -826,7 +827,7 @@ test_size!(
     (f64, 8, 8),
     (bool, 1, 1),
     (char, 4, 4),
-    (TestEnum2, 32, 32),
-    (TestEnumReprU8, 40, 40),
+    (TestEnum2, core::mem::size_of::<TestEnum2>(), core::mem::size_of::<TestEnum2>()),
+    (TestEnumReprU8, core::mem::size_of::<TestEnumReprU8>(), core::mem::size_of::<TestEnumReprU8>()),
     (Unit, 0, 0)
 );

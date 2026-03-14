@@ -1,0 +1,12 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+assertion_line: 125
+expression: output
+---
+88 B 100.00% ⏺: test_ref_dedup_insta::SharedRc
+ 8 B   9.09% ├╴name: &str
+44 B  50.00% ├╴first: alloc::rc::Rc<alloc::vec::Vec<i32>> @ 0x[ADDR_1]
+32 B  36.36% │ ├╴: alloc::vec::Vec<i32>
+ 4 B   4.55% ├╴second: alloc::rc::Rc<alloc::vec::Vec<i32>> → 0x[ADDR_1]
+32 B  36.36% ╰╴different: alloc::rc::Rc<alloc::vec::Vec<i32>> @ 0x[ADDR_2]
+20 B  22.73%   ╰╴: alloc::vec::Vec<i32>

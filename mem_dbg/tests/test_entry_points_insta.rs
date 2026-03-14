@@ -1,6 +1,6 @@
 #![cfg(all(feature = "std", feature = "derive"))]
 
-use insta::assert_snapshot;
+use insta::{assert_snapshot, with_settings};
 use mem_dbg::*;
 
 #[derive(MemSize, MemDbg)]
@@ -30,6 +30,7 @@ fn make_test_value() -> Outer {
 fn test_mem_dbg_on_and_depth_on_consistency() {
     let val = make_test_value();
     let flags = DbgFlags::default();
+    let arch = std::env::consts::ARCH;
 
     // mem_dbg_on (unlimited depth)
     let mut on_output = String::new();
@@ -43,7 +44,9 @@ fn test_mem_dbg_on_and_depth_on_consistency() {
     // Both entry points must produce identical output
     assert_eq!(on_output, depth_on_output);
 
-    assert_snapshot!("entry_points_full", on_output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("entry_points_full", on_output);
+    });
 }
 
 #[test]
@@ -51,11 +54,14 @@ fn test_mem_dbg_on_and_depth_on_consistency() {
 fn test_mem_dbg_depth_on_depth_0() {
     let val = make_test_value();
     let flags = DbgFlags::default();
+    let arch = std::env::consts::ARCH;
 
     let mut output = String::new();
     val.mem_dbg_depth_on(&mut output, 0, flags).unwrap();
 
-    assert_snapshot!("entry_points_depth_0", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("entry_points_depth_0", output);
+    });
 }
 
 #[test]
@@ -63,9 +69,12 @@ fn test_mem_dbg_depth_on_depth_0() {
 fn test_mem_dbg_depth_on_depth_1() {
     let val = make_test_value();
     let flags = DbgFlags::default();
+    let arch = std::env::consts::ARCH;
 
     let mut output = String::new();
     val.mem_dbg_depth_on(&mut output, 1, flags).unwrap();
 
-    assert_snapshot!("entry_points_depth_1", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("entry_points_depth_1", output);
+    });
 }

@@ -30,7 +30,10 @@
 ///
 /// let (x, uom) = humanize_float(usize::MAX);
 /// assert!(x > 1.0);
+/// #[cfg(target_pointer_width = "64")]
 /// assert_eq!(uom, "EB");
+/// #[cfg(target_pointer_width = "32")]
+/// assert_eq!(uom, "GB");
 /// ```
 pub const fn humanize_float(x: usize) -> (f64, &'static str) {
     const UOM: [&str; 7] = [" B", "kB", "MB", "GB", "TB", "PB", "EB"];

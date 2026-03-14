@@ -272,9 +272,11 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     .predicates
                     .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::FlatType));
 
-                // We push the field index and its offset
+                // We push the field index, its offset, and its size
+                // (the size is used to break ties when sorting by offset,
+                // ensuring ZSTs come before non-ZSTs at the same offset)
                 id_offset_pushes.push(quote!{
-                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #field_ident)));
+                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #field_ident), ::core::mem::size_of::<#field_ty>()));
                 });
                 // This is the arm of the match statement that invokes
                 // _mem_dbg_depth_on on the field.
@@ -296,12 +298,13 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_flags: ::mem_dbg::DbgFlags,
                         _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
                     ) -> ::core::fmt::Result {
-                        let mut id_sizes: Vec<(usize, usize)> = vec![];
+                        let mut id_sizes: Vec<(usize, usize, usize)> = vec![];
                         #(#id_offset_pushes)*
                         let n = id_sizes.len();
-                        id_sizes.push((n, ::core::mem::size_of::<Self>()));
-                        // Sort by offset
-                        id_sizes.sort_by_key(|x| x.1);
+                        id_sizes.push((n, ::core::mem::size_of::<Self>(), usize::MAX));
+                        // Sort by offset, breaking ties by size so ZSTs come
+                        // before non-ZSTs at the same offset
+                        id_sizes.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
                         // Compute padded sizes
                         for i in 0..n {
                             id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
@@ -311,7 +314,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_sizes.sort_by_key(|x| x.0);
                         }
 
-                        for (i, (field_idx, padded_size)) in id_sizes.into_iter().enumerate().take(n) {
+                        for (i, (field_idx, padded_size, _)) in id_sizes.into_iter().enumerate().take(n) {
                             match field_idx {
                                 #(#match_code)*
                                 _ => unreachable!(),
@@ -358,9 +361,10 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push({
                                 let variant_ident = &variant.ident;
                                 quote!{
-                                    // We push the offset of the field, which will
-                                    // be used to compute the padded size.
-                                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident)));
+                                    // We push the offset and size of the field;
+                                    // the size is used to break ties when sorting
+                                    // by offset (ZSTs before non-ZSTs).
+                                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident), ::core::mem::size_of_val(#binding_ident)));
                                 }
                             });
                             #[cfg(not(feature = "offset_of_enum"))]
@@ -406,9 +410,10 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push({
                                 let variant_ident = &variant.ident;
                                 quote!{
-                                    // We push the offset of the field, which will
-                                    // be used to compute the padded size.
-                                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx)));
+                                    // We push the offset and size of the field;
+                                    // the size is used to break ties when sorting
+                                    // by offset (ZSTs before non-ZSTs).
+                                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx), ::core::mem::size_of_val(#field_ident)));
                                 }
                             });
 
@@ -453,15 +458,16 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     _memdbg_writer.write_char('╴')?;
                     _memdbg_writer.write_str(#variant_name)?;
 
-                    let mut id_sizes: Vec<(usize, usize)> = vec![];
+                    let mut id_sizes: Vec<(usize, usize, usize)> = vec![];
                     #(#id_offset_pushes)*
                     let n = id_sizes.len();
 
                     // We use the offset_of information to build the real
                     // space occupied by a field.
-                    id_sizes.push((n, ::core::mem::size_of::<Self>()));
-                    // Sort by offset
-                    id_sizes.sort_by_key(|x| x.1);
+                    id_sizes.push((n, ::core::mem::size_of::<Self>(), usize::MAX));
+                    // Sort by offset, breaking ties by size so ZSTs come
+                    // before non-ZSTs at the same offset
+                    id_sizes.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
                     // Compute padded sizes
                     for i in 0..n {
                         id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
@@ -471,7 +477,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         id_sizes.sort_by_key(|x| x.0);
                     }
 
-                    for (i, (field_idx, padded_size)) in id_sizes.into_iter().enumerate().take(n) {
+                    for (i, (field_idx, padded_size, _)) in id_sizes.into_iter().enumerate().take(n) {
                         match field_idx {
                             #(#match_code)*
                             _ => unreachable!(),

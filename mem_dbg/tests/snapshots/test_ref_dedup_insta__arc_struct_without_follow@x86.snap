@@ -1,0 +1,9 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+assertion_line: 333
+expression: output
+---
+12 B 100.00% ⏺: test_ref_dedup_insta::ArcToStruct
+ 4 B  33.33% ├╴first: alloc::sync::Arc<test_ref_dedup_insta::Inner>
+ 4 B  33.33% ├╴second: alloc::sync::Arc<test_ref_dedup_insta::Inner>
+ 4 B  33.33% ╰╴different: alloc::sync::Arc<test_ref_dedup_insta::Inner>

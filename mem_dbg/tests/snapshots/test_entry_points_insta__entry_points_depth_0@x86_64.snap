@@ -1,0 +1,5 @@
+---
+source: mem_dbg/tests/test_entry_points_insta.rs
+expression: output
+---
+64 B 100.00% ⏺: test_entry_points_insta::Outer

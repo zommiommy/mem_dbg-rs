@@ -1,0 +1,9 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+assertion_line: 293
+expression: output
+---
+12 B 100.00% ⏺: test_ref_dedup_insta::RcToStruct
+ 4 B  33.33% ├╴first: alloc::rc::Rc<test_ref_dedup_insta::Inner>
+ 4 B  33.33% ├╴second: alloc::rc::Rc<test_ref_dedup_insta::Inner>
+ 4 B  33.33% ╰╴different: alloc::rc::Rc<test_ref_dedup_insta::Inner>

@@ -41,7 +41,7 @@ macro_rules! check {
         let actual_size = end_size - start_size;
         // use capacity because the allocator tracks allocated memory, which includes
         // any overallocation by the data structure
-        let reported_size = data.mem_size(SizeFlags::CAPACITY) - 8; // subtract box pointer
+        let reported_size = data.mem_size(SizeFlags::CAPACITY) - core::mem::size_of::<Box<()>>(); // subtract box pointer
         let type_name = core::any::type_name_of_val(&data);
         drop(data);
 

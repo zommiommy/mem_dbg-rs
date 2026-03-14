@@ -6,7 +6,7 @@
 
 #![cfg(all(feature = "std", feature = "derive"))]
 
-use insta::assert_snapshot;
+use insta::{assert_snapshot, with_settings};
 use mem_dbg::*;
 use regex::Regex;
 use std::rc::Rc;
@@ -18,7 +18,8 @@ use std::sync::Arc;
 fn redact_addresses(s: &str) -> String {
     use std::collections::HashMap;
     // Capture the prefix and the hex address separately
-    let re = Regex::new(r"(@ |→ )(0x[a-fA-F0-9]{16})").unwrap();
+    // Match both 8-digit (32-bit) and 16-digit (64-bit) addresses
+    let re = Regex::new(r"(@ |→ )(0x[a-fA-F0-9]{8,16})").unwrap();
     let mut addr_map: HashMap<String, usize> = HashMap::new();
     let mut counter = 1;
 
@@ -64,6 +65,7 @@ struct SharedArc {
 fn test_shared_references_dedup() {
     let shared_value = 42;
     let other_value = 100;
+    let arch = std::env::consts::ARCH;
 
     let test = SharedRef {
         name: "test",
@@ -77,14 +79,18 @@ fn test_shared_references_dedup() {
     test.mem_dbg_on(&mut output, DbgFlags::default())
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("ref_without_follow_refs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("ref_without_follow_refs", output);
+    });
 
     // With FOLLOW_REFS - shows @0x[ADDR] on first encounter, → @0x[ADDR] on subsequent
     let mut output = String::new();
     test.mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_REFS)
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("ref_with_follow_refs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("ref_with_follow_refs", output);
+    });
 }
 
 #[test]
@@ -92,6 +98,7 @@ fn test_shared_references_dedup() {
 fn test_shared_rc_dedup() {
     let shared = Rc::new(vec![1, 2, 3, 4, 5]);
     let other = Rc::new(vec![10, 20]);
+    let arch = std::env::consts::ARCH;
 
     let test = SharedRc {
         name: "rc_test",
@@ -105,14 +112,18 @@ fn test_shared_rc_dedup() {
     test.mem_dbg_on(&mut output, DbgFlags::default())
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("rc_without_follow_rcs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("rc_without_follow_rcs", output);
+    });
 
     // With FOLLOW_RCS - shows deduplication of shared Rc
     let mut output = String::new();
     test.mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_RCS)
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("rc_with_follow_rcs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("rc_with_follow_rcs", output);
+    });
 }
 
 #[test]
@@ -120,6 +131,7 @@ fn test_shared_rc_dedup() {
 fn test_shared_arc_dedup() {
     let shared = Arc::new(String::from("shared_string"));
     let other = Arc::new(String::from("different"));
+    let arch = std::env::consts::ARCH;
 
     let test = SharedArc {
         name: "arc_test",
@@ -133,14 +145,18 @@ fn test_shared_arc_dedup() {
     test.mem_dbg_on(&mut output, DbgFlags::default())
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("arc_without_follow_rcs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("arc_without_follow_rcs", output);
+    });
 
     // With FOLLOW_RCS - shows deduplication of shared Arc
     let mut output = String::new();
     test.mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_RCS)
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("arc_with_follow_rcs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("arc_with_follow_rcs", output);
+    });
 }
 
 #[test]
@@ -148,6 +164,7 @@ fn test_shared_arc_dedup() {
 fn test_combined_refs_and_rcs() {
     let value = 123;
     let rc_data = Rc::new(vec![1, 2, 3]);
+    let arch = std::env::consts::ARCH;
 
     #[derive(MemSize, MemDbg)]
     struct Combined<'a> {
@@ -172,7 +189,9 @@ fn test_combined_refs_and_rcs() {
     )
     .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("combined_refs_and_rcs", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("combined_refs_and_rcs", output);
+    });
 }
 
 /// Inner struct with fields to test recursion into referenced data
@@ -217,6 +236,7 @@ fn test_ref_to_struct_with_fields() {
         y: 2,
         name: "other".to_string(),
     };
+    let arch = std::env::consts::ARCH;
 
     let test = RefToStruct {
         first: &shared,
@@ -229,14 +249,18 @@ fn test_ref_to_struct_with_fields() {
     test.mem_dbg_on(&mut output, DbgFlags::default())
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("ref_struct_without_follow", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("ref_struct_without_follow", output);
+    });
 
     // With FOLLOW_REFS - should show Inner's fields
     let mut output = String::new();
     test.mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_REFS)
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("ref_struct_with_follow", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("ref_struct_with_follow", output);
+    });
 }
 
 #[test]
@@ -252,6 +276,7 @@ fn test_rc_to_struct_with_fields() {
         y: 2,
         name: "other".to_string(),
     });
+    let arch = std::env::consts::ARCH;
 
     let test = RcToStruct {
         first: Rc::clone(&shared),
@@ -264,14 +289,18 @@ fn test_rc_to_struct_with_fields() {
     test.mem_dbg_on(&mut output, DbgFlags::default())
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("rc_struct_without_follow", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("rc_struct_without_follow", output);
+    });
 
     // With FOLLOW_RCS - should show Inner's fields
     let mut output = String::new();
     test.mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_RCS)
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("rc_struct_with_follow", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("rc_struct_with_follow", output);
+    });
 }
 
 #[test]
@@ -287,6 +316,7 @@ fn test_arc_to_struct_with_fields() {
         y: 2,
         name: "other".to_string(),
     });
+    let arch = std::env::consts::ARCH;
 
     let test = ArcToStruct {
         first: Arc::clone(&shared),
@@ -299,12 +329,16 @@ fn test_arc_to_struct_with_fields() {
     test.mem_dbg_on(&mut output, DbgFlags::default())
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("arc_struct_without_follow", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("arc_struct_without_follow", output);
+    });
 
     // With FOLLOW_RCS - should show Inner's fields
     let mut output = String::new();
     test.mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_RCS)
         .expect("mem_dbg_on failed");
     let output = redact_addresses(&output);
-    assert_snapshot!("arc_struct_with_follow", output);
+    with_settings!({snapshot_suffix => arch}, {
+        assert_snapshot!("arc_struct_with_follow", output);
+    });
 }

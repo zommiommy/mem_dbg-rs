@@ -1,0 +1,11 @@
+---
+source: mem_dbg/tests/test_ref_dedup_insta.rs
+expression: output
+---
+88 B 100.00% ⏺: test_ref_dedup_insta::test_combined_refs_and_rcs::Combined<'_>
+12 B  13.64% ├╴ref1: &i32 @ 0x[ADDR_1]
+ 4 B   4.55% │ ├╴: i32
+ 8 B   9.09% ├╴ref2: &i32 → 0x[ADDR_1]
+60 B  68.18% ├╴rc1: alloc::rc::Rc<alloc::vec::Vec<i32>> @ 0x[ADDR_2]
+36 B  40.91% │ ├╴: alloc::vec::Vec<i32>
+ 8 B   9.09% ╰╴rc2: alloc::rc::Rc<alloc::vec::Vec<i32>> → 0x[ADDR_2]
