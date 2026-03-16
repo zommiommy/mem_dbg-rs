@@ -3,16 +3,17 @@ name = "mem_dbg"
 version = "0.4.0"
 edition = "2024"
 description = "Traits and associated procedural macros to display recursively the layout and memory usage of a value"
-repository = "https://github.com/zommiommy/mem_dbg-rs/"
+repository = "https://github.com/zommiommy/mem_dbg-rs"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
 readme = "README.md"
 keywords = ["allocation", "debug", "memory"]
+categories = ["development-tools::debugging"]
 authors = [
 	"Tommaso Fontana <tommaso.fontana.96@gmail.com>",
 	"Sebastiano Vigna <sebastiano.vigna@unimi.it>",
 	"Luca Cappelletti <cappelletti.luca94@gmail.com>",
 ]
-rust-version = "1.85.0"
+rust-version = "1.85"
 
 [dependencies]
 bitflags = "2.4.1"

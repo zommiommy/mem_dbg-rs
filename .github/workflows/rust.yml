@@ -9,7 +9,7 @@ jobs:
   build-stable:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Build
@@ -25,13 +25,17 @@ jobs:
         run: |
           set -e
           for example in examples/*.rs ; do cargo run --example "$(basename "${example%.rs}")" --release; done
-      - name: Run clippy
-        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand --all-targets
+      - name: Clippy (default)
+        run: cargo clippy -- -D warnings
+      - name: Clippy (no default features)
+        run: cargo clippy --no-default-features -- -D warnings
+      - name: Clippy (all stable features)
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand -- -D warnings
 
   build-nightly:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install nightly toolchain
         run: rustup toolchain install nightly && rustup default nightly
       - name: Build with all features
@@ -42,6 +46,8 @@ jobs:
         run: cargo doc --all-features --document-private-items --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
+      - name: Clippy (all features)
+        run: cargo clippy --all-features -- -D warnings
 
   coverage:
     needs: [build-stable, build-nightly]
@@ -52,7 +58,7 @@ jobs:
       options: --security-opt seccomp=unconfined
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Generate code coverage
         run: |
           cargo +nightly tarpaulin --verbose --engine llvm --all-features  --run-types AllTargets --run-types Doctests --workspace --out Lcov --exclude mem_dbg-derive --exclude-files "mem_dbg/examples/*" --exclude-files "mem_dbg/tests/*insta*" -- --skip _snapshot
@@ -67,8 +73,21 @@ jobs:
     name: miri
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install nightly and miri
         run: rustup toolchain install nightly --component miri && rustup default nightly && cargo miri setup
       - name: Run tests with miri
         run: cargo miri test --all-features --all-targets -- --skip _snapshot
+
+  build-i686:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install 32-bit support
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - name: Add i686 target
+        run: rustup target add i686-unknown-linux-gnu
+      - name: Build (32-bit)
+        run: cargo build --target i686-unknown-linux-gnu
+      - name: Test (32-bit)
+        run: cargo test --target i686-unknown-linux-gnu

@@ -1,12 +1,12 @@
 # mem_dbg
 
-[![downloads](https://img.shields.io/crates/d/mem_dbg)](https://crates.io/crates/mem_dbg)
-[![dependents](https://img.shields.io/librariesio/dependents/cargo/mem_dbg)](https://crates.io/crates/mem_dbg/reverse_dependencies)
-![GitHub CI](https://github.com/zommiommy/mem_dbg-rs/actions/workflows/rust.yml/badge.svg)
+[![crates.io](https://img.shields.io/crates/v/mem_dbg.svg)](https://crates.io/crates/mem_dbg)
+[![docs.rs](https://docs.rs/mem_dbg/badge.svg)](https://docs.rs/mem_dbg)
+[![rustc](https://img.shields.io/badge/rustc-1.85+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![CI](https://github.com/zommiommy/mem_dbg-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/zommiommy/mem_dbg-rs/actions)
 ![license](https://img.shields.io/crates/l/mem_dbg)
-[![Latest version](https://img.shields.io/crates/v/mem_dbg.svg)](https://crates.io/crates/mem_dbg)
-[![Documentation](https://docs.rs/mem_dbg/badge.svg)](https://docs.rs/mem_dbg)
-[![Coverage Status](https://coveralls.io/repos/github/zommiommy/mem_dbg-rs/badge.svg?branch=main)](https://coveralls.io/github/zommiommy/mem_dbg-rs?branch=main)
+[![downloads](https://img.shields.io/crates/d/mem_dbg)](https://crates.io/crates/mem_dbg)
+[![coveralls](https://coveralls.io/repos/github/zommiommy/mem_dbg-rs/badge.svg?branch=main)](https://coveralls.io/github/zommiommy/mem_dbg-rs?branch=main)
 
 Traits and associated procedural macros to inspect recursively the memory usage
 and layout of a value.
