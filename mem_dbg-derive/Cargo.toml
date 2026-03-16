@@ -3,10 +3,11 @@ name = "mem_dbg-derive"
 version = "0.3.0"
 edition = "2024"
 description = "Procedural macros for mem_dbg"
-repository = "https://github.com/zommiommy/mem_dbg-rs/"
+repository = "https://github.com/zommiommy/mem_dbg-rs"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
 readme = "README.md"
 keywords = ["allocation", "debug", "memory"]
+categories = ["development-tools::procedural-macro-helpers"]
 authors = [
 	"Tommaso Fontana <tommaso.fontana.96@gmail.com>",
 	"Sebastiano Vigna <sebastiano.vigna@unimi.it>",

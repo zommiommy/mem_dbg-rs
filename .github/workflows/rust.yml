@@ -38,6 +38,8 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install nightly toolchain
         run: rustup toolchain install nightly && rustup default nightly
+      - name: Install Clippy
+        run: rustup component add clippy
       - name: Build with all features
         run: cargo build --all-features
       - name: Run tests with all features (including offset_of_enum)
