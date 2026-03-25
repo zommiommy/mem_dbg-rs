@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-/// Given a size in bytes, returns it in a human readable format using SI suffixes.
+/// Given a size in bytes, returns it in a human-readable format using SI-prefixed units.
 ///
 /// # Arguments
 ///

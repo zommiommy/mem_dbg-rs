@@ -12,7 +12,7 @@
 ### Changed
 
 - `mem_size_flat`/`mem_size_rec` attributes are now
-  `mem_size(flat)`/`mem_size(rec)`. Warning are emitted when using the old
+  `mem_size(flat)`/`mem_size(rec)`. Warnings are emitted when using the old
   syntax.
 
 ### Improved

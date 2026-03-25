@@ -13,10 +13,7 @@ use core::sync::atomic::*;
 #[cfg(feature = "std")]
 use core::ops::Deref;
 
-use crate::{Boolean, False, FlatType, MemSize, SizeFlags, True};
-
-// HashMap for pointer deduplication (always use hashbrown for consistency)
-use hashbrown::HashMap;
+use crate::{Boolean, False, FlatType, HashMap, MemSize, SizeFlags, True};
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
@@ -270,6 +267,7 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
 /// flat types.
 ///
 /// See [`crate::FlatType`] for more information.
+#[doc(hidden)]
 pub trait MemSizeHelper<T: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }
@@ -1004,6 +1002,7 @@ impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
 /// flat types.
 ///
 /// See [`crate::FlatType`] for more information.
+#[doc(hidden)]
 pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
 }

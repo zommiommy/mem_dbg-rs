@@ -201,7 +201,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 all_field_types.push(field.ty.to_token_stream());
                             }
                         }
-                        // extend res with the args surrounded by curly braces
+                        // extend res with the args surrounded by parentheses
                         res.extend(quote! {
                             ( #args )
                         });
@@ -459,7 +459,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                                 .predicates
                                 .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::FlatType));
                         }
-                        // extend res with the args surrounded by curly braces
+                        // extend res with the args surrounded by parentheses
                         res.extend(quote! {
                             ( #args )
                         });

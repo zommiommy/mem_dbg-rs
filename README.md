@@ -12,7 +12,7 @@ Traits and associated procedural macros to inspect recursively the memory usage
 and layout of a value.
 
 The trait [`MemSize`] can be used to compute the overall memory usage of a value
-in bytes; the standard library function [`std::mem::size_of`] returns the
+in bytes; the standard library function [`core::mem::size_of`] returns the
 _stack_ size of a type in bytes, but it does not take into consideration heap
 memory. We provide implementations for most basic types, a derive macro for
 structs and enums whose fields implement [`MemSize`], and support for a few other
@@ -446,7 +446,7 @@ w.mem_dbg(DbgFlags::empty())?;
 
 [`MemDbg`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemDbg.html
 [`MemSize`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.MemSize.html
-[`std::mem::size_of`]: https://doc.rust-lang.org/std/mem/fn.size_of.html
+[`core::mem::size_of`]: https://doc.rust-lang.org/core/mem/fn.size_of.html
 [`DbgFlags::RUST_LAYOUT`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.RUST_LAYOUT
 [`DbgFlags::COLOR`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.COLOR
 [`FlatType`]: https://docs.rs/mem_dbg/latest/mem_dbg/trait.FlatType.html
@@ -469,3 +469,4 @@ w.mem_dbg(DbgFlags::empty())?;
 [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 [`RefCell`]: https://doc.rust-lang.org/std/cell/struct.RefCell.html
 [`Copy`]: https://doc.rust-lang.org/std/marker/trait.Copy.html
+[`core::mem::offset_of`]: https://doc.rust-lang.org/core/mem/macro.offset_of.html

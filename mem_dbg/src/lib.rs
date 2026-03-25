@@ -14,9 +14,11 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 
-// HashMap for pointer deduplication in mem_size (re-exported for derive macro)
+/// Hash map for pointer deduplication in mem_size (re-exported for derive macro).
+#[doc(hidden)]
 pub use hashbrown::HashMap;
-// HashSet for pointer deduplication in mem_dbg
+/// Hash set for pointer deduplication in mem_dbg.
+#[doc(hidden)]
 pub use hashbrown::HashSet;
 
 #[cfg(feature = "derive")]
@@ -41,7 +43,9 @@ pub use utils::*;
 /// a tuple is `FlatType<Flat=True>` only if all its components are
 /// `FlatType<Flat=True>`.
 pub trait Boolean {
+    /// Logical AND with another [`Boolean`].
     type And<B: Boolean>: Boolean;
+    /// The Boolean value of the type.
     const VALUE: bool;
 }
 
@@ -202,7 +206,7 @@ bitflags::bitflags! {
     pub struct DbgFlags: u32 {
         /// Follow references. See [`SizeFlags::FOLLOW_REFS`].
         const FOLLOW_REFS = 1 << 0;
-        /// Print memory usage in human readable format.
+        /// Print memory usage in human-readable format.
         const HUMANIZE = 1 << 1;
         /// Print memory usage as a percentage.
         const PERCENTAGE = 1 << 2;
