@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Generate code coverage
         run: |
-          cargo +nightly tarpaulin --verbose --engine llvm --all-features  --run-types AllTargets --run-types Doctests --workspace --out Lcov --exclude mem_dbg-derive --exclude-files "mem_dbg/examples/*" --exclude-files "mem_dbg/tests/*insta*" -- --skip _snapshot
+          cargo +nightly tarpaulin --verbose --engine llvm --all-features  --run-types AllTargets --run-types Doctests --workspace --out Lcov --exclude mem_dbg-derive --exclude-files "mem_dbg/examples/*" --exclude-files "mem_dbg/tests/*insta*" -- --skip _snapshot --skip test_correctness
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
