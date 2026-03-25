@@ -96,19 +96,19 @@ pub enum RefDisplay {
 /// exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
 ///
 /// If you use the provided derive macros all this logic will be hidden from
-/// you. You'll just have to add the attribute `#[mem_size_flat]` to your
+/// you. You'll just have to add the attribute `#[mem_size(flat)]` to your
 /// structures if they are flat types that do not contain non-`'static`
 /// references (typically [`Copy`] + `'static` types, but this is not enforced).
 ///
 /// When all fields of a struct or enum implement `FlatType<Flat=True>` but the
-/// type itself is not annotated with `#[mem_size_flat]`, a compile-time error will
-/// suggest adding `#[mem_size_flat]` (if the type is flat) or
-/// `#[mem_size_rec]` (to explicitly opt out of the optimization and silence
+/// type itself is not annotated with `#[mem_size(flat)]`, a compile-time error
+/// will suggest adding `#[mem_size(flat)]` (if the type is flat) or
+/// `#[mem_size(rec)]` (to explicitly opt out of the optimization and silence
 /// the error).
 ///
 /// For example, the following will not compile because `usize` implements
-/// `FlatType<Flat=True>`, but the struct is not annotated with `#[mem_size_flat]`
-/// or `#[mem_size_rec]`:
+/// `FlatType<Flat=True>`, but the struct is not annotated with
+/// `#[mem_size(flat)]` or `#[mem_size(rec)]`:
 ///
 /// ```compile_fail
 /// #[derive(mem_dbg::MemSize)]

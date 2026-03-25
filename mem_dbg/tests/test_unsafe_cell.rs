@@ -8,7 +8,7 @@ use std::cell::Cell;
 #[test]
 fn test_unsafe_cell_in_struct() {
     #[derive(MemSize, MemDbg)]
-    #[mem_size_rec]
+    #[mem_size(rec)]
     struct Test {
         field: UnsafeCell<i32>,
     }
@@ -26,7 +26,7 @@ fn test_unsafe_cell_in_struct() {
 #[test]
 fn test_cell_in_struct() {
     #[derive(MemSize, MemDbg)]
-    #[mem_size_rec]
+    #[mem_size(rec)]
     struct Test {
         field: Cell<i32>,
     }

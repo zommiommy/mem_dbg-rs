@@ -9,6 +9,12 @@
 - Fixed panic due to non-ZST being sorted by offset before a ZST in the same
   position.
 
+### Changed
+
+- `mem_size_flat`/`mem_size_rec` attributes are now
+  `mem_size(flat)`/`mem_size(rec)`. Warning are emitted when using the old
+  syntax.
+
 ### Improved
 
 - More precise collection size estimation depending on the platform.

@@ -139,7 +139,7 @@ struct Data<A> {
 }
 
 #[derive(Clone, Copy, MemSize, MemDbg)]
-#[mem_size_flat]
+#[mem_size(flat)]
 enum TestEnum {
     Unit,
     Unit2(),
@@ -321,8 +321,8 @@ assert_eq!(
   See [`FlatType`] for more details.
 
 - When all fields of a struct or enum implement `FlatType<Flat=True>`, a
-  compile-time error will suggest adding `#[mem_size_flat]` (if the type is
-  flat) or `#[mem_size_rec]` (to explicitly opt out of the
+  compile-time error will suggest adding `#[mem_size(flat)]` (if the type is
+  flat) or `#[mem_size(rec)]` (to explicitly opt out of the
   optimization and silence the error).
 
 - The content of vectors and slices is not expanded recursively as the output

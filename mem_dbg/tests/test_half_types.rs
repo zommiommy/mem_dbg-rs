@@ -10,7 +10,7 @@ fn test_half_types() {
     use half::{bf16, f16};
 
     #[derive(MemSize, MemDbg)]
-    #[mem_size_rec]
+    #[mem_size(rec)]
     struct HalfStruct {
         f16_val: f16,
         bf16_val: bf16,

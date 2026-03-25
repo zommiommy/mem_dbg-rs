@@ -9,7 +9,7 @@ fn test_rand_types() {
     use rand::rngs::{SmallRng, StdRng};
 
     #[derive(MemSize, MemDbg)]
-    #[mem_size_rec]
+    #[mem_size(rec)]
     struct RandStruct {
         small_rng: SmallRng,
         std_rng: StdRng,

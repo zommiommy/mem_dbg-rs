@@ -67,7 +67,7 @@ macro_rules! check {
 
 // Custom struct with derive
 #[derive(MemSize, Clone)]
-#[mem_size_rec]
+#[mem_size(rec)]
 struct SimpleStruct {
     a: u64,
     b: u32,

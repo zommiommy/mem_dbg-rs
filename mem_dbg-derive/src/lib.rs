@@ -18,18 +18,18 @@ use syn::{
 ///
 /// Presently we do not support unions.
 ///
-/// The attribute `mem_size_flat` can be used on flat types (typically `Copy +
+/// The attribute `#[mem_size(flat)]` can be used on flat types (typically `Copy +
 /// 'static`) that do not contain non-`'static` references to make
 /// `MemSize::mem_size` faster on arrays, vectors, slices, and supported
 /// containers.
 ///
-/// When all fields implement `FlatType<Flat=True>` but neither `#[mem_size_flat]`
-/// nor `#[mem_size_rec]` is present, a compile-time error is emitted. Use
-/// `#[mem_size_rec]` to explicitly silence this check when the type is
-/// intentionally not `#[mem_size_flat]`.
+/// When all fields implement `FlatType<Flat=True>` but neither
+/// `#[mem_size(flat)]` nor `#[mem_size(rec)]` is present, a compile-time error
+/// is emitted. Use `#[mem_size(rec)]` to explicitly silence this check when the
+/// type is intentionally not `#[mem_size(flat)]`.
 ///
 /// See `mem_dbg::FlatType` for more details.
-#[proc_macro_derive(MemSize, attributes(mem_size_flat, mem_size_rec))]
+#[proc_macro_derive(MemSize, attributes(mem_size, mem_size_flat, mem_size_rec))]
 pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);
 
@@ -38,20 +38,41 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let mut where_clause = where_clause.unwrap().clone(); // We just created it
 
-    let is_flat = input
-        .attrs
-        .iter()
-        .any(|x| x.meta.path().is_ident("mem_size_flat"));
+    let mut is_flat = false;
+    let mut is_rec = false;
 
-    let is_rec = input
-        .attrs
-        .iter()
-        .any(|x| x.meta.path().is_ident("mem_size_rec"));
+    for attr in &input.attrs {
+        if attr.meta.path().is_ident("mem_size_flat") {
+            is_flat = true;
+            eprintln!(
+                "warning: use `#[mem_size(flat)]` instead of `#[mem_size_flat]` on type `{input_ident}`"
+            );
+        } else if attr.meta.path().is_ident("mem_size_rec") {
+            is_rec = true;
+            eprintln!(
+                "warning: use `#[mem_size(rec)]` instead of `#[mem_size_rec]` on type `{input_ident}`"
+            );
+        } else if attr.meta.path().is_ident("mem_size") {
+            if let Err(e) = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("flat") {
+                    is_flat = true;
+                    Ok(())
+                } else if meta.path.is_ident("rec") {
+                    is_rec = true;
+                    Ok(())
+                } else {
+                    Err(meta.error("expected `flat` or `rec`"))
+                }
+            }) {
+                return e.to_compile_error().into();
+            }
+        }
+    }
 
     if is_flat && is_rec {
         return syn::Error::new_spanned(
             &input_ident,
-            "cannot use both #[mem_size_flat] and #[mem_size_rec] on the same type",
+            "cannot use both `flat` and `rec` on the same type",
         )
         .to_compile_error()
         .into();
@@ -86,7 +107,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             let const_assert = if !is_flat && !is_rec {
                 let msg = format!(
-                    "Structure {} could be #[mem_size_flat], but it has not been declared as such; use either the #[mem_size_flat] or the #[mem_size_rec] attribute to silence this error",
+                    "Structure {} could be #[mem_size(flat)], but it has not been declared as such; use either the #[mem_size(flat)] or the #[mem_size(rec)] attribute to silence this error",
                     input_ident
                 );
                 quote! {
@@ -192,7 +213,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
             let const_assert = if !is_flat && !is_rec {
                 let msg = format!(
-                    "Enum {} could be #[mem_size_flat], but it has not been declared as such; use either the #[mem_size_flat] or the #[mem_size_rec] attribute to silence this error",
+                    "Enum {} could be #[mem_size(flat)], but it has not been declared as such; use either the #[mem_size(flat)] or the #[mem_size(rec)] attribute to silence this error",
                     input_ident
                 );
                 quote! {
