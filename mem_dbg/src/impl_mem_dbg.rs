@@ -152,6 +152,13 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for &'_ mut T {
     impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| *s as *const T as *const () as usize);
 }
 
+// Raw pointers are displayed as addresses only; dereferencing them would require
+// an unsafe validity contract.
+
+impl<T: ?Sized> MemDbgImpl for *const T {}
+
+impl<T: ?Sized> MemDbgImpl for *mut T {}
+
 // Option
 
 impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
@@ -188,6 +195,11 @@ impl<T: MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
     impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::rc::Rc::as_ptr(s) as usize);
 }
 
+// Weak pointers are displayed as handles only.
+
+#[cfg(feature = "std")]
+impl<T: ?Sized> MemDbgImpl for std::rc::Weak<T> {}
+
 // Arc
 
 /// This implementation displays the referenced data with deduplication
@@ -196,6 +208,11 @@ impl<T: MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
     impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::sync::Arc::as_ptr(s) as usize);
 }
+
+// Weak pointers are displayed as handles only.
+
+#[cfg(feature = "std")]
+impl<T: ?Sized> MemDbgImpl for std::sync::Weak<T> {}
 
 // Slices
 

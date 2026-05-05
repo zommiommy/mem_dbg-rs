@@ -122,6 +122,29 @@ impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
     }
 }
 
+// Raw pointers are handles only. Following them would require an unsafe
+// validity contract that `MemSize` does not expose.
+
+impl<T: ?Sized> FlatType for *const T {
+    type Flat = True;
+}
+
+impl<T: ?Sized> MemSize for *const T {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+impl<T: ?Sized> FlatType for *mut T {
+    type Flat = True;
+}
+
+impl<T: ?Sized> MemSize for *mut T {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
 // Option
 
 impl<T: FlatType> FlatType for Option<T> {
@@ -213,6 +236,21 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
     }
 }
 
+// Weak pointers are handles only. Upgrading them would observe mutable shared
+// state and would not establish ownership of the allocation.
+
+#[cfg(feature = "std")]
+impl<T: ?Sized> FlatType for std::rc::Weak<T> {
+    type Flat = True;
+}
+
+#[cfg(feature = "std")]
+impl<T: ?Sized> MemSize for std::rc::Weak<T> {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
 // Arc: uses map for deduplication when FOLLOW_RCS is set
 
 #[cfg(feature = "std")]
@@ -258,6 +296,20 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
                 refs.insert(ptr, inner_size);
             }
         }
+        core::mem::size_of::<Self>()
+    }
+}
+
+// Weak pointers are handles only; see the `Rc::Weak` implementation.
+
+#[cfg(feature = "std")]
+impl<T: ?Sized> FlatType for std::sync::Weak<T> {
+    type Flat = True;
+}
+
+#[cfg(feature = "std")]
+impl<T: ?Sized> MemSize for std::sync::Weak<T> {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
