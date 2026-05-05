@@ -1,5 +1,15 @@
 # Change Log
 
+## [Unreleased]
+
+### New
+
+- Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
+  `*mut T`, `std::rc::Weak<T>`, and `std::sync::Weak<T>`. None of these are
+  followed: their referents are neither dereferenced nor counted, and the
+  `Weak` impls do not bound the target type.
+
+
 ## [0.4.1] - 2026-03-25
 
 ### Fixed
