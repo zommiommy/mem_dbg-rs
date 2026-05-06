@@ -578,7 +578,9 @@ pub trait MemDbgImpl: MemSize {
 
         // Skip padding and recursion for back-references
         if !is_backref {
-            let padding = padded_size - core::mem::size_of_val(self);
+            // Saturate so a misbehaving manual `MemDbgImpl` cannot trigger
+            // a debug-build underflow on the padding line.
+            let padding = padded_size.saturating_sub(core::mem::size_of_val(self));
 
             if padding != 0 {
                 writer.write_fmt(format_args!(" [{}B]", padding))?;
