@@ -1031,6 +1031,25 @@ impl<T> FlatType for std::io::BufReader<T> {
     type Flat = False;
 }
 
+// `BufReader<T>` / `BufWriter<T>` count their internal buffer
+// (`self.capacity()`) unconditionally, ignoring `SizeFlags::CAPACITY`.
+//
+// `CAPACITY` distinguishes user-asked memory from allocator-chosen slack:
+// `Vec` and friends grow geometrically, so by default we count `len` and
+// expose the slack only on demand; `HashMap`/`HashSet` size their bucket
+// arrays via load-factor policy, so by default we count filled slots and
+// expose the whole table only on demand. BTree node allocation is always
+// estimated because there is no exposed length-vs-capacity split for nodes.
+//
+// Buffered I/O is not slack. The constructor takes the buffer size
+// directly (`BufReader::with_capacity(N, _)`, default 8 KiB), so the
+// allocation is the user's stated commitment - the same shape as
+// `mmap_rs::Mmap`. `buffer().len()` (the bytes currently held) is a
+// transient I/O state that swings between 0 and `capacity()` during a
+// single read loop; it is not a memory-footprint quantity.
+//
+// We therefore intentionally treat `CAPACITY` as a no-op for these
+// types and always report `capacity()`.
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
