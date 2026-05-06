@@ -840,9 +840,13 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::OnceCell<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.get()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        if let Some(inner) = self.get() {
+            inner._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -858,9 +862,13 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::OnceLock<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.get()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        if let Some(inner) = self.get() {
+            inner._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        } else {
+            Ok(())
+        }
     }
 }
 
