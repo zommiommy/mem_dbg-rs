@@ -48,6 +48,12 @@
   empty default). Now they unwrap the option and recurse into `T` when
   populated, so `MemDbg` matches `MemSize`.
 
+- `std::sync::Mutex<T>` and `std::sync::RwLock<T>` `MemDbg` now recurse into
+  the inner `T` under default flags. Previously dispatch went through the
+  `MutexGuard<T>` / `RwLockReadGuard<T>` impl, which is gated on
+  `DbgFlags::FOLLOW_REFS` and silently dropped all children under default flags
+  - while `MemSize` always recursed.
+
 
 ## [0.4.1] - 2026-03-25
 
