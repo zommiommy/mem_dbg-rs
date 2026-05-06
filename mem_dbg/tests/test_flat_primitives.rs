@@ -91,6 +91,7 @@ fn test_nonnull() {
     );
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_weak_pointers() {
     let rc_weak: std::rc::Weak<u32> = std::rc::Weak::new();
@@ -159,6 +160,7 @@ fn test_layout() {
     );
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_default_hasher() {
     let hasher = std::collections::hash_map::DefaultHasher::new();
@@ -168,6 +170,7 @@ fn test_default_hasher() {
     );
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_random_state() {
     let state = std::collections::hash_map::RandomState::new();
@@ -177,6 +180,7 @@ fn test_random_state() {
     );
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_build_hasher_default() {
     let bhd: core::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher> =
@@ -190,6 +194,7 @@ fn test_build_hasher_default() {
     );
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_net_addresses() {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -231,6 +236,7 @@ fn test_net_addresses() {
     );
 }
 
+#[cfg(feature = "std")]
 #[cfg_attr(miri, ignore)] // miri lacks REALTIME clock_gettime
 #[test]
 fn test_time_types() {
@@ -253,6 +259,7 @@ fn test_time_types() {
     );
 }
 
+#[cfg(feature = "std")]
 #[cfg_attr(miri, ignore)] // miri lacks REALTIME clock_gettime
 #[test]
 fn test_system_time_error() {
