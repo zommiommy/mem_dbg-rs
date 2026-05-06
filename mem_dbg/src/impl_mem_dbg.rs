@@ -267,8 +267,40 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
     }
 }
 
-// Pin has the same layout as `P`, so it preserves `P`'s traversal policy.
+// `Pin<P>` is `#[repr(transparent)]` over `P`, so we forward both display
+// methods to `P`. This preserves `P`'s full traversal policy, including the
+// dedup tracking and `@`/`→` back-reference markers emitted for `&T`, `Rc<T>`,
+// and `Arc<T>`. Mirrors `core`'s transparent `Debug` impl for `Pin`.
 impl<P: MemDbgImpl> MemDbgImpl for core::pin::Pin<P> {
+    fn _mem_dbg_depth_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        field_name: Option<&str>,
+        is_last: bool,
+        padded_size: usize,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        // SAFETY: `Pin<P>` is `#[repr(transparent)]` over `P`, so `&Pin<P>`
+        // and `&P` have identical layout. Taking a shared reference to `P`
+        // does not move the pointee.
+        let pointer = unsafe { &*(self as *const core::pin::Pin<P> as *const P) };
+        pointer._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            field_name,
+            is_last,
+            padded_size,
+            flags,
+            dbg_refs,
+        )
+    }
+
     fn _mem_dbg_rec_on(
         &self,
         writer: &mut impl core::fmt::Write,
@@ -279,8 +311,7 @@ impl<P: MemDbgImpl> MemDbgImpl for core::pin::Pin<P> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        // SAFETY: `Pin<P>` has the same layout and ABI as `P`; taking a shared
-        // reference to `P` does not move `P` or its pointee.
+        // SAFETY: see `_mem_dbg_depth_on` above.
         let pointer = unsafe { &*(self as *const core::pin::Pin<P> as *const P) };
         pointer._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,

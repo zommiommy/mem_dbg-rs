@@ -1,7 +1,7 @@
 #![cfg(all(feature = "std", feature = "derive"))]
 
 //! `Pin<P>` should keep the same memory accounting and debug traversal policy
-//! as `P`.
+//! as `P`, including `&T`/`Rc<T>`/`Arc<T>` deduplication.
 
 use mem_dbg::*;
 use std::pin::Pin;
@@ -9,7 +9,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(MemSize, MemDbg)]
-#[mem_size(rec)]
 struct PinFields<'a> {
     boxed: Pin<Box<usize>>,
     borrowed: Pin<&'a usize>,
@@ -20,14 +19,15 @@ struct PinFields<'a> {
 
 #[test]
 fn pin_size_matches_wrapped_pointer_policy() {
-    let boxed = Box::pin(1usize);
+    let plain_box = Box::new(1usize);
+    let pinned_box = Box::pin(1usize);
     assert_eq!(
-        boxed.mem_size(SizeFlags::default()),
-        Box::new(1usize).mem_size(SizeFlags::default())
+        pinned_box.mem_size(SizeFlags::default()),
+        plain_box.mem_size(SizeFlags::default())
     );
 
     let value = 2usize;
-    let plain_ref = &value;
+    let plain_ref: &usize = &value;
     let pinned_ref = Pin::new(&value);
     assert_eq!(
         pinned_ref.mem_size(SizeFlags::default()),
@@ -73,6 +73,77 @@ fn pin_size_matches_wrapped_pointer_policy() {
 }
 
 #[test]
+fn pin_rc_dedup_matches_plain_rc() {
+    // Two `Pin<Rc<T>>` aliasing the same allocation must dedup under
+    // `FOLLOW_RCS` exactly as two plain `Rc<T>` would, and must dedup with
+    // a plain `Rc<T>` to the same allocation.
+    #[derive(MemSize, MemDbg)]
+    struct Pinned {
+        a: Pin<Rc<[u8; 1024]>>,
+        b: Pin<Rc<[u8; 1024]>>,
+    }
+
+    #[derive(MemSize, MemDbg)]
+    struct Plain {
+        a: Rc<[u8; 1024]>,
+        b: Rc<[u8; 1024]>,
+    }
+
+    #[derive(MemSize, MemDbg)]
+    struct Mixed {
+        pinned: Pin<Rc<[u8; 1024]>>,
+        plain: Rc<[u8; 1024]>,
+    }
+
+    let shared = Rc::new([0u8; 1024]);
+
+    let pinned = Pinned {
+        a: Pin::new(Rc::clone(&shared)),
+        b: Pin::new(Rc::clone(&shared)),
+    };
+    let plain = Plain {
+        a: Rc::clone(&shared),
+        b: Rc::clone(&shared),
+    };
+    let mixed = Mixed {
+        pinned: Pin::new(Rc::clone(&shared)),
+        plain: Rc::clone(&shared),
+    };
+
+    // mem_size: payload counted once.
+    let plain_size = plain.mem_size(SizeFlags::FOLLOW_RCS);
+    assert_eq!(pinned.mem_size(SizeFlags::FOLLOW_RCS), plain_size);
+    assert_eq!(mixed.mem_size(SizeFlags::FOLLOW_RCS), plain_size);
+
+    // mem_dbg: one first-encounter `@`, one back-reference `→`, regardless of
+    // whether the alias goes through `Pin<Rc>` or plain `Rc`.
+    for (label, output) in [
+        ("plain", dbg_with_follow_rcs(&plain)),
+        ("pinned", dbg_with_follow_rcs(&pinned)),
+        ("mixed", dbg_with_follow_rcs(&mixed)),
+    ] {
+        assert_eq!(
+            output.matches("@ 0x").count(),
+            1,
+            "{label}: expected one first-encounter marker, got:\n{output}"
+        );
+        assert_eq!(
+            output.matches("→ 0x").count(),
+            1,
+            "{label}: expected one back-reference marker, got:\n{output}"
+        );
+    }
+}
+
+fn dbg_with_follow_rcs<T: MemDbg>(value: &T) -> String {
+    let mut output = String::new();
+    value
+        .mem_dbg_on(&mut output, DbgFlags::default() | DbgFlags::FOLLOW_RCS)
+        .expect("mem_dbg_on failed");
+    output
+}
+
+#[test]
 fn pin_fields_derive_mem_dbg() {
     let value = 2usize;
     let mut mutable_value = 5usize;
@@ -93,10 +164,21 @@ fn pin_fields_derive_mem_dbg() {
         )
         .unwrap();
 
-    assert!(output.contains("PinFields"));
-    assert!(output.contains("boxed"));
-    assert!(output.contains("borrowed"));
-    assert!(output.contains("mutable"));
-    assert!(output.contains("rc"));
-    assert!(output.contains("arc"));
+    // Parent struct name appears once.
+    assert!(
+        output.contains("PinFields"),
+        "missing struct name:\n{output}"
+    );
+
+    // Each field name appears as a tree-glyph-prefixed line, exactly once.
+    // Using `╴<field>:` avoids matching identifiers inside fully-qualified
+    // type names (which use `::`, not `╴`).
+    for field in ["boxed", "borrowed", "mutable", "rc", "arc"] {
+        let needle = format!("╴{field}:");
+        assert_eq!(
+            output.matches(&needle).count(),
+            1,
+            "expected one `{needle}` line, got:\n{output}"
+        );
+    }
 }

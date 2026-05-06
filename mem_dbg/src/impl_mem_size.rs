@@ -251,15 +251,17 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
     }
 }
 
-// Pin has the same layout as `P`, so it preserves `P`'s sizing policy.
+// `Pin<P>` is `#[repr(transparent)]` over `P`, so it preserves `P`'s sizing
+// policy (including `refs` dedup) by forwarding to `P`'s impls.
 impl<P: FlatType> FlatType for core::pin::Pin<P> {
     type Flat = P::Flat;
 }
 
 impl<P: MemSize> MemSize for core::pin::Pin<P> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // SAFETY: `Pin<P>` has the same layout and ABI as `P`; taking a shared
-        // reference to `P` does not move `P` or its pointee.
+        // SAFETY: `Pin<P>` is `#[repr(transparent)]` over `P`, so `&Pin<P>`
+        // and `&P` have identical layout. Taking a shared reference to `P`
+        // does not move the pointee.
         let pointer = unsafe { &*(self as *const core::pin::Pin<P> as *const P) };
         <P as MemSize>::mem_size_rec(pointer, flags, refs)
     }
