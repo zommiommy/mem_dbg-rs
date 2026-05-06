@@ -136,7 +136,8 @@ fn test_individual_wrapper_sizes() -> anyhow::Result<()> {
 fn test_niche_optimized_wrappers() -> anyhow::Result<()> {
     use core::num::NonZeroU32;
 
-    let leaked: &'static u8 = Box::leak(Box::new(7u8));
+    let backing = 7u8;
+    let stack_ref: &u8 = &backing;
 
     // `Poll` has two variants and a single niche from `&u8` is enough to
     // encode `Pending`, so the layout collapses to a single pointer.
@@ -145,7 +146,7 @@ fn test_niche_optimized_wrappers() -> anyhow::Result<()> {
         core::mem::size_of::<&u8>(),
     );
     let pending: core::task::Poll<&u8> = core::task::Poll::Pending;
-    let ready: core::task::Poll<&u8> = core::task::Poll::Ready(leaked);
+    let ready: core::task::Poll<&u8> = core::task::Poll::Ready(stack_ref);
     assert_eq!(
         pending.mem_size(SizeFlags::default()),
         core::mem::size_of::<core::task::Poll<&u8>>(),
@@ -161,7 +162,7 @@ fn test_niche_optimized_wrappers() -> anyhow::Result<()> {
         core::mem::size_of::<core::ops::ControlFlow<&u8, ()>>(),
         core::mem::size_of::<&u8>(),
     );
-    let flow_break: core::ops::ControlFlow<&u8, ()> = core::ops::ControlFlow::Break(leaked);
+    let flow_break: core::ops::ControlFlow<&u8, ()> = core::ops::ControlFlow::Break(stack_ref);
     let flow_continue: core::ops::ControlFlow<&u8, ()> = core::ops::ControlFlow::Continue(());
     assert_eq!(
         flow_break.mem_size(SizeFlags::default()),
@@ -178,7 +179,7 @@ fn test_niche_optimized_wrappers() -> anyhow::Result<()> {
         core::mem::size_of::<core::cmp::Reverse<&u8>>(),
         core::mem::size_of::<&u8>(),
     );
-    let reverse = core::cmp::Reverse(leaked);
+    let reverse = core::cmp::Reverse(stack_ref);
     assert_eq!(
         reverse.mem_size(SizeFlags::default()),
         core::mem::size_of::<core::cmp::Reverse<&u8>>(),
