@@ -76,10 +76,17 @@ expression: depth_output
     1 B │ ├╴3
     1 B │ ╰╴4 [2B]
    16 B ├╴range
+    8 B │ ├╴start
+    8 B │ ╰╴end
     8 B ├╴range_from
+    8 B │ ╰╴start
    24 B ├╴range_inclusive
+    8 B │ ├╴start
+    8 B │ ╰╴end
     8 B ├╴range_to
+    8 B │ ╰╴end
     8 B ├╴range_to_inclusive
+    8 B │ ╰╴end
     4 B ├╴cell
    16 B ├╴ref_cell
     4 B ├╴unsafe_cell

@@ -9,6 +9,13 @@
   only counted under `SizeFlags::FOLLOW_REFS`, which is inconsistent with
   ownership semantics (the mapping is unmapped on drop).
 
+- **Breaking** (display): `core::ops::Range`, `RangeFrom`,
+  `RangeInclusive`, `RangeTo`, `RangeToInclusive`, `core::cmp::Reverse`,
+  `core::ops::Bound`, `core::ops::ControlFlow`, and `core::task::Poll` now
+  render their inner fields with labels (`start`, `end`, `0`, `Break`,
+  `Continue`, `Ready`, `Included`, `Excluded`) and proper tree corners.
+  Previously they emitted unlabeled grandchildren at the wrong depth.
+
 ### New
 
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
