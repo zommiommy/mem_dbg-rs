@@ -34,26 +34,24 @@ fn test_mmap_types() {
             .unwrap()
     };
 
-    // Default flags: only the handle is reported.
-    assert_eq!(
-        mmap.mem_size(SizeFlags::default()),
-        core::mem::size_of::<Mmap>()
-    );
-    assert_eq!(
-        mmap_mut.mem_size(SizeFlags::default()),
-        core::mem::size_of::<MmapMut>()
-    );
-
-    // FOLLOW_REFS adds the mapped pages.
-    assert_eq!(
-        mmap.mem_size(SizeFlags::FOLLOW_REFS),
-        core::mem::size_of::<Mmap>() + MMAP_LEN
-    );
-    assert_eq!(
-        mmap_mut.mem_size(SizeFlags::FOLLOW_REFS),
-        core::mem::size_of::<MmapMut>() + MMAP_LEN
-    );
-
+    // The mapped region is always counted: `Mmap` owns its bytes, so the
+    // size is `size_of::<Mmap>() + len()` regardless of `FOLLOW_REFS` or
+    // `CAPACITY`.
+    for flags in [
+        SizeFlags::default(),
+        SizeFlags::FOLLOW_REFS,
+        SizeFlags::CAPACITY,
+        SizeFlags::FOLLOW_REFS | SizeFlags::CAPACITY,
+    ] {
+        assert_eq!(
+            mmap.mem_size(flags),
+            core::mem::size_of::<Mmap>() + MMAP_LEN
+        );
+        assert_eq!(
+            mmap_mut.mem_size(flags),
+            core::mem::size_of::<MmapMut>() + MMAP_LEN
+        );
+    }
     // mem_dbg should not panic for any combination of flags.
     for flag in [
         DbgFlags::default(),

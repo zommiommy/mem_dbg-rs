@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking** (size): `mmap_rs::Mmap` and `mmap_rs::MmapMut` now always
+  count their mapped region as part of `mem_size`. Previously the bytes were
+  only counted under `SizeFlags::FOLLOW_REFS`, which is inconsistent with
+  ownership semantics (the mapping is unmapped on drop).
+
 ### New
 
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
