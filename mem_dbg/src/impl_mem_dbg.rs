@@ -267,6 +267,27 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
     }
 }
 
+// Pin has the same layout as `P`, so it preserves `P`'s traversal policy.
+impl<P: MemDbgImpl> MemDbgImpl for core::pin::Pin<P> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        // SAFETY: `Pin<P>` has the same layout and ABI as `P`; taking a shared
+        // reference to `P` does not move `P` or its pointee.
+        let pointer = unsafe { &*(self as *const core::pin::Pin<P> as *const P) };
+        pointer._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
+    }
+}
+
 // Rc
 
 /// This implementation displays the referenced data with deduplication

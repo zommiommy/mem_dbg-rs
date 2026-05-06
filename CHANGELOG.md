@@ -13,6 +13,8 @@
   `core::ops::Bound`, `core::task::Poll`, and `core::ops::ControlFlow`.
   These wrappers only visit the payload variant that is actually present.
 
+- Added generic `MemSize`/`MemDbg` implementations for `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting and traversal policy of `P`.
+
 
 ## [0.4.1] - 2026-03-25
 

@@ -251,6 +251,20 @@ impl<T: ?Sized + MemSize> MemSize for Box<T> {
     }
 }
 
+// Pin has the same layout as `P`, so it preserves `P`'s sizing policy.
+impl<P: FlatType> FlatType for core::pin::Pin<P> {
+    type Flat = P::Flat;
+}
+
+impl<P: MemSize> MemSize for core::pin::Pin<P> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        // SAFETY: `Pin<P>` has the same layout and ABI as `P`; taking a shared
+        // reference to `P` does not move `P` or its pointee.
+        let pointer = unsafe { &*(self as *const core::pin::Pin<P> as *const P) };
+        <P as MemSize>::mem_size_rec(pointer, flags, refs)
+    }
+}
+
 // Rc: uses map for deduplication when FOLLOW_RCS is set
 
 // Structure used to measure the size of RcInner in std
