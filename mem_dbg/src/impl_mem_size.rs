@@ -176,6 +176,69 @@ impl<T: MemSize, E: MemSize> MemSize for Result<T, E> {
     }
 }
 
+// Sum/newtype wrappers only recurse into the active payload.
+
+impl<B: FlatType, C: FlatType> FlatType for core::ops::ControlFlow<B, C> {
+    type Flat = <B::Flat as Boolean>::And<C::Flat>;
+}
+
+impl<B: MemSize, C: MemSize> MemSize for core::ops::ControlFlow<B, C> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + match self {
+                core::ops::ControlFlow::Break(b) => {
+                    <B as MemSize>::mem_size_rec(b, flags, refs) - core::mem::size_of::<B>()
+                }
+                core::ops::ControlFlow::Continue(c) => {
+                    <C as MemSize>::mem_size_rec(c, flags, refs) - core::mem::size_of::<C>()
+                }
+            }
+    }
+}
+
+impl<T: FlatType> FlatType for core::task::Poll<T> {
+    type Flat = T::Flat;
+}
+
+impl<T: MemSize> MemSize for core::task::Poll<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + match self {
+                core::task::Poll::Ready(t) => {
+                    <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>()
+                }
+                core::task::Poll::Pending => 0,
+            }
+    }
+}
+
+impl<T: FlatType> FlatType for core::ops::Bound<T> {
+    type Flat = T::Flat;
+}
+
+impl<T: MemSize> MemSize for core::ops::Bound<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + match self {
+                core::ops::Bound::Included(t) | core::ops::Bound::Excluded(t) => {
+                    <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>()
+                }
+                core::ops::Bound::Unbounded => 0,
+            }
+    }
+}
+
+impl<T: FlatType> FlatType for core::cmp::Reverse<T> {
+    type Flat = T::Flat;
+}
+
+impl<T: MemSize> MemSize for core::cmp::Reverse<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(&self.0, flags, refs)
+            - core::mem::size_of::<T>()
+    }
+}
+
 // Box: unique ownership, so just recurse directly
 
 impl<T: ?Sized> FlatType for Box<T> {

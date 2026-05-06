@@ -167,6 +167,87 @@ impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
 
 impl<T: MemDbgImpl, E: MemDbgImpl> MemDbgImpl for Result<T, E> {}
 
+// Sum/newtype wrappers delegate debug traversal to the active payload only.
+
+impl<B: MemDbgImpl, C: MemDbgImpl> MemDbgImpl for core::ops::ControlFlow<B, C> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            core::ops::ControlFlow::Break(b) => b._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            core::ops::ControlFlow::Continue(c) => c._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+        }
+    }
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for core::task::Poll<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            core::task::Poll::Ready(t) => t._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            core::task::Poll::Pending => Ok(()),
+        }
+    }
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for core::ops::Bound<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            core::ops::Bound::Included(t) | core::ops::Bound::Excluded(t) => t._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            core::ops::Bound::Unbounded => Ok(()),
+        }
+    }
+}
+
+impl<T: MemDbgImpl> MemDbgImpl for core::cmp::Reverse<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        self.0._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
+    }
+}
+
 // Box
 
 impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
