@@ -9,6 +9,10 @@
   followed: their referents are neither dereferenced nor counted, and the
   `Weak` impls do not bound the target type.
 
+- Added `MemSize`/`MemDbg` implementations for `core::cmp::Reverse`,
+  `core::ops::Bound`, `core::task::Poll`, and `core::ops::ControlFlow`.
+  These wrappers only visit the payload variant that is actually present.
+
 
 ## [0.4.1] - 2026-03-25
 
