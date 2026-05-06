@@ -23,6 +23,76 @@ fn test_box_in_struct() {
 }
 
 #[test]
+fn test_arc_in_struct() {
+    // Mirror of the private `std::sync::ArcInner<T>`, used to compute
+    // the expected size of the heap header behind an `Arc<T>`.
+    #[allow(dead_code)]
+    struct ArcInner<T> {
+        strong: core::sync::atomic::AtomicUsize,
+        weak: core::sync::atomic::AtomicUsize,
+        data: T,
+    }
+
+    #[derive(MemSize)]
+    struct Test {
+        arc: Arc<u64>,
+    }
+
+    let s = Test { arc: Arc::new(42) };
+
+    // Without FOLLOW_RCS: only the Arc handle is counted.
+    let size = s.mem_size(SizeFlags::default());
+    assert_eq!(size, std::mem::size_of::<Arc<u64>>());
+
+    // With FOLLOW_RCS: handle + ArcInner header + (flat) payload.
+    let size_follow = s.mem_size(SizeFlags::FOLLOW_RCS);
+    assert_eq!(
+        size_follow,
+        std::mem::size_of::<Arc<u64>>() + std::mem::size_of::<ArcInner<u64>>()
+    );
+}
+
+#[test]
+fn test_arc_with_heap_payload() {
+    #[allow(dead_code)]
+    struct ArcInner<T> {
+        strong: core::sync::atomic::AtomicUsize,
+        weak: core::sync::atomic::AtomicUsize,
+        data: T,
+    }
+
+    #[derive(MemSize)]
+    struct Test {
+        arc: Arc<String>,
+    }
+
+    let payload = String::from("hello");
+    let payload_len = payload.len();
+    let payload_cap = payload.capacity();
+    let s = Test {
+        arc: Arc::new(payload),
+    };
+
+    // Without FOLLOW_RCS: only the Arc handle.
+    let size = s.mem_size(SizeFlags::default());
+    assert_eq!(size, std::mem::size_of::<Arc<String>>());
+
+    // With FOLLOW_RCS: handle + ArcInner header + String stack + heap (len).
+    let size_follow = s.mem_size(SizeFlags::FOLLOW_RCS);
+    assert_eq!(
+        size_follow,
+        std::mem::size_of::<Arc<String>>() + std::mem::size_of::<ArcInner<String>>() + payload_len
+    );
+
+    // FOLLOW_RCS | CAPACITY swaps len for capacity in the String accounting.
+    let size_follow_cap = s.mem_size(SizeFlags::FOLLOW_RCS | SizeFlags::CAPACITY);
+    assert_eq!(
+        size_follow_cap,
+        std::mem::size_of::<Arc<String>>() + std::mem::size_of::<ArcInner<String>>() + payload_cap
+    );
+}
+
+#[test]
 fn test_rc_deduplication() {
     #[derive(MemSize)]
     struct Test {
