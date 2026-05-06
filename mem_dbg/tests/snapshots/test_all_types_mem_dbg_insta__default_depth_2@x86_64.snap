@@ -76,10 +76,17 @@ expression: depth_output
      1 B   0.00% │ ├╴3: bool
      1 B   0.00% │ ╰╴4: u8 [2B]
     16 B   0.03% ├╴range: core::ops::range::Range<usize>
+     8 B   0.01% │ ├╴start: usize
+     8 B   0.01% │ ╰╴end: usize
      8 B   0.01% ├╴range_from: core::ops::range::RangeFrom<usize>
+     8 B   0.01% │ ╰╴start: usize
     24 B   0.04% ├╴range_inclusive: core::ops::range::RangeInclusive<usize>
+     8 B   0.01% │ ├╴start: usize
+     8 B   0.01% │ ╰╴end: usize
      8 B   0.01% ├╴range_to: core::ops::range::RangeTo<usize>
+     8 B   0.01% │ ╰╴end: usize
      8 B   0.01% ├╴range_to_inclusive: core::ops::range::RangeToInclusive<usize>
+     8 B   0.01% │ ╰╴end: usize
      4 B   0.01% ├╴cell: core::cell::Cell<i32>
     16 B   0.03% ├╴ref_cell: core::cell::RefCell<i32>
      4 B   0.01% ├╴unsafe_cell: core::cell::UnsafeCell<i32>

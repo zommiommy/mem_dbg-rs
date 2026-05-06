@@ -180,16 +180,36 @@ impl<B: MemDbgImpl, C: MemDbgImpl> MemDbgImpl for core::ops::ControlFlow<B, C> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
+        // Render the active variant's payload as the wrapper's sole child,
+        // labeled with the variant name. `_mem_dbg_rec_on` itself only
+        // emits children, so we dispatch to `_mem_dbg_depth_on` to get the
+        // payload's own line plus any nested rendering.
         match self {
-            core::ops::ControlFlow::Break(b) => b._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            core::ops::ControlFlow::Break(b) => b._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Break"),
+                true,
+                core::mem::size_of::<B>(),
+                flags,
+                dbg_refs,
             ),
-            core::ops::ControlFlow::Continue(c) => c._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            core::ops::ControlFlow::Continue(c) => c._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Continue"),
+                true,
+                core::mem::size_of::<C>(),
+                flags,
+                dbg_refs,
             ),
         }
     }
@@ -202,13 +222,21 @@ impl<T: MemDbgImpl> MemDbgImpl for core::task::Poll<T> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         match self {
-            core::task::Poll::Ready(t) => t._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            core::task::Poll::Ready(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Ready"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
             ),
             core::task::Poll::Pending => Ok(()),
         }
@@ -222,13 +250,32 @@ impl<T: MemDbgImpl> MemDbgImpl for core::ops::Bound<T> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         match self {
-            core::ops::Bound::Included(t) | core::ops::Bound::Excluded(t) => t._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            core::ops::Bound::Included(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Included"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
+            ),
+            core::ops::Bound::Excluded(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Excluded"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
             ),
             core::ops::Bound::Unbounded => Ok(()),
         }
@@ -242,12 +289,22 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cmp::Reverse<T> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.0._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        // `Reverse<T>` is a tuple struct; mirror the derive output and
+        // print the inner field as `0`.
+        self.0._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("0"),
+            true,
+            core::mem::size_of::<T>(),
+            flags,
+            dbg_refs,
         )
     }
 }
@@ -570,15 +627,34 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::Range<Idx> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.start._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        // Render `start` and `end` as labeled children. Calling
+        // `_mem_dbg_rec_on` directly would skip the field's own line, lose
+        // the field name, and mis-draw the tree corner.
+        self.start._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("start"),
+            false,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )?;
-        self.end._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        self.end._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("end"),
+            true,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )
     }
 }
@@ -590,12 +666,20 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeFrom<Idx> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.start._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        self.start._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("start"),
+            true,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )
     }
 }
@@ -607,15 +691,31 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeInclusive<Idx> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.start()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        self.start()._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("start"),
+            false,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )?;
-        self.end()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        self.end()._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("end"),
+            true,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )
     }
 }
@@ -627,12 +727,20 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeTo<Idx> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.end._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        self.end._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("end"),
+            true,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )
     }
 }
@@ -644,12 +752,20 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeToInclusive<Idx> {
         total_size: usize,
         max_depth: usize,
         prefix: &mut String,
-        is_last: bool,
+        _is_last: bool,
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.end._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        self.end._mem_dbg_depth_on(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            Some("end"),
+            true,
+            core::mem::size_of::<Idx>(),
+            flags,
+            dbg_refs,
         )
     }
 }
