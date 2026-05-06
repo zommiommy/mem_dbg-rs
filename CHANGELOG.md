@@ -41,6 +41,13 @@
   a 100M-element `BTreeSet<usize>` and stays inside the `test_correctness`
   bounds at every measured size.
 
+### Fixed
+
+- `core::cell::OnceCell<T>` and `std::sync::OnceLock<T>` `_mem_dbg_rec_on`
+  were no-ops: they delegated to `Option::<&T>::_mem_dbg_rec_on` (the
+  empty default). Now they unwrap the option and recurse into `T` when
+  populated, so `MemDbg` matches `MemSize`.
+
 
 ## [0.4.1] - 2026-03-25
 
