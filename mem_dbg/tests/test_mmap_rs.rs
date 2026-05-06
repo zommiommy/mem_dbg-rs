@@ -1,6 +1,6 @@
 #![cfg(feature = "mmap-rs")]
 #![cfg(feature = "derive")]
-use mem_dbg::{SizeFlags, *};
+use mem_dbg::*;
 
 #[test]
 #[cfg_attr(miri, ignore)] // mmap-rs uses OS-specific APIs unsupported by miri
@@ -8,13 +8,8 @@ fn test_mmap_types() {
     use mmap_rs::{Mmap, MmapMut, MmapOptions};
     use std::fs::OpenOptions;
 
-    #[derive(MemSize, MemDbg)]
-    struct MmapStruct {
-        mmap: Mmap,
-        mmap_mut: MmapMut,
-    }
+    const MMAP_LEN: usize = 1024;
 
-    // Create a temp file for mmap
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -22,45 +17,51 @@ fn test_mmap_types() {
         .truncate(true)
         .open("/tmp/test_mmap_comprehensive")
         .unwrap();
-    file.set_len(1024).unwrap();
+    file.set_len(MMAP_LEN as u64).unwrap();
 
-    let s = MmapStruct {
-        mmap: unsafe {
-            MmapOptions::new(1024)
-                .unwrap()
-                .with_file(&file, 0)
-                .map()
-                .unwrap()
-        },
-        mmap_mut: unsafe {
-            MmapOptions::new(1024)
-                .unwrap()
-                .with_file(&file, 0)
-                .map_mut()
-                .unwrap()
-        },
+    let mmap: Mmap = unsafe {
+        MmapOptions::new(MMAP_LEN)
+            .unwrap()
+            .with_file(&file, 0)
+            .map()
+            .unwrap()
+    };
+    let mmap_mut: MmapMut = unsafe {
+        MmapOptions::new(MMAP_LEN)
+            .unwrap()
+            .with_file(&file, 0)
+            .map_mut()
+            .unwrap()
     };
 
-    for flag in [
-        SizeFlags::default(),
-        SizeFlags::FOLLOW_RCS,
-        SizeFlags::FOLLOW_REFS,
-        SizeFlags::CAPACITY,
-    ] {
-        let size = s.mem_size(flag);
-        assert!(size > 0);
-    }
+    // Default flags: only the handle is reported.
+    assert_eq!(
+        mmap.mem_size(SizeFlags::default()),
+        core::mem::size_of::<Mmap>()
+    );
+    assert_eq!(
+        mmap_mut.mem_size(SizeFlags::default()),
+        core::mem::size_of::<MmapMut>()
+    );
+
+    // FOLLOW_REFS adds the mapped pages.
+    assert_eq!(
+        mmap.mem_size(SizeFlags::FOLLOW_REFS),
+        core::mem::size_of::<Mmap>() + MMAP_LEN
+    );
+    assert_eq!(
+        mmap_mut.mem_size(SizeFlags::FOLLOW_REFS),
+        core::mem::size_of::<MmapMut>() + MMAP_LEN
+    );
+
+    // mem_dbg should not panic for any combination of flags.
     for flag in [
         DbgFlags::default(),
         DbgFlags::FOLLOW_RCS,
         DbgFlags::FOLLOW_REFS,
         DbgFlags::CAPACITY,
     ] {
-        assert!(s.mem_dbg(flag).is_ok());
-
-        for depth in 0..3 {
-            let result = s.mem_dbg_depth(depth, flag);
-            assert!(result.is_ok());
-        }
+        assert!(mmap.mem_dbg(flag).is_ok());
+        assert!(mmap_mut.mem_dbg(flag).is_ok());
     }
 }

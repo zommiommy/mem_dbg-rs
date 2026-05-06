@@ -9,23 +9,17 @@ use mem_dbg::*;
 fn test_half_types() {
     use half::{bf16, f16};
 
-    #[derive(MemSize, MemDbg)]
-    #[mem_size(rec)]
-    struct HalfStruct {
-        f16_val: f16,
-        bf16_val: bf16,
-    }
+    let f16_val = f16::from_f32(3.14);
+    let bf16_val = bf16::from_f32(2.718);
 
-    let s = HalfStruct {
-        f16_val: f16::from_f32(3.14),
-        bf16_val: bf16::from_f32(2.718),
-    };
-
-    let size = s.mem_size(SizeFlags::default());
-    assert!(size > 0);
-    assert!(s.mem_dbg(DbgFlags::default()).is_ok());
-    for depth in 0..3 {
-        let result = s.mem_dbg_depth(depth, DbgFlags::default());
-        assert!(result.is_ok());
-    }
+    assert_eq!(
+        f16_val.mem_size(SizeFlags::default()),
+        core::mem::size_of::<f16>()
+    );
+    assert_eq!(f16_val.mem_size(SizeFlags::default()), 2);
+    assert_eq!(
+        bf16_val.mem_size(SizeFlags::default()),
+        core::mem::size_of::<bf16>()
+    );
+    assert_eq!(bf16_val.mem_size(SizeFlags::default()), 2);
 }

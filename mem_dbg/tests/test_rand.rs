@@ -8,24 +8,16 @@ fn test_rand_types() {
     use rand::SeedableRng;
     use rand::rngs::{SmallRng, StdRng};
 
-    #[derive(MemSize, MemDbg)]
-    #[mem_size(rec)]
-    struct RandStruct {
-        small_rng: SmallRng,
-        std_rng: StdRng,
-    }
+    let small_rng = SmallRng::seed_from_u64(42);
+    let std_rng = StdRng::seed_from_u64(42);
 
-    let s = RandStruct {
-        small_rng: SmallRng::seed_from_u64(42),
-        std_rng: StdRng::seed_from_u64(42),
-    };
-
-    let size = s.mem_size(SizeFlags::default());
-    assert!(size > 0);
-    assert!(s.mem_dbg(DbgFlags::default()).is_ok());
-
-    for depth in 0..3 {
-        let result = s.mem_dbg_depth(depth, DbgFlags::default());
-        assert!(result.is_ok());
-    }
+    // All RNGs are flat: size matches their stack layout.
+    assert_eq!(
+        small_rng.mem_size(SizeFlags::default()),
+        core::mem::size_of::<SmallRng>()
+    );
+    assert_eq!(
+        std_rng.mem_size(SizeFlags::default()),
+        core::mem::size_of::<StdRng>()
+    );
 }

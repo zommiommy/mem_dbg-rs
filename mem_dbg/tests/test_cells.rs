@@ -190,8 +190,8 @@ fn test_oncecell_empty() {
     };
     let size = s.mem_size(SizeFlags::default());
 
-    // OnceCell may have subtraction overflow issues, use >= instead
-    assert!(size >= std::mem::size_of::<OnceCell<String>>());
+    // Empty OnceCell adds nothing beyond the wrapper's stack footprint.
+    assert_eq!(size, std::mem::size_of::<Test>());
 }
 
 #[test]
@@ -207,8 +207,9 @@ fn test_oncecell_initialized() {
     let s = Test { once_cell };
     let size = s.mem_size(SizeFlags::default());
 
-    // OnceCell with initialized value should include the String's heap allocation
-    assert!(size > std::mem::size_of::<OnceCell<String>>());
+    // OnceCell with `Some(t)` reports `size_of::<Self>() + (T::mem_size_rec - size_of::<T>())`.
+    let expected = std::mem::size_of::<Test>() + "initialized".len();
+    assert_eq!(size, expected);
 }
 
 #[test]
@@ -224,8 +225,9 @@ fn test_oncecell_with_vec() {
     let s = Test { once_cell };
     let size = s.mem_size(SizeFlags::default());
 
-    // OnceCell with Vec should include the Vec's heap allocation
-    assert!(size > std::mem::size_of::<OnceCell<Vec<i32>>>());
+    // OnceCell + populated Vec<i32>: size_of::<Self>() + len * size_of::<i32>().
+    let expected = std::mem::size_of::<Test>() + 5 * std::mem::size_of::<i32>();
+    assert_eq!(size, expected);
 }
 
 #[test]
