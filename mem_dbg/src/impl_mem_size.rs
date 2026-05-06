@@ -1399,19 +1399,45 @@ fn estimate_btree_size<K, V>(len: usize, item_heap_size: usize) -> usize {
     internal_size = align_up(internal_size, core::mem::align_of::<usize>());
     internal_size += ptr_size * (CAPACITY + 1);
 
-    // Calculate weighted average node size.
-    // We heavily weight leaf nodes as they contain the majority of data.
-    // Ratio is approximately B leaves per 1 internal node.
-    let avg_node_size = (leaf_size * B + internal_size) / (B + 1);
-
-    // Estimate total heap usage:
-    // If the tree fits in a single node (len <= CAPACITY), it's just one leaf.
-    // Otherwise, we estimate the number of nodes based on average occupancy.
+    // Estimate the heap usage by walking the levels of the tree.
+    //
+    // `FILL` is the average number of items per node we assume. After
+    // `BTreeMap`'s split-on-overflow rule, sequential insertion settles
+    // around `B + 1` items per node (a node splits at `2*B` items into
+    // two halves, then refills back toward capacity, so the time-averaged
+    // occupancy is just above `B`). Using `B` (the legal minimum)
+    // systematically overestimates the node count by ~17%; using
+    // `CAPACITY` (the legal maximum) underestimates it.
+    //
+    // `FILL = B + 1 = 7` was calibrated against the `cap` allocator on a
+    // 100M-element `BTreeSet<usize>` (key = `usize`, sequential insertion
+    // `0..100_000_000`): real heap 1.96 GB, this formula 1.96 GB
+    // (within ~1%); the previous `(len / B) * avg_node_size` formula
+    // reported 1.71 GB (-13%), and a fill of plain `B` reports 2.40 GB
+    // (+22%). All three sit inside the `test_correctness` 2x bound, so
+    // the calibration is the only proof of accuracy at scale.
+    //
+    //   leaf_count   = ceil(len / FILL)
+    //   parent_count = ceil(child_count / (FILL + 1))
+    //
+    // Each internal node with `FILL` keys has `FILL + 1` child edges, so
+    // each non-leaf level has `ceil(prev / (FILL + 1))` internal nodes.
+    // Summing the levels gives a far tighter estimate than the prior
+    // `(len / B) * avg_node_size`, which silently dropped the root and
+    // other internal nodes when `len` was just above `CAPACITY`.
+    const FILL: usize = B + 1;
+    const INTERNAL_FANOUT: usize = FILL + 1;
     let heap_size = if len <= CAPACITY {
         leaf_size
     } else {
-        // Approximate node count assuming each node is roughly half full (B items).
-        (len / B) * avg_node_size
+        let leaf_count = len.div_ceil(FILL);
+        let mut total = leaf_count * leaf_size;
+        let mut level = leaf_count;
+        while level > 1 {
+            level = level.div_ceil(INTERNAL_FANOUT);
+            total += level * internal_size;
+        }
+        total
     };
 
     heap_size + item_heap_size

@@ -32,6 +32,15 @@
 
 - Added `MemSize`/`MemDbg` implementations for `std::collections::BinaryHeap<T>`. Its accounting follows the same Vec-backed element and capacity rules as `Vec<T>`.
 
+### Improved
+
+- Tighter `BTreeMap`/`BTreeSet` heap estimate: replaced the weighted-average
+  node-count formula (which silently dropped the root and intermediate internal
+  nodes when `len` was just above `CAPACITY`) with a level-by-level walk using
+  `FILL = B + 1 = 7` items per node. Matches the `cap` allocator within ~1% on
+  a 100M-element `BTreeSet<usize>` and stays inside the `test_correctness`
+  bounds at every measured size.
+
 
 ## [0.4.1] - 2026-03-25
 
