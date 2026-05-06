@@ -17,7 +17,7 @@ use alloc::borrow::{Cow, ToOwned};
 #[cfg(not(feature = "std"))]
 use alloc::collections::{BinaryHeap, VecDeque};
 #[cfg(not(feature = "std"))]
-use alloc::{boxed::Box, string::String, vec, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::borrow::{Cow, ToOwned};
 #[cfg(feature = "std")]
@@ -452,25 +452,23 @@ macro_rules! impl_tuples_muncher {
                 let mut _max_idx = $idx;
                 $(_max_idx = _max_idx.max($nidx);)*
 
-                let mut id_sizes: Vec<(usize, usize)> = vec![];
-                let n;
+                // Build the (field-index, field-offset) array on the stack.
+                let mut id_sizes = [
+                    ($idx, core::mem::offset_of!($tty, $idx)),
+                    $(($nidx, core::mem::offset_of!($tty, $nidx)),)*
+                ];
+                let n = id_sizes.len();
+                let total_size_self = core::mem::size_of::<Self>();
 
-                {
-                    // We use the offset_of information to build the real
-                    // space occupied by a field.
-                    id_sizes.push(($idx, core::mem::offset_of!($tty, $idx)));
-                    $(id_sizes.push(($nidx, core::mem::offset_of!($tty, $nidx)));)*
-                    n = id_sizes.len();
-                    id_sizes.push((n, core::mem::size_of::<Self>()));
-                    // Sort by offset
-                    id_sizes.sort_by_key(|x| x.1);
-                    // Compute actual sizes
-                    for i in 0..n {
-                        id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
-                    };
-                    // Put the candle back
-                    id_sizes.sort_by_key(|x| x.0);
+                // Sort by offset to compute padded sizes via consecutive
+                // offset diffs; the last field stretches to `size_of::<Self>()`.
+                id_sizes.sort_by_key(|x| x.1);
+                for i in 0..n - 1 {
+                    id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                 }
+                id_sizes[n - 1].1 = total_size_self - id_sizes[n - 1].1;
+                // Restore declaration order so we can index by field number.
+                id_sizes.sort_by_key(|x| x.0);
 
                 self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags, dbg_refs)?;
                 $(
