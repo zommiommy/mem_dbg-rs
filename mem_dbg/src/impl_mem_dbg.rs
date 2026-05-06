@@ -801,11 +801,17 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.lock()
-            .unwrap_or_else(|e| e.into_inner())
-            ._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
+        let guard = self.lock().unwrap_or_else(|e| e.into_inner());
+        // Dispatch directly to `T`'s `_mem_dbg_rec_on` so the inner value's
+        // children are rendered. Going through the `MutexGuard<T>` impl would
+        // pick the FOLLOW_REFS-gated guard impl and silently drop children
+        // under default flags, even though `Mutex::mem_size_rec` always
+        // recurses into `T`.
+        // `is_last` is forwarded for trait shape; typical `_mem_dbg_rec_on`
+        // impls (including the derive's) compute their own per-field value.
+        <T as MemDbgImpl>::_mem_dbg_rec_on(
+            &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
     }
 }
 
@@ -821,11 +827,14 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.read()
-            .unwrap_or_else(|e| e.into_inner())
-            ._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
+        let guard = self.read().unwrap_or_else(|e| e.into_inner());
+        // Dispatch directly to `T`'s `_mem_dbg_rec_on`; see `Mutex<T>` for
+        // the rationale.
+        // `is_last` is forwarded for trait shape; typical `_mem_dbg_rec_on`
+        // impls (including the derive's) compute their own per-field value.
+        <T as MemDbgImpl>::_mem_dbg_rec_on(
+            &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
     }
 }
 
