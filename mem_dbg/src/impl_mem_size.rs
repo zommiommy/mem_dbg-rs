@@ -780,6 +780,11 @@ impl<T: FlatType> FlatType for core::cell::RefCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
+    /// Returns `size_of::<Self>() + recursive(T)` when no mutable borrow is
+    /// active. If a mutable borrow is currently held, the inner `T` cannot
+    /// be observed, so this returns only `size_of::<Self>()` and silently
+    /// undercounts any heap reachable through `T`. The `MemDbg`
+    /// implementation surfaces this with a `<mutably borrowed>` marker.
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         if let Ok(borrow) = self.try_borrow() {
             core::mem::size_of::<Self>() - core::mem::size_of::<T>()
@@ -796,9 +801,15 @@ impl<T: FlatType> FlatType for core::cell::Cell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
+    /// `Cell<T>` is `!Sync`, so no concurrent mutation can occur through
+    /// safe shared references, but a reentrant call (for example, a custom
+    /// `MemSize` impl that can reach the same cell) must not mutate this
+    /// cell while traversal holds the temporary shared reference below.
+    /// Violating that contract makes the result invalid and may violate
+    /// Rust's aliasing rules.
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value;
-        // since &self exists, &mut self cannot exist.
+        // callers must not reentrantly mutate the same cell during traversal.
         let borrow = unsafe { &*self.as_ptr() };
         <T as MemSize>::mem_size_rec(borrow, flags, refs)
     }
@@ -839,10 +850,13 @@ impl<T: FlatType> FlatType for core::cell::UnsafeCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
+    /// Same reentrancy contract as `Cell<T>`: custom `MemSize` impls must
+    /// not mutate this cell through another `UnsafeCell::get()` while
+    /// traversal holds the temporary shared reference below.
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // SAFETY: we temporarily take a shared reference to the inner value; no
-        // concurrent mutation through UnsafeCell::get() can occur during the
-        // temporary borrow.
+        // SAFETY: we temporarily take a shared reference to the inner value;
+        // callers must not mutate through another `UnsafeCell::get()` during
+        // traversal.
         let borrow = unsafe { &*self.get() };
         <T as MemSize>::mem_size_rec(borrow, flags, refs)
     }
