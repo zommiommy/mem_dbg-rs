@@ -3,6 +3,7 @@
 //! Core wrapper fields should delegate accounting and debug traversal to the
 //! payload variant that is actually present.
 
+use anyhow::Context;
 use mem_dbg::*;
 
 fn boxed_usize_payload_size() -> usize {
@@ -27,7 +28,7 @@ struct EmptyWrapperFields {
 }
 
 #[test]
-fn active_wrapper_payloads_are_accounted_and_debuggable() {
+fn test_active_wrapper_payloads() -> anyhow::Result<()> {
     let node = ActiveWrapperFields {
         reverse: core::cmp::Reverse(Box::new(1)),
         bound: core::ops::Bound::Included(Box::new(2)),
@@ -42,18 +43,19 @@ fn active_wrapper_payloads_are_accounted_and_debuggable() {
     );
 
     let mut output = String::new();
-    node.mem_dbg_depth_on(&mut output, 2, DbgFlags::default())
-        .unwrap();
+    node.mem_dbg_depth_on(&mut output, 2, DbgFlags::default())?;
     assert!(output.contains("ActiveWrapperFields"));
     assert!(output.contains("reverse"));
     assert!(output.contains("bound"));
     assert!(output.contains("poll"));
     assert!(output.contains("flow_break"));
     assert!(output.contains("flow_continue"));
+
+    Ok(())
 }
 
 #[test]
-fn empty_wrapper_variants_have_no_payload_contribution() {
+fn test_empty_wrapper_variants() -> anyhow::Result<()> {
     let node = EmptyWrapperFields {
         bound: core::ops::Bound::Unbounded,
         poll: core::task::Poll::Pending,
@@ -65,15 +67,16 @@ fn empty_wrapper_variants_have_no_payload_contribution() {
     );
 
     let mut output = String::new();
-    node.mem_dbg_depth_on(&mut output, 2, DbgFlags::default())
-        .unwrap();
+    node.mem_dbg_depth_on(&mut output, 2, DbgFlags::default())?;
     assert!(output.contains("EmptyWrapperFields"));
     assert!(output.contains("bound"));
     assert!(output.contains("poll"));
+
+    Ok(())
 }
 
 #[test]
-fn individual_wrapper_sizes_match_active_payloads() {
+fn test_individual_wrapper_sizes() -> anyhow::Result<()> {
     let reverse = core::cmp::Reverse(Box::new(1usize));
     assert_eq!(
         reverse.mem_size(SizeFlags::default()),
@@ -121,6 +124,8 @@ fn individual_wrapper_sizes_match_active_payloads() {
         core::mem::size_of::<core::ops::ControlFlow<Box<usize>, Box<usize>>>()
             + boxed_usize_payload_size()
     );
+
+    Ok(())
 }
 
 /// Niche-optimised payloads must not be double-counted: `mem_size` has to
@@ -128,7 +133,7 @@ fn individual_wrapper_sizes_match_active_payloads() {
 /// when the discriminant is folded into the payload's invalid bit pattern. See
 /// `test_mem_size::test_exotic` for the equivalent `Option<&T>` regression.
 #[test]
-fn niche_optimized_wrappers_match_size_of() {
+fn test_niche_optimized_wrappers() -> anyhow::Result<()> {
     use core::num::NonZeroU32;
 
     let leaked: &'static u8 = Box::leak(Box::new(7u8));
@@ -182,7 +187,7 @@ fn niche_optimized_wrappers_match_size_of() {
     // `NonZeroU32` carries a single niche; `Option`/`Poll` collapse to four
     // bytes while `Bound` (three variants) keeps a separate tag. In every
     // case the formula must agree with `size_of::<Self>()`.
-    let nz = NonZeroU32::new(5).unwrap();
+    let nz = NonZeroU32::new(5).context("5 is non-zero")?;
     assert_eq!(core::mem::size_of::<Option<NonZeroU32>>(), 4);
     assert_eq!(core::mem::size_of::<core::task::Poll<NonZeroU32>>(), 4);
     let poll_nz_ready = core::task::Poll::<NonZeroU32>::Ready(nz);
@@ -212,4 +217,6 @@ fn niche_optimized_wrappers_match_size_of() {
         bound_nz_unbounded.mem_size(SizeFlags::default()),
         bound_nz_size
     );
+
+    Ok(())
 }
