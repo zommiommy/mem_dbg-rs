@@ -1082,13 +1082,12 @@ impl FlatType for mmap_rs::Mmap {
 
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::Mmap {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::FOLLOW_REFS) {
-                self.len()
-            } else {
-                0
-            }
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        // `Mmap` owns its mapped region and unmaps it on drop, so its bytes
+        // belong to the value's footprint regardless of `FOLLOW_REFS`. There
+        // is no notion of unused capacity for an mmap, so `CAPACITY` is a
+        // no-op too.
+        core::mem::size_of::<Self>() + self.len()
     }
 }
 
@@ -1099,13 +1098,9 @@ impl FlatType for mmap_rs::MmapMut {
 
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::MmapMut {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::FOLLOW_REFS) {
-                self.len()
-            } else {
-                0
-            }
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        // See `Mmap` above.
+        core::mem::size_of::<Self>() + self.len()
     }
 }
 
