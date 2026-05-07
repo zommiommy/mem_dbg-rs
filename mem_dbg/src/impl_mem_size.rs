@@ -743,6 +743,22 @@ impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<T: FlatType> FlatType for std::sync::OnceLock<T> {
+    type Flat = T::Flat;
+}
+
+#[cfg(feature = "std")]
+impl<T: MemSize> MemSize for std::sync::OnceLock<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let mut size = core::mem::size_of::<Self>();
+        if let Some(t) = self.get() {
+            size += <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>();
+        }
+        size
+    }
+}
+
 impl<T: FlatType> FlatType for core::cell::UnsafeCell<T> {
     type Flat = T::Flat;
 }
