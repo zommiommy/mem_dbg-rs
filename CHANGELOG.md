@@ -13,11 +13,15 @@
   `core::ops::Bound`, `core::task::Poll`, and `core::ops::ControlFlow`.
   These wrappers only visit the payload variant that is actually present.
 
-- Added generic `MemSize`/`MemDbg` implementations for `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting and traversal policy of `P`.
+- Added generic `MemSize`/`MemDbg` implementations for
+  `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting and traversal
+  policy of `P`.
 
-- Added `MemSize`/`MemDbg` implementations for `std::sync::OnceLock`. It uses the same initialized-value accounting as `core::cell::OnceCell`.
+- Added `MemSize`/`MemDbg` implementations for `std::sync::OnceLock`. It
+  uses the same initialized-value accounting as `core::cell::OnceCell`.
 
-- Added `MemSize`/`MemDbg` implementations for `Cow<'_, B>`. Borrowed values follow reference rules, and owned values use `B::Owned` accounting.
+- Added `MemSize`/`MemDbg` implementations for `Cow<'_, B>`. Borrowed
+  values follow reference rules, and owned values use `B::Owned` accounting.
 
 
 ## [0.4.1] - 2026-03-25
