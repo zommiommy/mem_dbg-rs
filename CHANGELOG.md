@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking**: dropped the `hashbrown` dependency. The pointer-dedup
+  containers used by the `MemSize` / `MemDbg` traits and emitted by the
+  derive macro are now `alloc::collections::BTreeMap<usize, usize>` and
+  `alloc::collections::BTreeSet<usize>`. Any manual `MemSize` /
+  `MemDbgImpl` implementation that named these parameters as
+  `&mut HashMap<usize, usize>` / `&mut HashSet<usize>` (the previous
+  `hashbrown` re-exports) **MUST** be updated. Code that uses
+  `#[derive(MemSize, MemDbg)]` is unaffected.
+
 ### New
 
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,

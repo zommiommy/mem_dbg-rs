@@ -13,7 +13,7 @@ use core::sync::atomic::*;
 #[cfg(feature = "std")]
 use core::ops::Deref;
 
-use crate::{Boolean, False, FlatType, HashMap, MemSize, SizeFlags, True};
+use crate::{BTreeMap, Boolean, False, FlatType, MemSize, SizeFlags, True};
 
 #[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
@@ -32,7 +32,7 @@ macro_rules! impl_size_of {
 
         impl MemSize for $ty {
             #[inline(always)]
-            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
                 core::mem::size_of::<Self>()
             }
         }
@@ -61,7 +61,7 @@ impl FlatType for str {
 }
 
 impl MemSize for str {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         self.len()
     }
 }
@@ -71,7 +71,7 @@ impl FlatType for String {
 }
 
 impl MemSize for String {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
@@ -88,7 +88,7 @@ impl<T: ?Sized> FlatType for PhantomData<T> {
 }
 
 impl<T: ?Sized> MemSize for PhantomData<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         0
     }
 }
@@ -100,7 +100,7 @@ impl<T: ?Sized + MemSize> FlatType for &'_ T {
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ T {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::FOLLOW_REFS) {
             let ptr = *self as *const T as *const () as usize;
             if !refs.contains_key(&ptr) {
@@ -117,7 +117,7 @@ impl<T: ?Sized + MemSize> FlatType for &'_ mut T {
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <&'_ T as MemSize>::mem_size_rec(&&**self, flags, refs)
     }
 }
@@ -130,7 +130,7 @@ impl<T: ?Sized> FlatType for *const T {
 }
 
 impl<T: ?Sized> MemSize for *const T {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -140,7 +140,7 @@ impl<T: ?Sized> FlatType for *mut T {
 }
 
 impl<T: ?Sized> MemSize for *mut T {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -152,7 +152,7 @@ impl<T: FlatType> FlatType for Option<T> {
 }
 
 impl<T: MemSize> MemSize for Option<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + self.as_ref().map_or(0, |x| {
                 <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>()
@@ -167,7 +167,7 @@ impl<T: FlatType, E: FlatType> FlatType for Result<T, E> {
 }
 
 impl<T: MemSize, E: MemSize> MemSize for Result<T, E> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 Ok(t) => <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>(),
@@ -183,7 +183,7 @@ impl<B: FlatType, C: FlatType> FlatType for core::ops::ControlFlow<B, C> {
 }
 
 impl<B: MemSize, C: MemSize> MemSize for core::ops::ControlFlow<B, C> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 core::ops::ControlFlow::Break(b) => {
@@ -201,7 +201,7 @@ impl<T: FlatType> FlatType for core::task::Poll<T> {
 }
 
 impl<T: MemSize> MemSize for core::task::Poll<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 core::task::Poll::Ready(t) => {
@@ -217,7 +217,7 @@ impl<T: FlatType> FlatType for core::ops::Bound<T> {
 }
 
 impl<T: MemSize> MemSize for core::ops::Bound<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 core::ops::Bound::Included(t) | core::ops::Bound::Excluded(t) => {
@@ -233,7 +233,7 @@ impl<T: FlatType> FlatType for core::cmp::Reverse<T> {
 }
 
 impl<T: MemSize> MemSize for core::cmp::Reverse<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(&self.0, flags, refs)
             - core::mem::size_of::<T>()
     }
@@ -246,7 +246,7 @@ impl<T: ?Sized> FlatType for Box<T> {
 }
 
 impl<T: ?Sized + MemSize> MemSize for Box<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
     }
 }
@@ -258,7 +258,7 @@ impl<P: FlatType> FlatType for core::pin::Pin<P> {
 }
 
 impl<P: MemSize> MemSize for core::pin::Pin<P> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         // SAFETY: `Pin<P>` is `#[repr(transparent)]` over `P`, so `&Pin<P>`
         // and `&P` have identical layout. Taking a shared reference to `P`
         // does not move the pointee.
@@ -300,7 +300,7 @@ impl<T> FlatType for std::rc::Rc<T> {
 /// ```
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::rc::Rc<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::FOLLOW_RCS) {
             let ptr = std::rc::Rc::as_ptr(self) as usize;
             if !refs.contains_key(&ptr) {
@@ -325,7 +325,7 @@ impl<T: ?Sized> FlatType for std::rc::Weak<T> {
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemSize for std::rc::Weak<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -364,7 +364,7 @@ struct ArcInner<T: ?Sized> {
 /// ```
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Arc<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         if flags.contains(SizeFlags::FOLLOW_RCS) {
             let ptr = std::sync::Arc::as_ptr(self) as usize;
             if !refs.contains_key(&ptr) {
@@ -388,7 +388,7 @@ impl<T: ?Sized> FlatType for std::sync::Weak<T> {
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemSize for std::sync::Weak<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -400,7 +400,7 @@ impl<T: ?Sized> MemSize for std::sync::Weak<T> {
 /// See [`crate::FlatType`] for more information.
 #[doc(hidden)]
 pub trait MemSizeHelper<T: Boolean> {
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize;
 }
 
 // Slices
@@ -413,21 +413,21 @@ impl<T: FlatType> MemSize for [T]
 where
     [T]: MemSizeHelper<<T as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <[T] as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: FlatType + MemSize> MemSizeHelper<True> for [T] {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of_val(self)
     }
 }
 
 impl<T: FlatType + MemSize> MemSizeHelper<False> for [T] {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         self.iter()
             .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
             .sum::<usize>()
@@ -444,21 +444,21 @@ impl<T: FlatType, const N: usize> MemSize for [T; N]
 where
     [T; N]: MemSizeHelper<<T as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <[T; N] as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
 
 impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + self
                 .iter()
@@ -477,14 +477,14 @@ impl<T: FlatType> MemSize for Vec<T>
 where
     Vec<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <Vec<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: FlatType + MemSize> MemSizeHelper<True> for Vec<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
@@ -496,7 +496,7 @@ impl<T: FlatType + MemSize> MemSizeHelper<True> for Vec<T> {
 
 impl<T: FlatType + MemSize> MemSizeHelper<False> for Vec<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + self
                 .iter()
@@ -520,14 +520,14 @@ impl<T: FlatType> MemSize for VecDeque<T>
 where
     VecDeque<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <VecDeque<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
 impl<T: FlatType + MemSize> MemSizeHelper<True> for VecDeque<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
@@ -539,7 +539,7 @@ impl<T: FlatType + MemSize> MemSizeHelper<True> for VecDeque<T> {
 
 impl<T: FlatType + MemSize> MemSizeHelper<False> for VecDeque<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + self
                 .iter()
@@ -583,7 +583,7 @@ macro_rules! impl_tuples_muncher {
         }
 
         impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*) {
-            fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
                 let mut bytes = ::core::mem::size_of::<Self>();
                 bytes += <$ty as MemSize>::mem_size_rec(&self.$idx, flags, refs) - ::core::mem::size_of::<$ty>();
                 $( bytes += <$nty as MemSize>::mem_size_rec(&self.$nidx, flags, refs) - ::core::mem::size_of::<$nty>(); )*
@@ -596,7 +596,7 @@ macro_rules! impl_tuples_muncher {
         }
 
         impl<$ty, $($nty,)* R> MemSize for fn($ty, $($nty,)*) -> R {
-            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
                 ::core::mem::size_of::<Self>()
             }
         }
@@ -623,7 +623,7 @@ impl<R> FlatType for fn() -> R {
 }
 
 impl<R> MemSize for fn() -> R {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -635,7 +635,7 @@ impl<Idx: FlatType> FlatType for core::ops::Range<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + <Idx as MemSize>::mem_size_rec(&self.start, flags, refs)
             + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
@@ -648,7 +648,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeFrom<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.start, flags, refs)
             - core::mem::size_of::<Idx>()
     }
@@ -659,7 +659,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeInclusive<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + <Idx as MemSize>::mem_size_rec(self.start(), flags, refs)
             + <Idx as MemSize>::mem_size_rec(self.end(), flags, refs)
@@ -672,7 +672,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeTo<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - core::mem::size_of::<Idx>()
     }
@@ -683,7 +683,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeToInclusive<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - core::mem::size_of::<Idx>()
     }
@@ -705,7 +705,7 @@ impl<T: FlatType> FlatType for core::cell::RefCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::RefCell<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         if let Ok(borrow) = self.try_borrow() {
             core::mem::size_of::<Self>() - core::mem::size_of::<T>()
                 + <T as MemSize>::mem_size_rec(&*borrow, flags, refs)
@@ -721,7 +721,7 @@ impl<T: FlatType> FlatType for core::cell::Cell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::Cell<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value;
         // since &self exists, &mut self cannot exist.
         let borrow = unsafe { &*self.as_ptr() };
@@ -734,7 +734,7 @@ impl<T: FlatType> FlatType for core::cell::OnceCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         let mut size = core::mem::size_of::<Self>();
         if let Some(t) = self.get() {
             size += <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>();
@@ -748,7 +748,7 @@ impl<T: FlatType> FlatType for core::cell::UnsafeCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value; no
         // concurrent mutation through UnsafeCell::get() can occur during the
         // temporary borrow.
@@ -766,7 +766,7 @@ impl<T: FlatType> FlatType for std::sync::Mutex<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         // Use unwrap_or_else to handle poisoned mutexes gracefully
         let guard = self.lock().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
@@ -781,7 +781,7 @@ impl<T: FlatType> FlatType for std::sync::RwLock<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         // Use unwrap_or_else to handle poisoned locks gracefully
         let guard = self.read().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
@@ -798,7 +798,7 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 /// * `flags` - The SizeFlags to use for the computation.
 #[cfg(feature = "std")]
 #[inline(always)]
-fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize
+fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize
 where
     M: Deref<Target: MemSize + Sized>,
 {
@@ -818,7 +818,7 @@ impl<T> FlatType for std::sync::MutexGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -830,7 +830,7 @@ impl<T> FlatType for std::sync::RwLockReadGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -842,7 +842,7 @@ impl<T> FlatType for std::sync::RwLockWriteGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -856,7 +856,7 @@ impl FlatType for std::path::Path {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::Path {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <std::ffi::OsStr as MemSize>::mem_size_rec(self.as_os_str(), flags, refs)
     }
 }
@@ -868,7 +868,7 @@ impl FlatType for std::path::PathBuf {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::PathBuf {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
@@ -885,7 +885,7 @@ impl FlatType for std::ffi::OsStr {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsStr {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         self.as_encoded_bytes().len()
     }
 }
@@ -897,7 +897,7 @@ impl FlatType for std::ffi::OsString {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsString {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         // OsString is like String - it has heap-allocated data
         // We use len() by default, and capacity() with CAPACITY flag
         core::mem::size_of::<Self>()
@@ -928,7 +928,7 @@ impl<T> FlatType for std::io::BufReader<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + self.capacity()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
@@ -942,7 +942,7 @@ impl<T: std::io::Write> FlatType for std::io::BufWriter<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + self.capacity()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
@@ -956,7 +956,7 @@ impl<T> FlatType for std::io::Cursor<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::io::Cursor<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
@@ -991,7 +991,7 @@ impl FlatType for mmap_rs::Mmap {
 
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::Mmap {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::FOLLOW_REFS) {
                 self.len()
@@ -1008,7 +1008,7 @@ impl FlatType for mmap_rs::MmapMut {
 
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::MmapMut {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::FOLLOW_REFS) {
                 self.len()
@@ -1076,7 +1076,7 @@ impl<T: FlatType> MemSize for std::collections::HashSet<T>
 where
     std::collections::HashSet<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <std::collections::HashSet<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
             self, flags, refs,
         )
@@ -1108,7 +1108,7 @@ fn fix_set_for_capacity<K>(
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         fix_set_for_capacity(self, core::mem::size_of::<K>() * self.len(), flags)
     }
 }
@@ -1116,7 +1116,7 @@ impl<K: FlatType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K>
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         fix_set_for_capacity(
             self,
             self.iter()
@@ -1135,7 +1135,7 @@ impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
 /// See [`crate::FlatType`] for more information.
 #[doc(hidden)]
 pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize;
 }
 
 #[cfg(feature = "std")]
@@ -1148,7 +1148,7 @@ impl<K: FlatType, V: FlatType> MemSize for std::collections::HashMap<K, V>
 where
     std::collections::HashMap<K, V>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <std::collections::HashMap<K, V> as MemSizeHelper2<
             <K as FlatType>::Flat,
             <V as FlatType>::Flat,
@@ -1183,7 +1183,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * self.len(),
@@ -1197,7 +1197,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             (core::mem::size_of::<K>()) * self.len()
@@ -1215,7 +1215,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             self.keys()
@@ -1232,7 +1232,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
     for std::collections::HashMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         fix_map_for_capacity(
             self,
             self.iter()
@@ -1324,7 +1324,7 @@ impl<T: FlatType> MemSize for std::collections::BTreeSet<T>
 where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <std::collections::BTreeSet<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
             self, flags, refs,
         )
@@ -1334,7 +1334,7 @@ where
 #[cfg(feature = "std")]
 impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeSet<T>>()
             + estimate_btree_size::<T, ()>(self.len(), 0)
     }
@@ -1343,7 +1343,7 @@ impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T
 #[cfg(feature = "std")]
 impl<T: FlatType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<T> {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeSet<T>>()
             + estimate_btree_size::<T, ()>(
                 self.len(),
@@ -1366,7 +1366,7 @@ impl<K: FlatType, V: FlatType> MemSize for std::collections::BTreeMap<K, V>
 where
     std::collections::BTreeMap<K, V>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         <std::collections::BTreeMap<K, V> as MemSizeHelper2<
             <K as FlatType>::Flat,
             <V as FlatType>::Flat,
@@ -1379,7 +1379,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(self.len(), 0)
     }
@@ -1390,7 +1390,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(
                 self.len(),
@@ -1408,7 +1408,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(
                 self.len(),
@@ -1426,7 +1426,7 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
     for std::collections::BTreeMap<K, V>
 {
     #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(
                 self.len(),
@@ -1447,7 +1447,7 @@ impl<H> FlatType for core::hash::BuildHasherDefault<H> {
     type Flat = True;
 }
 impl<H> MemSize for core::hash::BuildHasherDefault<H> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         // it's a phantom hash
         debug_assert_eq!(core::mem::size_of::<Self>(), 0);
         0
@@ -1463,7 +1463,7 @@ impl FlatType for std::hash::DefaultHasher {
 // This implementation assumes that DefaultHasher is a fixed-size type
 // that does not allocate memory on the heap.
 impl MemSize for std::hash::DefaultHasher {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1475,7 +1475,7 @@ impl FlatType for std::collections::hash_map::RandomState {
 
 #[cfg(feature = "std")]
 impl MemSize for std::collections::hash_map::RandomState {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1489,7 +1489,7 @@ impl<T: ?Sized> FlatType for core::ptr::NonNull<T> {
 }
 
 impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1516,7 +1516,7 @@ impl<A: maligned::Alignment, T: MemSize + FlatType> FlatType for maligned::Align
 
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
         use core::ops::Deref;
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)

@@ -366,7 +366,7 @@ impl MemSize for IntOrFloatI {
     fn mem_size_rec(
         &self,
         _flags: SizeFlags,
-        _refs: &mut HashMap<usize, usize>,
+        _refs: &mut BTreeMap<usize, usize>,
     ) -> usize {
         core::mem::size_of::<Self>()
     }
@@ -381,7 +381,7 @@ impl MemDbgImpl for IntOrFloatI {
         prefix: &mut String,
         _is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         unsafe { self.0.i }._mem_dbg_depth_on(
             writer,
@@ -405,7 +405,7 @@ impl MemSize for IntOrFloatF {
     fn mem_size_rec(
         &self,
         _flags: SizeFlags,
-        _refs: &mut HashMap<usize, usize>,
+        _refs: &mut BTreeMap<usize, usize>,
     ) -> usize {
         core::mem::size_of::<Self>()
     }
@@ -420,7 +420,7 @@ impl MemDbgImpl for IntOrFloatF {
         prefix: &mut String,
         _is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         unsafe { self.0.f }._mem_dbg_depth_on(
             writer,

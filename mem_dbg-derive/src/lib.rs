@@ -130,7 +130,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
+                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::BTreeMap<usize, usize>) -> usize {
                         #const_assert
                         let mut bytes = ::core::mem::size_of::<Self>();
                         #(bytes += <#fields_ty as ::mem_dbg::MemSize>::mem_size_rec(&self.#fields_ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#fields_ty>();)*
@@ -236,7 +236,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
+                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::BTreeMap<usize, usize>) -> usize {
                         #const_assert
                         match self {
                             #(
@@ -317,7 +317,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_prefix: &mut String,
                         _memdbg_is_last: bool,
                         _memdbg_flags: ::mem_dbg::DbgFlags,
-                        _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
+                        _memdbg_refs: &mut ::mem_dbg::BTreeSet<usize>,
                     ) -> ::core::fmt::Result {
                         let mut id_sizes: Vec<(usize, usize, usize)> = vec![];
                         #(#id_offset_pushes)*
@@ -541,7 +541,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_prefix: &mut String,
                         _memdbg_is_last: bool,
                         _memdbg_flags: ::mem_dbg::DbgFlags,
-                        _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
+                        _memdbg_refs: &mut ::mem_dbg::BTreeSet<usize>,
                     ) -> ::core::fmt::Result {
                         let mut _memdbg_digits_number = ::mem_dbg::n_of_digits(_memdbg_total_size);
                         if _memdbg_flags.contains(::mem_dbg::DbgFlags::SEPARATOR) {

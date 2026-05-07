@@ -8,18 +8,23 @@
 #![doc = include_str!("../README.md")]
 #![deny(unconditional_recursion)]
 #![cfg_attr(not(feature = "std"), no_std)]
-#[cfg(not(feature = "std"))]
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 
-/// Hash map for pointer deduplication in mem_size (re-exported for derive macro).
+/// Map for pointer deduplication in `mem_size` (re-exported for the derive macro).
+///
+/// We use [`alloc::collections::BTreeMap`] rather than `std::collections::HashMap`
+/// or `hashbrown::HashMap` so the type is available without the `std` feature
+/// and without pulling an external dependency. The dedup set is small (one
+/// entry per unique pointer reached during the walk) and `usize` keys make
+/// `BTreeMap`'s O(log n) ops effectively free for any realistic use.
 #[doc(hidden)]
-pub use hashbrown::HashMap;
-/// Hash set for pointer deduplication in mem_dbg.
+pub use alloc::collections::BTreeMap;
+/// Set for pointer deduplication in `mem_dbg`. See [`BTreeMap`] for rationale.
 #[doc(hidden)]
-pub use hashbrown::HashSet;
+pub use alloc::collections::BTreeSet;
 
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
@@ -181,7 +186,7 @@ pub trait MemSize {
     /// Returns the (recursively computed) overall memory size of the structure
     /// in bytes.
     fn mem_size(&self, flags: SizeFlags) -> usize {
-        let mut refs = HashMap::new();
+        let mut refs = BTreeMap::new();
         let base = self.mem_size_rec(flags, &mut refs);
         base + refs.into_values().sum::<usize>()
     }
@@ -197,7 +202,7 @@ pub trait MemSize {
     /// contain references can simply ignore the `refs` parameter; otherwise,
     /// please have a look at the [implementation for
     /// references](#impl-MemSize-for-%26T).
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize;
 }
 
 bitflags::bitflags! {
@@ -273,7 +278,7 @@ pub trait MemDbg: MemDbgImpl {
     /// Writes to a [`core::fmt::Write`] debug info about the structure memory
     /// usage, expanding all levels of nested structures.
     fn mem_dbg_on(&self, writer: &mut impl core::fmt::Write, flags: DbgFlags) -> core::fmt::Result {
-        let mut dbg_refs = HashSet::new();
+        let mut dbg_refs = BTreeSet::new();
         self._mem_dbg_depth_on(
             writer,
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
@@ -309,7 +314,7 @@ pub trait MemDbg: MemDbgImpl {
         max_depth: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        let mut dbg_refs = HashSet::new();
+        let mut dbg_refs = BTreeSet::new();
         self._mem_dbg_depth_on(
             writer,
             <Self as MemSize>::mem_size(self, flags.to_size_flags()),
@@ -347,7 +352,7 @@ pub trait MemDbgImpl: MemSize {
         _prefix: &mut String,
         _is_last: bool,
         _flags: DbgFlags,
-        _dbg_refs: &mut HashSet<usize>,
+        _dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         Ok(())
     }
@@ -373,7 +378,7 @@ pub trait MemDbgImpl: MemSize {
                     .map(|_| ())
             }
         }
-        let mut dbg_refs = HashSet::new();
+        let mut dbg_refs = BTreeSet::new();
         self._mem_dbg_depth_on(
             &mut Wrapper(std::io::stderr()),
             total_size,
@@ -397,7 +402,7 @@ pub trait MemDbgImpl: MemSize {
         is_last: bool,
         padded_size: usize,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self._mem_dbg_depth_on_impl(
             writer,
@@ -430,7 +435,7 @@ pub trait MemDbgImpl: MemSize {
         is_last: bool,
         padded_size: usize,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
         ref_display: RefDisplay,
     ) -> core::fmt::Result {
         // Each depth level adds 2 characters to prefix ("│ " or "  ")
