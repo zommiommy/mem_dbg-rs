@@ -13,9 +13,13 @@ use core::{marker::PhantomData, sync::atomic::*};
 use crate::{DbgFlags, FlatType, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
 
 #[cfg(not(feature = "std"))]
+use alloc::borrow::{Cow, ToOwned};
+#[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
+#[cfg(feature = "std")]
+use std::borrow::{Cow, ToOwned};
 #[cfg(feature = "std")]
 use std::collections::VecDeque;
 
@@ -264,6 +268,35 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         self.as_ref()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
         )
+    }
+}
+
+// Cow displays borrowed values through the reference implementation and owned
+// values through their owned representation.
+
+impl<B> MemDbgImpl for Cow<'_, B>
+where
+    B: ToOwned + MemDbgImpl + ?Sized,
+    B::Owned: MemDbgImpl,
+{
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            Cow::Borrowed(borrowed) => <&B as MemDbgImpl>::_mem_dbg_rec_on(
+                borrowed, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            Cow::Owned(owned) => <B::Owned as MemDbgImpl>::_mem_dbg_rec_on(
+                owned, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+        }
     }
 }
 
