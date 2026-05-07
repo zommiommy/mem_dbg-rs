@@ -16,9 +16,13 @@ use core::ops::Deref;
 use crate::{Boolean, False, FlatType, HashMap, MemSize, SizeFlags, True};
 
 #[cfg(not(feature = "std"))]
+use alloc::borrow::{Cow, ToOwned};
+#[cfg(not(feature = "std"))]
 use alloc::collections::VecDeque;
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
+#[cfg(feature = "std")]
+use std::borrow::{Cow, ToOwned};
 #[cfg(feature = "std")]
 use std::collections::VecDeque;
 
@@ -248,6 +252,33 @@ impl<T: ?Sized> FlatType for Box<T> {
 impl<T: ?Sized + MemSize> MemSize for Box<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
+    }
+}
+
+// Cow follows borrowed values like references and owned values like their owned
+// representation.
+
+impl<B: ToOwned + ?Sized> FlatType for Cow<'_, B> {
+    type Flat = False;
+}
+
+impl<B> MemSize for Cow<'_, B>
+where
+    B: ToOwned + MemSize + ?Sized,
+    B::Owned: MemSize,
+{
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + match self {
+                Cow::Borrowed(borrowed) => {
+                    <&B as MemSize>::mem_size_rec(borrowed, flags, refs)
+                        - core::mem::size_of::<&B>()
+                }
+                Cow::Owned(owned) => {
+                    <B::Owned as MemSize>::mem_size_rec(owned, flags, refs)
+                        - core::mem::size_of::<B::Owned>()
+                }
+            }
     }
 }
 

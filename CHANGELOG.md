@@ -17,6 +17,8 @@
 
 - Added `MemSize`/`MemDbg` implementations for `std::sync::OnceLock`. It uses the same initialized-value accounting as `core::cell::OnceCell`.
 
+- Added `MemSize`/`MemDbg` implementations for `Cow<'_, B>`. Borrowed values follow reference rules, and owned values use `B::Owned` accounting.
+
 
 ## [0.4.1] - 2026-03-25
 
