@@ -15,6 +15,8 @@
 
 - Added generic `MemSize`/`MemDbg` implementations for `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting and traversal policy of `P`.
 
+- Added `MemSize`/`MemDbg` implementations for `std::sync::OnceLock`. It uses the same initialized-value accounting as `core::cell::OnceCell`.
+
 
 ## [0.4.1] - 2026-03-25
 

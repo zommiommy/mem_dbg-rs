@@ -809,6 +809,24 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::OnceCell<T> {
 }
 
 #[cfg(feature = "std")]
+impl<T: MemDbgImpl> MemDbgImpl for std::sync::OnceLock<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        self.get()._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
+    }
+}
+
+#[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
     fn _mem_dbg_rec_on(
         &self,

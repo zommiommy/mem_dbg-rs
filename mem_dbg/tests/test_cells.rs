@@ -3,6 +3,7 @@
 
 use mem_dbg::*;
 use std::cell::{Cell, OnceCell, RefCell, UnsafeCell};
+use std::sync::OnceLock;
 
 #[test]
 fn test_cell_in_struct() {
@@ -254,6 +255,73 @@ fn test_oncecell_with_memdbg() {
         let result = s.mem_dbg_depth(depth, DbgFlags::default());
         assert!(result.is_ok());
     }
+}
+
+#[test]
+fn test_oncelock_empty() {
+    #[derive(MemSize)]
+    struct Test {
+        once_lock: OnceLock<String>,
+    }
+
+    let s = Test {
+        once_lock: OnceLock::new(),
+    };
+
+    assert_eq!(
+        s.mem_size(SizeFlags::default()),
+        std::mem::size_of::<Test>()
+    );
+}
+
+#[test]
+fn test_oncelock_initialized() {
+    #[derive(MemSize)]
+    struct Test {
+        once_lock: OnceLock<String>,
+    }
+
+    let once_lock = OnceLock::new();
+    once_lock.set("initialized".to_string()).unwrap();
+
+    let s = Test { once_lock };
+    let expected = std::mem::size_of::<Test>() + "initialized".len();
+    assert_eq!(s.mem_size(SizeFlags::default()), expected);
+}
+
+#[test]
+fn test_oncelock_with_vec() {
+    #[derive(MemSize)]
+    struct Test {
+        once_lock: OnceLock<Vec<i32>>,
+    }
+
+    let once_lock = OnceLock::new();
+    once_lock.set(vec![1, 2, 3, 4, 5]).unwrap();
+
+    let s = Test { once_lock };
+    let expected = std::mem::size_of::<Test>() + 5 * std::mem::size_of::<i32>();
+    assert_eq!(s.mem_size(SizeFlags::default()), expected);
+}
+
+#[test]
+fn test_oncelock_with_memdbg() {
+    #[derive(MemSize, MemDbg)]
+    struct Test {
+        data: OnceLock<String>,
+    }
+
+    let once_lock = OnceLock::new();
+    once_lock.set("test data".to_string()).unwrap();
+
+    let s = Test { data: once_lock };
+    assert!(s.mem_size(SizeFlags::default()) >= std::mem::size_of::<Test>());
+
+    let mut output = String::new();
+    s.mem_dbg_depth_on(&mut output, 2, DbgFlags::default())
+        .unwrap();
+    assert!(output.contains("Test"));
+    assert!(output.contains("data"));
 }
 
 #[test]
