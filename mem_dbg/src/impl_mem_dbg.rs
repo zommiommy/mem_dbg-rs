@@ -483,6 +483,19 @@ impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::HashMap<K, V> wh
 {
 }
 
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType, S> MemDbgImpl for hashbrown::HashSet<K, S> where
+    hashbrown::HashSet<K, S>: crate::impl_mem_size::MemSizeHelper<<K as FlatType>::Flat>
+{
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType, V: FlatType, S> MemDbgImpl for hashbrown::HashMap<K, V, S> where
+    hashbrown::HashMap<K, V, S>:
+        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
+{
+}
+
 #[cfg(feature = "std")]
 impl<T: FlatType> MemDbgImpl for std::collections::BTreeSet<T> where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>

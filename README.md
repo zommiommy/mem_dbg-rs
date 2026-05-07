@@ -109,6 +109,10 @@ which however needs the nightly compiler, as it enables the unstable feature
 - `maligned`: support for the [`maligned`] crate.
 - `mmap-rs`: support for the [`mmap-rs`] crate.
 - `rand`: support for the [`rand`] crate.
+- `hashbrown`: support for the [`hashbrown`] crate. Useful in `no_std`
+  builds (where `std::collections::HashMap`/`HashSet` are unavailable);
+  in `std` builds it adds impls for `hashbrown` collections alongside the
+  `std` ones.
 
 ## Examples
 
@@ -457,6 +461,7 @@ w.mem_dbg(DbgFlags::empty())?;
 [`mmap-rs`]: https://crates.io/crates/mmap-rs
 [`half`]: https://crates.io/crates/half
 [`rand`]: https://crates.io/crates/rand
+[`hashbrown`]: https://crates.io/crates/hashbrown
 [`Rc`]: https://doc.rust-lang.org/std/rc/struct.Rc.html
 [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 [`DbgFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS

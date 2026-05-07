@@ -15,6 +15,14 @@
 
 ### New
 
+- Added optional `hashbrown` feature. When enabled, provides
+  `MemSize`/`MemDbgImpl` implementations for `hashbrown::HashMap<K, V, S>`
+  and `hashbrown::HashSet<T, S>`, sharing the Swiss-table layout math
+  with the `std::collections` impls. `hashbrown` is pulled in only when
+  the feature is on, so non-feature users see no dependency. Lets `no_std`
+  users (where `std::collections::HashMap`/`HashSet` are unavailable)
+  account hash-collection memory.
+
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
   `*mut T`, `std::rc::Weak<T>`, and `std::sync::Weak<T>`. None of these are
   followed: their referents are neither dereferenced nor counted, and the

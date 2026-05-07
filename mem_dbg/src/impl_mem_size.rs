@@ -1026,21 +1026,21 @@ impl MemSize for mmap_rs::MmapMut {
 // Group width for Swiss Tables (hashbrown). This depends on SIMD support:
 // - x86/x86_64 with SSE2: 16 bytes
 // - Other platforms (ARM64 NEON, generic): 8 bytes
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hashbrown"))]
 #[cfg(all(
     any(target_arch = "x86_64", target_arch = "x86"),
     any(target_feature = "sse2", target_env = "msvc")
 ))]
 const GROUP_WIDTH: usize = 16;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hashbrown"))]
 #[cfg(not(all(
     any(target_arch = "x86_64", target_arch = "x86"),
     any(target_feature = "sse2", target_env = "msvc")
 )))]
 const GROUP_WIDTH: usize = 8;
 
-// Straight from hashbrown
-#[cfg(feature = "std")]
+// Straight from hashbrown.
+#[cfg(any(feature = "std", feature = "hashbrown"))]
 fn capacity_to_buckets(cap: usize) -> Option<usize> {
     if cap == 0 {
         return Some(0);
@@ -1083,24 +1083,30 @@ where
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hashbrown"))]
 // Add to the given size the space occupied on the stack by the hash set, by the unused
 // but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
 // `SizeFlags::CAPACITY`, by empty buckets.
+//
+// `type_size` is the stack size of the wrapping container, `len` and `capacity` come
+// from the actual collection. Lifted out of the std-only impl so the same helper can
+// service both `std::collections::HashSet` and `hashbrown::HashSet`.
 fn fix_set_for_capacity<K>(
-    hash_set: &std::collections::HashSet<K>,
-    size: usize,
+    type_size: usize,
+    len: usize,
+    capacity: usize,
+    items_size: usize,
     flags: SizeFlags,
 ) -> usize {
     let capacity = if flags.contains(SizeFlags::CAPACITY) {
-        hash_set.capacity()
+        capacity
     } else {
-        hash_set.len()
+        len
     };
     let buckets = capacity_to_buckets(capacity).unwrap_or(usize::MAX);
-    core::mem::size_of::<std::collections::HashSet<K>>()
-        + size
-        + (buckets - hash_set.len()) * core::mem::size_of::<K>()
+    type_size
+        + items_size
+        + (buckets - len) * core::mem::size_of::<K>()
         + buckets * core::mem::size_of::<u8>()
         + if buckets > 0 { GROUP_WIDTH } else { 0 }
 }
@@ -1109,7 +1115,13 @@ fn fix_set_for_capacity<K>(
 impl<K: FlatType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
-        fix_set_for_capacity(self, core::mem::size_of::<K>() * self.len(), flags)
+        fix_set_for_capacity::<K>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            core::mem::size_of::<K>() * self.len(),
+            flags,
+        )
     }
 }
 
@@ -1117,8 +1129,10 @@ impl<K: FlatType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K>
 impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
-        fix_set_for_capacity(
-            self,
+        fix_set_for_capacity::<K>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
             self.iter()
                 .map(|x| <K as MemSize>::mem_size_rec(x, flags, refs))
                 .sum::<usize>(),
@@ -1127,7 +1141,7 @@ impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hashbrown"))]
 /// A helper trait that makes it possible to implement differently
 /// the size computation for maps in which keys or values are
 /// flat types.
@@ -1156,24 +1170,29 @@ where
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hashbrown"))]
 // Add to the given size the space occupied on the stack by the hash map, by the unused
 // but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
 // `SizeFlags::CAPACITY`, by empty buckets.
+//
+// See [`fix_set_for_capacity`] for why `type_size`/`len`/`capacity` are passed in
+// rather than a typed reference.
 fn fix_map_for_capacity<K, V>(
-    hash_map: &std::collections::HashMap<K, V>,
-    size: usize,
+    type_size: usize,
+    len: usize,
+    capacity: usize,
+    items_size: usize,
     flags: SizeFlags,
 ) -> usize {
     let capacity = if flags.contains(SizeFlags::CAPACITY) {
-        hash_map.capacity()
+        capacity
     } else {
-        hash_map.len()
+        len
     };
     let buckets = capacity_to_buckets(capacity).unwrap_or(usize::MAX);
-    core::mem::size_of::<std::collections::HashMap<K, V>>()
-        + size
-        + (buckets - hash_map.len()) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
+    type_size
+        + items_size
+        + (buckets - len) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
         + buckets * core::mem::size_of::<u8>()
         + if buckets > 0 { GROUP_WIDTH } else { 0 }
 }
@@ -1184,8 +1203,10 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
 {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
             (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * self.len(),
             flags,
         )
@@ -1198,8 +1219,10 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
 {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
             (core::mem::size_of::<K>()) * self.len()
                 + self
                     .values()
@@ -1216,8 +1239,10 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
 {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
             self.keys()
                 .map(|k| <K as MemSize>::mem_size_rec(k, flags, refs))
                 .sum::<usize>()
@@ -1233,8 +1258,160 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
 {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            self.iter()
+                .map(|(k, v)| {
+                    <K as MemSize>::mem_size_rec(k, flags, refs)
+                        + <V as MemSize>::mem_size_rec(v, flags, refs)
+                })
+                .sum::<usize>(),
+            flags,
+        )
+    }
+}
+
+// Hash-based containers from the `hashbrown` crate. Mirrors the `std::collections`
+// impls above; uses the same Swiss-table layout math (`capacity_to_buckets`,
+// `GROUP_WIDTH`) since both ride on hashbrown internally.
+//
+// Hasher `S` is left unbounded: the hasher state is owned inline by the table and
+// its size is already accounted for via `core::mem::size_of::<HashMap<K, V, S>>`.
+// If `S` heap-allocates (unusual) this undercounts — match the std impl behaviour
+// rather than forcing every user to derive `MemSize` on their hasher.
+
+#[cfg(feature = "hashbrown")]
+impl<T, S> FlatType for hashbrown::HashSet<T, S> {
+    type Flat = False;
+}
+
+#[cfg(feature = "hashbrown")]
+impl<T: FlatType, S> MemSize for hashbrown::HashSet<T, S>
+where
+    hashbrown::HashSet<T, S>: MemSizeHelper<<T as FlatType>::Flat>,
+{
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
+        <hashbrown::HashSet<T, S> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
+            self, flags, refs,
+        )
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType + MemSize, S> MemSizeHelper<True> for hashbrown::HashSet<K, S> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
+        fix_set_for_capacity::<K>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            core::mem::size_of::<K>() * self.len(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType + MemSize, S> MemSizeHelper<False> for hashbrown::HashSet<K, S> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
+        fix_set_for_capacity::<K>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            self.iter()
+                .map(|x| <K as MemSize>::mem_size_rec(x, flags, refs))
+                .sum::<usize>(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K, V, S> FlatType for hashbrown::HashMap<K, V, S> {
+    type Flat = False;
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType, V: FlatType, S> MemSize for hashbrown::HashMap<K, V, S>
+where
+    hashbrown::HashMap<K, V, S>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
+{
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
+        <hashbrown::HashMap<K, V, S> as MemSizeHelper2<
+            <K as FlatType>::Flat,
+            <V as FlatType>::Flat,
+        >>::mem_size_impl(self, flags, refs)
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType + MemSize, V: FlatType + MemSize, S> MemSizeHelper2<True, True>
+    for hashbrown::HashMap<K, V, S>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut BTreeMap<usize, usize>) -> usize {
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * self.len(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType + MemSize, V: FlatType + MemSize, S> MemSizeHelper2<True, False>
+    for hashbrown::HashMap<K, V, S>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            (core::mem::size_of::<K>()) * self.len()
+                + self
+                    .values()
+                    .map(|v| <V as MemSize>::mem_size_rec(v, flags, refs))
+                    .sum::<usize>(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType + MemSize, V: FlatType + MemSize, S> MemSizeHelper2<False, True>
+    for hashbrown::HashMap<K, V, S>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
+            self.keys()
+                .map(|k| <K as MemSize>::mem_size_rec(k, flags, refs))
+                .sum::<usize>()
+                + (core::mem::size_of::<V>()) * self.len(),
+            flags,
+        )
+    }
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType + MemSize, V: FlatType + MemSize, S> MemSizeHelper2<False, False>
+    for hashbrown::HashMap<K, V, S>
+{
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut BTreeMap<usize, usize>) -> usize {
+        fix_map_for_capacity::<K, V>(
+            core::mem::size_of::<Self>(),
+            self.len(),
+            self.capacity(),
             self.iter()
                 .map(|(k, v)| {
                     <K as MemSize>::mem_size_rec(k, flags, refs)
