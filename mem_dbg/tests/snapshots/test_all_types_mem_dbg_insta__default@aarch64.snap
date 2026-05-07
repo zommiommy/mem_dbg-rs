@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: output
 ---
-59_803 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
+62_915 B 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
      0 B   0.00% ├╴unit: ()
      1 B   0.00% ├╴boolean: bool
      4 B   0.01% ├╴character: char
@@ -52,55 +52,62 @@ expression: output
     24 B   0.04% ├╴opt_none: core::option::Option<alloc::string::String>
     16 B   0.03% ├╴boxed: alloc::boxed::Box<u64>
     44 B   0.07% ├╴vec: alloc::vec::Vec<i32>
-    76 B   0.13% ├╴vec_str: alloc::vec::Vec<alloc::string::String>
+    76 B   0.12% ├╴vec_str: alloc::vec::Vec<alloc::string::String>
     10 B   0.02% ├╴array: [u8; 10]
-    52 B   0.09% ├╴array_str: [alloc::string::String; 2]
-    28 B   0.05% ├╴slice: alloc::boxed::Box<[u32]>
+    52 B   0.08% ├╴array_str: [alloc::string::String; 2]
+    28 B   0.04% ├╴slice: alloc::boxed::Box<[u32]>
     42 B   0.07% ├╴slice_str: alloc::boxed::Box<[alloc::string::String]>
     38 B   0.06% ├╴tuple2: (i32, alloc::string::String)
      4 B   0.01% │ ├╴0: i32 [4B]
     30 B   0.05% │ ╰╴1: alloc::string::String
     43 B   0.07% ├╴tuple3: (i32, alloc::string::String, f64)
      4 B   0.01% │ ├╴0: i32 [4B]
-    27 B   0.05% │ ├╴1: alloc::string::String
+    27 B   0.04% │ ├╴1: alloc::string::String
      8 B   0.01% │ ╰╴2: f64
     43 B   0.07% ├╴tuple4: (i32, alloc::string::String, f64, bool)
      4 B   0.01% │ ├╴0: i32
-    27 B   0.05% │ ├╴1: alloc::string::String
+    27 B   0.04% │ ├╴1: alloc::string::String
      8 B   0.01% │ ├╴2: f64
      1 B   0.00% │ ╰╴3: bool [3B]
     43 B   0.07% ├╴tuple5: (i32, alloc::string::String, f64, bool, u8)
      4 B   0.01% │ ├╴0: i32
-    27 B   0.05% │ ├╴1: alloc::string::String
+    27 B   0.04% │ ├╴1: alloc::string::String
      8 B   0.01% │ ├╴2: f64
      1 B   0.00% │ ├╴3: bool
      1 B   0.00% │ ╰╴4: u8 [2B]
     16 B   0.03% ├╴range: core::ops::range::Range<usize>
+     8 B   0.01% │ ├╴start: usize
+     8 B   0.01% │ ╰╴end: usize
      8 B   0.01% ├╴range_from: core::ops::range::RangeFrom<usize>
+     8 B   0.01% │ ╰╴start: usize
     24 B   0.04% ├╴range_inclusive: core::ops::range::RangeInclusive<usize>
+     8 B   0.01% │ ├╴start: usize
+     8 B   0.01% │ ╰╴end: usize
      8 B   0.01% ├╴range_to: core::ops::range::RangeTo<usize>
+     8 B   0.01% │ ╰╴end: usize
      8 B   0.01% ├╴range_to_inclusive: core::ops::range::RangeToInclusive<usize>
+     8 B   0.01% │ ╰╴end: usize
      4 B   0.01% ├╴cell: core::cell::Cell<i32>
     16 B   0.03% ├╴ref_cell: core::cell::RefCell<i32>
      4 B   0.01% ├╴unsafe_cell: core::cell::UnsafeCell<i32>
     35 B   0.06% ├╴once_cell: core::cell::once::OnceCell<alloc::string::String>
     12 B   0.02% ├╴mutex: std::sync::poison::mutex::Mutex<i32>
-    46 B   0.08% ├╴rw_lock: std::sync::poison::rwlock::RwLock<alloc::string::String>
-    76 B   0.13% ├╴hash_set: std::collections::hash::set::HashSet<i32>
-   157 B   0.26% ├╴hash_set_str: std::collections::hash::set::HashSet<alloc::string::String>
-   176 B   0.29% ├╴hash_map: std::collections::hash::map::HashMap<alloc::string::String, i32>
+    46 B   0.07% ├╴rw_lock: std::sync::poison::rwlock::RwLock<alloc::string::String>
+    76 B   0.12% ├╴hash_set: std::collections::hash::set::HashSet<i32>
+   157 B   0.25% ├╴hash_set_str: std::collections::hash::set::HashSet<alloc::string::String>
+   176 B   0.28% ├╴hash_map: std::collections::hash::map::HashMap<alloc::string::String, i32>
     92 B   0.15% ├╴hash_map_copy: std::collections::hash::map::HashMap<i32, i32>
-    84 B   0.14% ├╴btree_set: alloc::collections::btree::set::BTreeSet<i32>
-   305 B   0.51% ├╴btree_set_str: alloc::collections::btree::set::BTreeSet<alloc::string::String>
-   352 B   0.59% ├╴btree_map: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
-   128 B   0.21% ├╴btree_map_copy: alloc::collections::btree::map::BTreeMap<i32, i32>
+    84 B   0.13% ├╴btree_set: alloc::collections::btree::set::BTreeSet<i32>
+   305 B   0.48% ├╴btree_set_str: alloc::collections::btree::set::BTreeSet<alloc::string::String>
+   352 B   0.56% ├╴btree_map: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
+   128 B   0.20% ├╴btree_map_copy: alloc::collections::btree::map::BTreeMap<i32, i32>
     36 B   0.06% ├╴vec_deque: alloc::collections::vec_deque::VecDeque<u32>
     32 B   0.05% ├╴binary_heap: alloc::collections::binary_heap::BinaryHeap<u32>
      0 B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [14B]
     16 B   0.03% ├╴random_state: std::hash::random::RandomState
-    33 B   0.06% ├╴path_buf: std::path::PathBuf
+    33 B   0.05% ├╴path_buf: std::path::PathBuf
     16 B   0.03% ├╴path: &std::path::Path
-    33 B   0.06% ├╴os_string: std::ffi::os_str::OsString
+    33 B   0.05% ├╴os_string: std::ffi::os_str::OsString
     16 B   0.03% ├╴os_str: &std::ffi::os_str::OsStr
      8 B   0.01% ├╴fn_ptr0: fn() -> i32
      8 B   0.01% ├╴fn_ptr1: fn(i32) -> i32
@@ -109,28 +116,28 @@ expression: output
      8 B   0.01% ├╴fn_ptr4: fn(u32, u64, i32, f64) -> bool
     16 B   0.03% ├╴layout: core::alloc::layout::Layout
      8 B   0.01% ├╴non_null: core::ptr::non_null::NonNull<i32>
- 8_264 B  13.82% ├╴buf_reader: std::io::buffered::bufreader::BufReader<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
- 8_256 B  13.81% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
+ 8_264 B  13.14% ├╴buf_reader: std::io::buffered::bufreader::BufReader<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
+ 8_256 B  13.12% ├╴buf_writer: std::io::buffered::bufwriter::BufWriter<std::io::cursor::Cursor<alloc::vec::Vec<u8>>>
     36 B   0.06% ├╴cursor: std::io::cursor::Cursor<alloc::vec::Vec<u8>>
      8 B   0.01% ├╴arc: alloc::sync::Arc<i32>
      8 B   0.01% ├╴rc: alloc::rc::Rc<i32>
     92 B   0.15% ├╴vec_deque_nested: alloc::collections::vec_deque::VecDeque<alloc::vec::Vec<i32>>
-    84 B   0.14% ├╴binary_heap_nested: alloc::collections::binary_heap::BinaryHeap<alloc::vec::Vec<i32>>
+    84 B   0.13% ├╴binary_heap_nested: alloc::collections::binary_heap::BinaryHeap<alloc::vec::Vec<i32>>
     16 B   0.03% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<'_, i32>
     16 B   0.03% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<'_, alloc::string::String>
     16 B   0.03% ├╴rw_lock_write_guard: std::sync::poison::rwlock::RwLockWriteGuard<'_, alloc::string::String>
     48 B   0.08% ├╴hash_set_empty: std::collections::hash::set::HashSet<i32>
-   696 B   1.16% ├╴hash_set_100: std::collections::hash::set::HashSet<i32>
+   696 B   1.11% ├╴hash_set_100: std::collections::hash::set::HashSet<i32>
     48 B   0.08% ├╴hash_map_empty: std::collections::hash::map::HashMap<i32, i32>
- 1_208 B   2.02% ├╴hash_map_cc_100: std::collections::hash::map::HashMap<i32, i32>
- 3_958 B   6.62% ├╴hash_map_cn_100: std::collections::hash::map::HashMap<i32, alloc::string::String>
- 3_958 B   6.62% ├╴hash_map_nc_100: std::collections::hash::map::HashMap<alloc::string::String, i32>
- 6_708 B  11.22% ├╴hash_map_nn_100: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+ 1_208 B   1.92% ├╴hash_map_cc_100: std::collections::hash::map::HashMap<i32, i32>
+ 3_958 B   6.29% ├╴hash_map_cn_100: std::collections::hash::map::HashMap<i32, alloc::string::String>
+ 3_958 B   6.29% ├╴hash_map_nc_100: std::collections::hash::map::HashMap<alloc::string::String, i32>
+ 6_708 B  10.66% ├╴hash_map_nn_100: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
     24 B   0.04% ├╴btree_set_empty: alloc::collections::btree::set::BTreeSet<i32>
- 1_208 B   2.02% ├╴btree_set_100: alloc::collections::btree::set::BTreeSet<i32>
+ 1_404 B   2.23% ├╴btree_set_100: alloc::collections::btree::set::BTreeSet<i32>
     24 B   0.04% ├╴btree_map_empty: alloc::collections::btree::map::BTreeMap<i32, i32>
- 1_896 B   3.17% ├╴btree_map_cc_100: alloc::collections::btree::map::BTreeMap<i32, i32>
- 5_670 B   9.48% ├╴btree_map_cn_100: alloc::collections::btree::map::BTreeMap<i32, alloc::string::String>
- 5_622 B   9.40% ├╴btree_map_nc_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
- 9_316 B  15.58% ├╴btree_map_nn_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>
-    72 B   0.12% ╰╴default_hasher: std::hash::random::DefaultHasher
+ 2_184 B   3.47% ├╴btree_map_cc_100: alloc::collections::btree::map::BTreeMap<i32, i32>
+ 6_406 B  10.18% ├╴btree_map_cn_100: alloc::collections::btree::map::BTreeMap<i32, alloc::string::String>
+ 6_346 B  10.09% ├╴btree_map_nc_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, i32>
+10_484 B  16.66% ├╴btree_map_nn_100: alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>
+    72 B   0.11% ╰╴default_hasher: std::hash::random::DefaultHasher
