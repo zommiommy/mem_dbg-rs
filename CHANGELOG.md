@@ -23,6 +23,8 @@
 - Added `MemSize`/`MemDbg` implementations for `Cow<'_, B>`. Borrowed
   values follow reference rules, and owned values use `B::Owned` accounting.
 
+- Added `MemSize`/`MemDbg` implementations for `std::collections::BinaryHeap<T>`. Its accounting follows the same Vec-backed element and capacity rules as `Vec<T>`.
+
 
 ## [0.4.1] - 2026-03-25
 

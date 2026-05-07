@@ -541,6 +541,56 @@ impl<T: FlatType + MemSize> MemSizeHelper<False> for Vec<T> {
     }
 }
 
+// BinaryHeap is Vec-backed, so it follows the same element and capacity rules
+// as Vec.
+
+#[cfg(feature = "std")]
+impl<T> FlatType for std::collections::BinaryHeap<T> {
+    type Flat = False;
+}
+
+#[cfg(feature = "std")]
+impl<T: FlatType> MemSize for std::collections::BinaryHeap<T>
+where
+    std::collections::BinaryHeap<T>: MemSizeHelper<<T as FlatType>::Flat>,
+{
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <std::collections::BinaryHeap<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
+            self, flags, refs,
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BinaryHeap<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + if flags.contains(SizeFlags::CAPACITY) {
+                self.capacity()
+            } else {
+                self.len()
+            } * core::mem::size_of::<T>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: FlatType + MemSize> MemSizeHelper<False> for std::collections::BinaryHeap<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+            + self
+                .iter()
+                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
+                .sum::<usize>()
+            + if flags.contains(SizeFlags::CAPACITY) {
+                (self.capacity() - self.len()) * core::mem::size_of::<T>()
+            } else {
+                0
+            }
+    }
+}
+
 // VecDeque
 
 impl<T> FlatType for VecDeque<T> {

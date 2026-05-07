@@ -398,6 +398,14 @@ impl<T: FlatType + MemDbgImpl> MemDbgImpl for Vec<T> where
 {
 }
 
+// BinaryHeap
+
+#[cfg(feature = "std")]
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for std::collections::BinaryHeap<T> where
+    std::collections::BinaryHeap<T>: MemSizeHelper<<T as FlatType>::Flat>
+{
+}
+
 // VecDeque
 
 impl<T: FlatType + MemDbgImpl> MemDbgImpl for VecDeque<T> where
