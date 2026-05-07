@@ -93,3 +93,18 @@ jobs:
         run: cargo build --target i686-unknown-linux-gnu
       - name: Test (32-bit)
         run: cargo test --target i686-unknown-linux-gnu
+
+  build-aarch64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build
+        run: cargo build
+      - name: Test (default features, includes snapshots)
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand
+      - name: Test (no default features)
+        run: cargo test --no-default-features -- --skip _snapshot
+      - name: Test (alloc + derive)
+        run: cargo test --no-default-features --features derive -- --skip _snapshot
+      - name: Clippy (all stable features)
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand -- -D warnings
