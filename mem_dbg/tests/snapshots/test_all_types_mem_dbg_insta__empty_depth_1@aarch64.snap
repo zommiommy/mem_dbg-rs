@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-59803 B ⏺
+62915 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -113,10 +113,10 @@ expression: depth_output
  3958 B ├╴hash_map_nc_100
  6708 B ├╴hash_map_nn_100
    24 B ├╴btree_set_empty
- 1208 B ├╴btree_set_100
+ 1404 B ├╴btree_set_100
    24 B ├╴btree_map_empty
- 1896 B ├╴btree_map_cc_100
- 5670 B ├╴btree_map_cn_100
- 5622 B ├╴btree_map_nc_100
- 9316 B ├╴btree_map_nn_100
+ 2184 B ├╴btree_map_cc_100
+ 6406 B ├╴btree_map_cn_100
+ 6346 B ├╴btree_map_nc_100
+10484 B ├╴btree_map_nn_100
    72 B ╰╴default_hasher
