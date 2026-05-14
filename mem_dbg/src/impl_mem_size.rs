@@ -894,6 +894,74 @@ impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
     }
 }
 
+// parking_lot's Mutex/RwLock are infallible (no poisoning), so the impls
+// don't need the `unwrap_or_else(|e| e.into_inner())` dance the std
+// variants do above.
+
+#[cfg(feature = "parking_lot")]
+impl<T: FlatType> FlatType for parking_lot::Mutex<T> {
+    type Flat = T::Flat;
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemSize> MemSize for parking_lot::Mutex<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let guard = self.lock();
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: FlatType> FlatType for parking_lot::RwLock<T> {
+    type Flat = T::Flat;
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemSize> MemSize for parking_lot::RwLock<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let guard = self.read();
+        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+            + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T> FlatType for parking_lot::MutexGuard<'_, T> {
+    type Flat = False;
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemSize> MemSize for parking_lot::MutexGuard<'_, T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        deref_pointer_size(self, flags, refs)
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T> FlatType for parking_lot::RwLockReadGuard<'_, T> {
+    type Flat = False;
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemSize> MemSize for parking_lot::RwLockReadGuard<'_, T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        deref_pointer_size(self, flags, refs)
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T> FlatType for parking_lot::RwLockWriteGuard<'_, T> {
+    type Flat = False;
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemSize> MemSize for parking_lot::RwLockWriteGuard<'_, T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        deref_pointer_size(self, flags, refs)
+    }
+}
+
 // OS stuff
 
 #[cfg(feature = "std")]

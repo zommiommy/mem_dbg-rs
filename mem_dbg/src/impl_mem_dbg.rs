@@ -928,6 +928,114 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
     }
 }
 
+// parking_lot mirrors of the std::sync impls above. Infallible
+// `lock()` / `read()` so no poisoning recovery needed.
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemDbgImpl> MemDbgImpl for parking_lot::Mutex<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        self.lock()._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemDbgImpl> MemDbgImpl for parking_lot::RwLock<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        self.read()._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemDbgImpl> MemDbgImpl for parking_lot::MutexGuard<'_, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        use core::ops::Deref;
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
+            self.deref()._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemDbgImpl> MemDbgImpl for parking_lot::RwLockReadGuard<'_, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        use core::ops::Deref;
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
+            self.deref()._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "parking_lot")]
+impl<T: MemDbgImpl> MemDbgImpl for parking_lot::RwLockWriteGuard<'_, T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        use core::ops::Deref;
+        if flags.contains(DbgFlags::FOLLOW_REFS) {
+            self.deref()._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        } else {
+            Ok(())
+        }
+    }
+}
+
 // Os stuff
 
 #[cfg(feature = "std")]
