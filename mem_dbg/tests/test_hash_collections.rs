@@ -13,16 +13,19 @@
 use mem_dbg::*;
 use std::collections::{HashMap, HashSet};
 
-// Mirror of the constants in impl_mem_size.rs. GROUP_WIDTH is 16 for SSE2/NEON
-// targets and 8 elsewhere.
-#[cfg(any(
-    target_feature = "sse2",
-    all(target_arch = "aarch64", target_feature = "neon"),
+// Mirror of the constants in impl_mem_size.rs, which in turn match what the
+// stdlib's vendored hashbrown actually uses: SSE2 on x86/x86_64 (16-byte
+// groups) and the generic 8-byte path everywhere else (including aarch64+NEON
+// — stdlib does not enable the NEON SIMD probe). Verified end-to-end by
+// test_correctness.rs against the cap allocator.
+#[cfg(all(
+    any(target_arch = "x86_64", target_arch = "x86"),
+    any(target_feature = "sse2", target_env = "msvc"),
 ))]
 const GROUP_WIDTH: usize = 16;
-#[cfg(not(any(
-    target_feature = "sse2",
-    all(target_arch = "aarch64", target_feature = "neon"),
+#[cfg(not(all(
+    any(target_arch = "x86_64", target_arch = "x86"),
+    any(target_feature = "sse2", target_env = "msvc"),
 )))]
 const GROUP_WIDTH: usize = 8;
 

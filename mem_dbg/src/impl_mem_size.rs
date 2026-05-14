@@ -1070,9 +1070,10 @@ impl MemSize for mmap_rs::MmapMut {
 // If the standard library changes load factor, this code will have to change
 // accordingly.
 
-// Group width for Swiss Tables (hashbrown). This depends on SIMD support:
-// - x86/x86_64 with SSE2: 16 bytes
-// - Other platforms (ARM64 NEON, generic): 8 bytes
+// Group width for Swiss Tables, matching the stdlib's vendored hashbrown.
+// stdlib currently uses SSE2 SIMD on x86/x86_64 (16-byte groups) and the
+// generic (8-byte) implementation everywhere else, including aarch64+NEON
+// — verified by the allocator-vs-formula assertions in test_correctness.rs.
 #[cfg(feature = "std")]
 #[cfg(all(
     any(target_arch = "x86_64", target_arch = "x86"),
