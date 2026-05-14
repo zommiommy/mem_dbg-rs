@@ -516,6 +516,13 @@ impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::HashMap<K, V> wh
 {
 }
 
+#[cfg(feature = "dashmap")]
+impl<K: FlatType, V: FlatType, S> MemDbgImpl for dashmap::DashMap<K, V, S> where
+    dashmap::DashMap<K, V, S>:
+        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
+{
+}
+
 #[cfg(feature = "std")]
 impl<T: FlatType> MemDbgImpl for std::collections::BTreeSet<T> where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>
