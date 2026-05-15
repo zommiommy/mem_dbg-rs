@@ -20,6 +20,10 @@ jobs:
         run: cargo test --no-default-features -- --skip _snapshot
       - name: Run tests with alloc and derive feature
         run: cargo test --no-default-features --features derive -- --skip _snapshot
+      - name: Run no_std + hashbrown tests
+        run: cargo test --no-default-features --features hashbrown -- --skip _snapshot
+      - name: Run all stable features incl. hashbrown
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,hashbrown -- --skip _snapshot
       - name: Run examples
         working-directory: ./mem_dbg
         run: |
@@ -29,8 +33,10 @@ jobs:
         run: cargo clippy -- -D warnings
       - name: Clippy (no default features)
         run: cargo clippy --no-default-features -- -D warnings
+      - name: Clippy (hashbrown only)
+        run: cargo clippy --no-default-features --features hashbrown -- -D warnings
       - name: Clippy (all stable features)
-        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand -- -D warnings
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,hashbrown -- -D warnings
 
   build-nightly:
     runs-on: ubuntu-latest

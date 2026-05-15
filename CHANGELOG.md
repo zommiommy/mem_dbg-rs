@@ -2,7 +2,26 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking**: dropped the `hashbrown` dependency. The pointer-dedup
+  containers used by the `MemSize` / `MemDbg` traits and emitted by the
+  derive macro are now `alloc::collections::BTreeMap<usize, usize>` and
+  `alloc::collections::BTreeSet<usize>`. Any manual `MemSize` /
+  `MemDbgImpl` implementation that named these parameters as
+  `&mut HashMap<usize, usize>` / `&mut HashSet<usize>` (the previous
+  `hashbrown` re-exports) **MUST** be updated. Code that uses
+  `#[derive(MemSize, MemDbg)]` is unaffected.
+
 ### New
+
+- Added optional `hashbrown` feature. When enabled, provides
+  `MemSize`/`MemDbgImpl` implementations for `hashbrown::HashMap<K, V, S>`
+  and `hashbrown::HashSet<T, S>`, sharing the Swiss-table layout math
+  with the `std::collections` impls. `hashbrown` is pulled in only when
+  the feature is on, so non-feature users see no dependency. Lets `no_std`
+  users (where `std::collections::HashMap`/`HashSet` are unavailable)
+  account hash-collection memory.
 
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
   `*mut T`, `std::rc::Weak<T>`, and `std::sync::Weak<T>`. None of these are

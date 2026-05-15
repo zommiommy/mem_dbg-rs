@@ -109,6 +109,10 @@ which however needs the nightly compiler, as it enables the unstable feature
 - `maligned`: support for the [`maligned`] crate.
 - `mmap-rs`: support for the [`mmap-rs`] crate.
 - `rand`: support for the [`rand`] crate.
+- `hashbrown`: support for the [`hashbrown`] crate. Useful in `no_std`
+  builds (where `std::collections::HashMap`/`HashSet` are unavailable);
+  in `std` builds it adds impls for `hashbrown` collections alongside the
+  `std` ones.
 
 ## Examples
 
@@ -366,7 +370,7 @@ impl MemSize for IntOrFloatI {
     fn mem_size_rec(
         &self,
         _flags: SizeFlags,
-        _refs: &mut HashMap<usize, usize>,
+        _refs: &mut BTreeMap<usize, usize>,
     ) -> usize {
         core::mem::size_of::<Self>()
     }
@@ -381,7 +385,7 @@ impl MemDbgImpl for IntOrFloatI {
         prefix: &mut String,
         _is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         unsafe { self.0.i }._mem_dbg_depth_on(
             writer,
@@ -405,7 +409,7 @@ impl MemSize for IntOrFloatF {
     fn mem_size_rec(
         &self,
         _flags: SizeFlags,
-        _refs: &mut HashMap<usize, usize>,
+        _refs: &mut BTreeMap<usize, usize>,
     ) -> usize {
         core::mem::size_of::<Self>()
     }
@@ -420,7 +424,7 @@ impl MemDbgImpl for IntOrFloatF {
         prefix: &mut String,
         _is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         unsafe { self.0.f }._mem_dbg_depth_on(
             writer,
@@ -457,6 +461,7 @@ w.mem_dbg(DbgFlags::empty())?;
 [`mmap-rs`]: https://crates.io/crates/mmap-rs
 [`half`]: https://crates.io/crates/half
 [`rand`]: https://crates.io/crates/rand
+[`hashbrown`]: https://crates.io/crates/hashbrown
 [`Rc`]: https://doc.rust-lang.org/std/rc/struct.Rc.html
 [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 [`DbgFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS

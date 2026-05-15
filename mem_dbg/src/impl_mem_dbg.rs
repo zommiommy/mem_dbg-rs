@@ -10,7 +10,7 @@ use core::marker::PhantomPinned;
 use core::num::*;
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{DbgFlags, FlatType, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
+use crate::{BTreeSet, DbgFlags, FlatType, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
 
 #[cfg(not(feature = "std"))]
 use alloc::borrow::{Cow, ToOwned};
@@ -49,7 +49,7 @@ macro_rules! impl_mem_dbg_for_deref {
             is_last: bool,
             padded_size: usize,
             flags: DbgFlags,
-            dbg_refs: &mut HashSet<usize>,
+            dbg_refs: &mut BTreeSet<usize>,
         ) -> core::fmt::Result {
             if flags.contains(DbgFlags::$flag) {
                 let $self = self;
@@ -106,7 +106,7 @@ macro_rules! impl_mem_dbg_for_deref {
             prefix: &mut String,
             is_last: bool,
             flags: DbgFlags,
-            dbg_refs: &mut HashSet<usize>,
+            dbg_refs: &mut BTreeSet<usize>,
         ) -> core::fmt::Result {
             // Only display inner type when following refs
             if flags.contains(DbgFlags::$flag) {
@@ -182,7 +182,7 @@ impl<B: MemDbgImpl, C: MemDbgImpl> MemDbgImpl for core::ops::ControlFlow<B, C> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         match self {
             core::ops::ControlFlow::Break(b) => b._mem_dbg_rec_on(
@@ -204,7 +204,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::task::Poll<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         match self {
             core::task::Poll::Ready(t) => t._mem_dbg_rec_on(
@@ -224,7 +224,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::ops::Bound<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         match self {
             core::ops::Bound::Included(t) | core::ops::Bound::Excluded(t) => t._mem_dbg_rec_on(
@@ -244,7 +244,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cmp::Reverse<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.0._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -263,7 +263,7 @@ impl<T: ?Sized + MemDbgImpl> MemDbgImpl for Box<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.as_ref()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -315,7 +315,7 @@ impl<P: MemDbgImpl> MemDbgImpl for core::pin::Pin<P> {
         is_last: bool,
         padded_size: usize,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         // SAFETY: `Pin<P>` is `#[repr(transparent)]` over `P`, so `&Pin<P>`
         // and `&P` have identical layout. Taking a shared reference to `P`
@@ -342,7 +342,7 @@ impl<P: MemDbgImpl> MemDbgImpl for core::pin::Pin<P> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         // SAFETY: see `_mem_dbg_depth_on` above.
         let pointer = unsafe { &*(self as *const core::pin::Pin<P> as *const P) };
@@ -446,7 +446,7 @@ macro_rules! impl_tuples_muncher {
                 prefix: &mut String,
                 _is_last: bool,
                 flags: DbgFlags,
-                dbg_refs: &mut HashSet<usize>,
+                dbg_refs: &mut BTreeSet<usize>,
             ) -> core::fmt::Result {
                 // Compute size of tuple minus one for last-field check.
                 let mut _max_idx = $idx;
@@ -523,6 +523,19 @@ impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::HashMap<K, V> wh
 {
 }
 
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType, S> MemDbgImpl for hashbrown::HashSet<K, S> where
+    hashbrown::HashSet<K, S>: crate::impl_mem_size::MemSizeHelper<<K as FlatType>::Flat>
+{
+}
+
+#[cfg(feature = "hashbrown")]
+impl<K: FlatType, V: FlatType, S> MemDbgImpl for hashbrown::HashMap<K, V, S> where
+    hashbrown::HashMap<K, V, S>:
+        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
+{
+}
+
 #[cfg(feature = "std")]
 impl<T: FlatType> MemDbgImpl for std::collections::BTreeSet<T> where
     std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>
@@ -574,7 +587,7 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::Range<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.start._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -594,7 +607,7 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeFrom<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.start._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -611,7 +624,7 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeInclusive<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.start()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -631,7 +644,7 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeTo<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.end._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -648,7 +661,7 @@ impl<Idx: MemDbgImpl> MemDbgImpl for core::ops::RangeToInclusive<Idx> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.end._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -682,7 +695,7 @@ impl crate::MemSize for MutablyBorrowed {
     fn mem_size_rec(
         &self,
         _flags: crate::SizeFlags,
-        _refs: &mut crate::HashMap<usize, usize>,
+        _refs: &mut crate::BTreeMap<usize, usize>,
     ) -> usize {
         0
     }
@@ -699,7 +712,7 @@ impl MemDbgImpl for MutablyBorrowed {
         is_last: bool,
         padded_size: usize,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         // Suppress the type name so the output shows only "<mutably borrowed>".
         self._mem_dbg_depth_on_impl(
@@ -726,7 +739,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         if let Ok(borrow) = self.try_borrow() {
             borrow._mem_dbg_rec_on(
@@ -757,7 +770,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         // SAFETY: we temporarily take a shared reference to the inner value;
         // since &self exists, &mut self cannot exist.
@@ -777,7 +790,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         // SAFETY: we temporarily take a shared reference to the inner value; no
         // concurrent mutation through UnsafeCell::get() can occur during the
@@ -801,7 +814,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -821,7 +834,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.read()
             .unwrap_or_else(|e| e.into_inner())
@@ -840,7 +853,7 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::OnceCell<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.get()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -876,7 +889,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
@@ -899,7 +912,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockReadGuard<'_, T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
@@ -922,7 +935,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         if flags.contains(DbgFlags::FOLLOW_REFS) {
@@ -963,7 +976,7 @@ impl<T: MemDbgImpl + std::io::Read> MemDbgImpl for std::io::BufReader<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.get_ref()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -981,7 +994,7 @@ impl<T: MemDbgImpl + std::io::Write> MemDbgImpl for std::io::BufWriter<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.get_ref()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -999,7 +1012,7 @@ impl<T: MemDbgImpl> MemDbgImpl for std::io::Cursor<T> {
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         self.get_ref()._mem_dbg_rec_on(
             writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
@@ -1032,7 +1045,7 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
         prefix: &mut String,
         is_last: bool,
         flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
+        dbg_refs: &mut BTreeSet<usize>,
     ) -> core::fmt::Result {
         use core::ops::Deref;
         self.deref()._mem_dbg_rec_on(
