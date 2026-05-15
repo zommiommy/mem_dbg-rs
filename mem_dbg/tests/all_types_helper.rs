@@ -10,7 +10,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::*;
 use mem_dbg::*;
 use std::collections::hash_map::{DefaultHasher, RandomState};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
 use std::ffi::{OsStr, OsString};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
@@ -137,6 +137,7 @@ pub struct AllTypesStruct<'a> {
     btree_map: BTreeMap<String, i32>,
     btree_map_copy: BTreeMap<i32, i32>,
     vec_deque: VecDeque<u32>,
+    binary_heap: BinaryHeap<u32>,
 
     // Hash builders
     build_hasher: BuildHasherDefault<DefaultHasher>,
@@ -172,6 +173,7 @@ pub struct AllTypesStruct<'a> {
 
     // Nested VecDeque
     vec_deque_nested: VecDeque<Vec<i32>>,
+    binary_heap_nested: BinaryHeap<Vec<i32>>,
 
     // Guards
     mutex_guard: MutexGuard<'a, i32>,
@@ -235,6 +237,10 @@ where
     btree_map_copy.insert(1, 1);
     let mut vec_deque: VecDeque<u32> = VecDeque::new();
     vec_deque.push_back(10);
+
+    let mut binary_heap: BinaryHeap<u32> = BinaryHeap::new();
+    binary_heap.push(10);
+    binary_heap.push(20);
 
     let once_cell = OnceCell::new();
     once_cell.set("initialized".to_string()).unwrap();
@@ -350,6 +356,7 @@ where
         btree_map,
         btree_map_copy,
         vec_deque,
+        binary_heap,
 
         build_hasher: BuildHasherDefault::<DefaultHasher>::default(),
         random_state: RandomState::new(),
@@ -379,6 +386,7 @@ where
 
         // Nested VecDeque
         vec_deque_nested: VecDeque::from(vec![vec![1, 2], vec![3]]),
+        binary_heap_nested: BinaryHeap::from(vec![vec![1, 2], vec![3]]),
 
         // Guards
         mutex_guard: mutex_source.lock().unwrap(),
