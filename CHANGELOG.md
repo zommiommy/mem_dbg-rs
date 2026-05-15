@@ -28,8 +28,8 @@
   These wrappers only visit the payload variant that is actually present.
 
 - Added generic `MemSize`/`MemDbg` implementations for
-  `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting and traversal
-  policy of `P`.
+  `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting, traversal
+  policy, and shared-reference deduplication markers of `P`.
 
 - Added `MemSize`/`MemDbg` implementations for `std::sync::OnceLock`. It
   uses the same initialized-value accounting as `core::cell::OnceCell`.
@@ -37,7 +37,9 @@
 - Added `MemSize`/`MemDbg` implementations for `Cow<'_, B>`. Borrowed
   values follow reference rules, and owned values use `B::Owned` accounting.
 
-- Added `MemSize`/`MemDbg` implementations for `std::collections::BinaryHeap<T>`. Its accounting follows the same Vec-backed element and capacity rules as `Vec<T>`.
+- Added `MemSize`/`MemDbg` implementations for `BinaryHeap<T>`. Its
+  accounting follows the same Vec-backed element and capacity rules as
+  `Vec<T>`, and is available in both `std` and `no_std + alloc` builds.
 
 ### Improved
 
@@ -47,6 +49,9 @@
   `FILL = B + 1 = 7` items per node. Matches the `cap` allocator within ~1% on
   a 100M-element `BTreeSet<usize>` and stays inside the `test_correctness`
   bounds at every measured size.
+
+- Tuple `MemDbg` rendering now builds its field-offset table on the stack
+  instead of allocating a temporary `Vec` per tuple traversal.
 
 ### Fixed
 
@@ -61,6 +66,9 @@
   `DbgFlags::FOLLOW_REFS` and silently dropped all children under default flags
   - while `MemSize` always recursed.
 
+- Manual `MemDbgImpl` implementations that pass a too-small `padded_size`
+  no longer panic in debug builds while rendering padding; the subtraction
+  now saturates instead.
 
 ## [0.4.1] - 2026-03-25
 
