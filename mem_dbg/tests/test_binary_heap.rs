@@ -80,13 +80,19 @@ fn test_binary_heap_with_heap_elements_capacity() {
 fn test_binary_heap_mem_dbg() {
     let mut heap = BinaryHeap::new();
     heap.push(100_u32);
-    let mut output = String::new();
+    let expected_size = heap.mem_size(SizeFlags::default());
 
     for depth in 0..3 {
-        output.clear();
+        let mut output = String::new();
+        heap.mem_dbg_depth_on(&mut output, depth, DbgFlags::default())
+            .expect("mem_dbg_depth_on should not fail");
         assert!(
-            heap.mem_dbg_depth_on(&mut output, depth, DbgFlags::default())
-                .is_ok()
+            output.contains("BinaryHeap"),
+            "output at depth {depth} missing type name: {output:?}"
+        );
+        assert!(
+            output.contains(&expected_size.to_string()),
+            "output at depth {depth} missing total size {expected_size}: {output:?}"
         );
     }
 }
