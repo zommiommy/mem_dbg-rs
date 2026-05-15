@@ -70,7 +70,7 @@ expression: depth_output
     16 B   0.03% ├╴ref_cell: core::cell::RefCell<i32>
      4 B   0.01% ├╴unsafe_cell: core::cell::UnsafeCell<i32>
     35 B   0.06% ├╴once_cell: core::cell::once::OnceCell<alloc::string::String>
-    12 B   0.02% ├╴mutex: std::sync::poison::mutex::Mutex<i32>
+    16 B   0.03% ├╴mutex: std::sync::poison::mutex::Mutex<i32>
     46 B   0.07% ├╴rw_lock: std::sync::poison::rwlock::RwLock<alloc::string::String>
     76 B   0.12% ├╴hash_set: std::collections::hash::set::HashSet<i32>
    157 B   0.25% ├╴hash_set_str: std::collections::hash::set::HashSet<alloc::string::String>
@@ -82,7 +82,7 @@ expression: depth_output
    128 B   0.20% ├╴btree_map_copy: alloc::collections::btree::map::BTreeMap<i32, i32>
     36 B   0.06% ├╴vec_deque: alloc::collections::vec_deque::VecDeque<u32>
     32 B   0.05% ├╴binary_heap: alloc::collections::binary_heap::BinaryHeap<u32>
-     0 B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [14B]
+     0 B   0.00% ├╴build_hasher: core::hash::BuildHasherDefault<std::hash::random::DefaultHasher> [10B]
     16 B   0.03% ├╴random_state: std::hash::random::RandomState
     33 B   0.05% ├╴path_buf: std::path::PathBuf
     25 B   0.04% ├╴path: &std::path::Path @ 0x[ADDR_3]

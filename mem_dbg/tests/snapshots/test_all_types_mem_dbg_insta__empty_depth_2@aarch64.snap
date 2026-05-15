@@ -91,7 +91,7 @@ expression: depth_output
    16 B ├╴ref_cell
     4 B ├╴unsafe_cell
    35 B ├╴once_cell
-   12 B ├╴mutex
+   16 B ├╴mutex
    46 B ├╴rw_lock
    76 B ├╴hash_set
   157 B ├╴hash_set_str
@@ -103,7 +103,7 @@ expression: depth_output
   128 B ├╴btree_map_copy
    36 B ├╴vec_deque
    32 B ├╴binary_heap
-    0 B ├╴build_hasher [14B]
+    0 B ├╴build_hasher [10B]
    16 B ├╴random_state
    33 B ├╴path_buf
    16 B ├╴path
