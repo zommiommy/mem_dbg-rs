@@ -1117,17 +1117,19 @@ impl MemSize for mmap_rs::MmapMut {
 // Group width for Swiss Tables, matching the stdlib's vendored hashbrown.
 // stdlib currently uses SSE2 SIMD on x86/x86_64 (16-byte groups) and the
 // generic (8-byte) implementation everywhere else, including aarch64+NEON
-// — verified by the allocator-vs-formula assertions in test_correctness.rs.
+// (hashbrown's NEON `Group` is `uint8x8_t`, still 8 bytes). Byte-exact
+// mirror in tests/test_hash_collections.rs; cap-allocator cross-check
+// within tolerance in tests/test_correctness.rs.
 #[cfg(feature = "std")]
 #[cfg(all(
     any(target_arch = "x86_64", target_arch = "x86"),
-    any(target_feature = "sse2", target_env = "msvc")
+    any(target_feature = "sse2", target_env = "msvc"),
 ))]
 const GROUP_WIDTH: usize = 16;
 #[cfg(feature = "std")]
 #[cfg(not(all(
     any(target_arch = "x86_64", target_arch = "x86"),
-    any(target_feature = "sse2", target_env = "msvc")
+    any(target_feature = "sse2", target_env = "msvc"),
 )))]
 const GROUP_WIDTH: usize = 8;
 
