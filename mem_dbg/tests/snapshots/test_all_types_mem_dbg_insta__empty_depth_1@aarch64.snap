@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-59687 B ⏺
+59803 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -70,7 +70,7 @@ expression: depth_output
    16 B ├╴ref_cell
     4 B ├╴unsafe_cell
    35 B ├╴once_cell
-   16 B ├╴mutex
+   12 B ├╴mutex
    46 B ├╴rw_lock
    76 B ├╴hash_set
   157 B ├╴hash_set_str
@@ -81,7 +81,8 @@ expression: depth_output
   352 B ├╴btree_map
   128 B ├╴btree_map_copy
    36 B ├╴vec_deque
-    0 B ├╴build_hasher [10B]
+   32 B ├╴binary_heap
+    0 B ├╴build_hasher [14B]
    16 B ├╴random_state
    33 B ├╴path_buf
    16 B ├╴path
@@ -100,6 +101,7 @@ expression: depth_output
     8 B ├╴arc
     8 B ├╴rc
    92 B ├╴vec_deque_nested
+   84 B ├╴binary_heap_nested
    16 B ├╴mutex_guard
    16 B ├╴rw_lock_read_guard
    16 B ├╴rw_lock_write_guard
