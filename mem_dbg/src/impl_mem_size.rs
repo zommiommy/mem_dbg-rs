@@ -18,13 +18,13 @@ use crate::{Boolean, False, FlatType, HashMap, MemSize, SizeFlags, True};
 #[cfg(not(feature = "std"))]
 use alloc::borrow::{Cow, ToOwned};
 #[cfg(not(feature = "std"))]
-use alloc::collections::VecDeque;
+use alloc::collections::{BinaryHeap, VecDeque};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::borrow::{Cow, ToOwned};
 #[cfg(feature = "std")]
-use std::collections::VecDeque;
+use std::collections::{BinaryHeap, VecDeque};
 
 /// A basic implementation using [`core::mem::size_of`], setting
 /// [`FlatType::Flat`] to the specified type ([`True`] or [`False`]).
@@ -544,25 +544,20 @@ impl<T: FlatType + MemSize> MemSizeHelper<False> for Vec<T> {
 // BinaryHeap is Vec-backed, so it follows the same element and capacity rules
 // as Vec.
 
-#[cfg(feature = "std")]
-impl<T> FlatType for std::collections::BinaryHeap<T> {
+impl<T> FlatType for BinaryHeap<T> {
     type Flat = False;
 }
 
-#[cfg(feature = "std")]
-impl<T: FlatType> MemSize for std::collections::BinaryHeap<T>
+impl<T: FlatType> MemSize for BinaryHeap<T>
 where
-    std::collections::BinaryHeap<T>: MemSizeHelper<<T as FlatType>::Flat>,
+    BinaryHeap<T>: MemSizeHelper<<T as FlatType>::Flat>,
 {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::BinaryHeap<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
-            self, flags, refs,
-        )
+        <BinaryHeap<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
     }
 }
 
-#[cfg(feature = "std")]
-impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BinaryHeap<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<True> for BinaryHeap<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
@@ -574,8 +569,7 @@ impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BinaryHeap
     }
 }
 
-#[cfg(feature = "std")]
-impl<T: FlatType + MemSize> MemSizeHelper<False> for std::collections::BinaryHeap<T> {
+impl<T: FlatType + MemSize> MemSizeHelper<False> for BinaryHeap<T> {
     #[inline(always)]
     fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
