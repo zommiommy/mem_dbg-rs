@@ -18,13 +18,13 @@ use crate::{Boolean, False, FlatType, HashMap, MemSize, SizeFlags, True};
 #[cfg(not(feature = "std"))]
 use alloc::borrow::{Cow, ToOwned};
 #[cfg(not(feature = "std"))]
-use alloc::collections::{BinaryHeap, VecDeque};
+use alloc::collections::{BinaryHeap, LinkedList, VecDeque};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::borrow::{Cow, ToOwned};
 #[cfg(feature = "std")]
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::{BinaryHeap, LinkedList, VecDeque};
 
 /// A basic implementation using [`core::mem::size_of`], setting
 /// [`FlatType::Flat`] to the specified type ([`True`] or [`False`]).
@@ -625,6 +625,86 @@ impl<T: FlatType + MemSize> MemSizeHelper<False> for VecDeque<T> {
             } else {
                 0
             }
+    }
+}
+
+// LinkedList allocates one node per element, with no reserved spare capacity,
+// so `SizeFlags::CAPACITY` is equivalent to the default for this container.
+
+/// Layout-equivalent mirror of the private `Node<T>` struct that
+/// [`LinkedList<T>`](alloc::collections::LinkedList) heap-allocates for each
+/// element. Field types, field order, and `repr` match the standard-library
+/// definition:
+///
+/// ```ignore
+/// struct Node<T> {
+///     next: Option<NonNull<Node<T>>>,
+///     prev: Option<NonNull<Node<T>>>,
+///     element: T,
+/// }
+/// ```
+///
+/// # Why this type exists
+///
+/// The [`MemSize`] impl for `LinkedList<T>` needs the per-node heap size,
+/// which is `size_of::<Node<T>>()`. `Node<T>` is `pub(crate)` in `std`, so
+/// we cannot name it.
+///
+/// A hand-rolled formula like `2 * size_of::<usize>() + size_of::<T>()` is
+/// wrong whenever `align_of::<T>() > align_of::<usize>()`: the compiler
+/// inserts padding before `T` and rounds the total size up to a multiple of
+/// `align_of::<T>()`. For `T` with `align(32)` and `size_of::<T>() == 32`
+/// the formula reports 48 bytes against an actual 64.
+///
+/// A mirror struct with the same field types and order sidesteps this. The
+/// compiler applies its default-`repr` layout rules identically to both, so
+/// `size_of::<LinkedListNode<T>>()` matches `size_of::<Node<T>>()` for any
+/// `T`. The same pattern is used for `Rc<T>` and `Arc<T>` (see `RcInner`
+/// and `ArcInner`).
+///
+/// # Stability
+///
+/// Re-exported through [`crate::LinkedListNode`] only so integration tests
+/// can compute expected sizes against the same definition. Not part of the
+/// stable public API. If a future standard-library release changes the
+/// `LinkedList` node layout, this type must be updated to match.
+#[doc(hidden)]
+pub struct LinkedListNode<T> {
+    _next: Option<core::ptr::NonNull<LinkedListNode<T>>>,
+    _prev: Option<core::ptr::NonNull<LinkedListNode<T>>>,
+    _element: T,
+}
+
+impl<T> FlatType for LinkedList<T> {
+    type Flat = False;
+}
+
+impl<T: FlatType> MemSize for LinkedList<T>
+where
+    LinkedList<T>: MemSizeHelper<<T as FlatType>::Flat>,
+{
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <LinkedList<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
+    }
+}
+
+impl<T: FlatType + MemSize> MemSizeHelper<True> for LinkedList<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<LinkedListNode<T>>()
+    }
+}
+
+impl<T: FlatType + MemSize> MemSizeHelper<False> for LinkedList<T> {
+    #[inline(always)]
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let per_node_overhead =
+            core::mem::size_of::<LinkedListNode<T>>() - core::mem::size_of::<T>();
+        core::mem::size_of::<Self>()
+            + self
+                .iter()
+                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) + per_node_overhead)
+                .sum::<usize>()
     }
 }
 
