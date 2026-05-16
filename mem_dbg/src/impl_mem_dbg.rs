@@ -15,13 +15,13 @@ use crate::{DbgFlags, FlatType, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::
 #[cfg(not(feature = "std"))]
 use alloc::borrow::{Cow, ToOwned};
 #[cfg(not(feature = "std"))]
-use alloc::collections::{BinaryHeap, VecDeque};
+use alloc::collections::{BinaryHeap, LinkedList, VecDeque};
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::borrow::{Cow, ToOwned};
 #[cfg(feature = "std")]
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::{BinaryHeap, LinkedList, VecDeque};
 
 /// Implements [`MemDbg`](crate::MemDbg) using the default implementation of
 /// [`MemDbgImpl`].
@@ -466,6 +466,13 @@ impl<T: FlatType + MemDbgImpl> MemDbgImpl for BinaryHeap<T> where
 
 impl<T: FlatType + MemDbgImpl> MemDbgImpl for VecDeque<T> where
     VecDeque<T>: MemSizeHelper<<T as FlatType>::Flat>
+{
+}
+
+// LinkedList
+
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for LinkedList<T> where
+    LinkedList<T>: MemSizeHelper<<T as FlatType>::Flat>
 {
 }
 
