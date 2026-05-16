@@ -1368,6 +1368,143 @@ impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
     }
 }
 
+// dashmap support. A `DashMap<K, V, S>` is a `Box<[CachePadded<RwLock<HashMap<K,
+// SharedValue<V>, S>>>]>` (hashbrown internally). We acquire a read lock on
+// each shard sequentially (never multiple at once) and reuse the Swiss-Table
+// overhead math above per shard. `SharedValue<V>` is `#[repr(transparent)]` over
+// `V`, so its `size_of` matches `V`.
+
+#[cfg(feature = "dashmap")]
+impl<K, V, S> FlatType for dashmap::DashMap<K, V, S> {
+    type Flat = False;
+}
+
+#[cfg(feature = "dashmap")]
+impl<K: FlatType, V: FlatType, S> MemSize for dashmap::DashMap<K, V, S>
+where
+    dashmap::DashMap<K, V, S>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
+{
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        <dashmap::DashMap<K, V, S> as MemSizeHelper2<
+            <K as FlatType>::Flat,
+            <V as FlatType>::Flat,
+        >>::mem_size_impl(self, flags, refs)
+    }
+}
+
+#[cfg(feature = "dashmap")]
+fn dashmap_shard_overhead<K, V>(shard_len: usize, shard_cap_for_flag: usize) -> usize {
+    let buckets = capacity_to_buckets(shard_cap_for_flag).unwrap_or(usize::MAX);
+    (buckets - shard_len) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
+        + buckets * core::mem::size_of::<u8>()
+        + if buckets > 0 { GROUP_WIDTH } else { 0 }
+}
+
+#[cfg(feature = "dashmap")]
+impl<K: FlatType + MemSize + Eq + core::hash::Hash, V: FlatType + MemSize, S: core::hash::BuildHasher + Clone> MemSizeHelper2<True, True>
+    for dashmap::DashMap<K, V, S>
+{
+    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        let mut total = core::mem::size_of::<Self>();
+        for shard in self.shards() {
+            total += core::mem::size_of_val(shard);
+            let guard = shard.read();
+            let cap = if flags.contains(SizeFlags::CAPACITY) {
+                guard.capacity()
+            } else {
+                guard.len()
+            };
+            total += (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * guard.len()
+                + dashmap_shard_overhead::<K, V>(guard.len(), cap);
+        }
+        total
+    }
+}
+
+#[cfg(feature = "dashmap")]
+impl<K: FlatType + MemSize + Eq + core::hash::Hash, V: FlatType + MemSize, S: core::hash::BuildHasher + Clone> MemSizeHelper2<True, False>
+    for dashmap::DashMap<K, V, S>
+{
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let mut total = core::mem::size_of::<Self>();
+        for shard in self.shards() {
+            total += core::mem::size_of_val(shard);
+            let guard = shard.read();
+            let cap = if flags.contains(SizeFlags::CAPACITY) {
+                guard.capacity()
+            } else {
+                guard.len()
+            };
+            // SAFETY: bucket pointers obtained from RawTable::iter() under a
+            // read lock are valid until the lock is released; we deref before
+            // moving on to the next bucket.
+            let entries = core::mem::size_of::<K>() * guard.len()
+                + unsafe { guard.iter() }
+                    .map(|b| {
+                        let (_, v) = unsafe { b.as_ref() };
+                        <V as MemSize>::mem_size_rec(v.get(), flags, refs)
+                    })
+                    .sum::<usize>();
+            total += entries + dashmap_shard_overhead::<K, V>(guard.len(), cap);
+        }
+        total
+    }
+}
+
+#[cfg(feature = "dashmap")]
+impl<K: FlatType + MemSize + Eq + core::hash::Hash, V: FlatType + MemSize, S: core::hash::BuildHasher + Clone> MemSizeHelper2<False, True>
+    for dashmap::DashMap<K, V, S>
+{
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let mut total = core::mem::size_of::<Self>();
+        for shard in self.shards() {
+            total += core::mem::size_of_val(shard);
+            let guard = shard.read();
+            let cap = if flags.contains(SizeFlags::CAPACITY) {
+                guard.capacity()
+            } else {
+                guard.len()
+            };
+            let entries = unsafe { guard.iter() }
+                .map(|b| {
+                    let (k, _) = unsafe { b.as_ref() };
+                    <K as MemSize>::mem_size_rec(k, flags, refs)
+                })
+                .sum::<usize>()
+                + core::mem::size_of::<V>() * guard.len();
+            total += entries + dashmap_shard_overhead::<K, V>(guard.len(), cap);
+        }
+        total
+    }
+}
+
+#[cfg(feature = "dashmap")]
+impl<K: FlatType + MemSize + Eq + core::hash::Hash, V: FlatType + MemSize, S: core::hash::BuildHasher + Clone> MemSizeHelper2<False, False>
+    for dashmap::DashMap<K, V, S>
+{
+    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        let mut total = core::mem::size_of::<Self>();
+        for shard in self.shards() {
+            total += core::mem::size_of_val(shard);
+            let guard = shard.read();
+            let cap = if flags.contains(SizeFlags::CAPACITY) {
+                guard.capacity()
+            } else {
+                guard.len()
+            };
+            let entries = unsafe { guard.iter() }
+                .map(|b| {
+                    let (k, v) = unsafe { b.as_ref() };
+                    <K as MemSize>::mem_size_rec(k, flags, refs)
+                        + <V as MemSize>::mem_size_rec(v.get(), flags, refs)
+                })
+                .sum::<usize>();
+            total += entries + dashmap_shard_overhead::<K, V>(guard.len(), cap);
+        }
+        total
+    }
+}
+
 /// Estimates the heap-allocated memory of a BTree-based container.
 ///
 /// The standard library's `BTreeMap` and `BTreeSet` use a B-Tree with a
