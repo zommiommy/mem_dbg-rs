@@ -2,7 +2,7 @@
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
 expression: depth_output
 ---
-63.17 kB 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct<'_>
+63.17 kB 100.00% ⏺: test_all_types_mem_dbg_insta::all_types_helper::AllTypesStruct
     0  B   0.00% ├╴unit: ()
     1  B   0.00% ├╴boolean: bool
     4  B   0.01% ├╴character: char
@@ -125,9 +125,9 @@ expression: depth_output
    92  B   0.15% ├╴vec_deque_nested: alloc::collections::vec_deque::VecDeque<alloc::vec::Vec<i32>>
    84  B   0.13% ├╴binary_heap_nested: alloc::collections::binary_heap::BinaryHeap<alloc::vec::Vec<i32>>
   116  B   0.18% ├╴linked_list_nested: alloc::collections::linked_list::LinkedList<alloc::vec::Vec<i32>>
-   16  B   0.03% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<'_, i32>
-   16  B   0.03% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<'_, alloc::string::String>
-   16  B   0.03% ├╴rw_lock_write_guard: std::sync::poison::rwlock::RwLockWriteGuard<'_, alloc::string::String>
+   16  B   0.03% ├╴mutex_guard: std::sync::poison::mutex::MutexGuard<i32>
+   16  B   0.03% ├╴rw_lock_read_guard: std::sync::poison::rwlock::RwLockReadGuard<alloc::string::String>
+   16  B   0.03% ├╴rw_lock_write_guard: std::sync::poison::rwlock::RwLockWriteGuard<alloc::string::String>
    48  B   0.08% ├╴hash_set_empty: std::collections::hash::set::HashSet<i32>
   704  B   1.11% ├╴hash_set_100: std::collections::hash::set::HashSet<i32>
    48  B   0.08% ├╴hash_map_empty: std::collections::hash::map::HashMap<i32, i32>
