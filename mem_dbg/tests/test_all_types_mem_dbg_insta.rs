@@ -30,6 +30,17 @@ fn redact_addresses(s: &str) -> String {
     .to_string()
 }
 
+/// Normalize type-name rendering that changed across Rust toolchains.
+fn normalize_type_names(s: String) -> String {
+    s.replace(
+        "all_types_helper::AllTypesStruct<'_>",
+        "all_types_helper::AllTypesStruct",
+    )
+    .replace("MutexGuard<'_, ", "MutexGuard<")
+    .replace("RwLockReadGuard<'_, ", "RwLockReadGuard<")
+    .replace("RwLockWriteGuard<'_, ", "RwLockWriteGuard<")
+}
+
 #[test]
 #[cfg_attr(miri, ignore)] // too slow under miri
 fn test_all_types_mem_dbg_snapshot() {
@@ -57,7 +68,7 @@ fn test_all_types_mem_dbg_snapshot() {
                 .expect("mem_dbg_on failed");
             output
         });
-        let output = redact_addresses(&output);
+        let output = normalize_type_names(redact_addresses(&output));
         with_settings!({snapshot_suffix => snapshot_suffix}, {
             assert_snapshot!(name, output);
         });
@@ -69,7 +80,7 @@ fn test_all_types_mem_dbg_snapshot() {
                     .expect("mem_dbg_depth_on failed");
                 output
             });
-            let depth_output = redact_addresses(&depth_output);
+            let depth_output = normalize_type_names(redact_addresses(&depth_output));
             with_settings!({snapshot_suffix => snapshot_suffix}, {
                 assert_snapshot!(format!("{name}_depth_{depth}"), depth_output);
             });
