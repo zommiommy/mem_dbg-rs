@@ -27,8 +27,8 @@ pub use mem_dbg_derive::{MemDbg, MemSize};
 mod impl_mem_dbg;
 mod impl_mem_size;
 
-/// Layout-equivalent mirror of the private internal node `LinkedList<T>`
-/// heap-allocates per element. Re-exposed so integration tests can compute
+/// Layout-equivalent mirror of the private internal node that `LinkedList<T>`
+/// heap-allocates per element. Re-exported so integration tests can compute
 /// expected sizes against the same definition. Not part of the stable
 /// public API. See the type's documentation for details.
 #[doc(hidden)]
