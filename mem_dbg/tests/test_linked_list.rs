@@ -86,20 +86,73 @@ fn test_linked_list_aligned_element_node_size() {
 }
 
 #[test]
+fn test_linked_list_with_aligned_heap_elements() {
+    // Exercise the non-flat helper path when the element alignment exceeds
+    // pointer alignment, so node padding is part of the per-node overhead.
+    #[repr(align(32))]
+    #[derive(Clone)]
+    #[allow(dead_code)]
+    struct AlignedHeap {
+        data: Vec<u8>,
+    }
+
+    impl FlatType for AlignedHeap {
+        type Flat = False;
+    }
+    impl MemSize for AlignedHeap {
+        fn mem_size_rec(
+            &self,
+            flags: SizeFlags,
+            refs: &mut mem_dbg::HashMap<usize, usize>,
+        ) -> usize {
+            core::mem::size_of::<Self>()
+                + (<Vec<u8> as MemSize>::mem_size_rec(&self.data, flags, refs)
+                    - core::mem::size_of::<Vec<u8>>())
+        }
+    }
+
+    let mut l: LinkedList<AlignedHeap> = LinkedList::new();
+    l.push_back(AlignedHeap {
+        data: vec![1, 2, 3],
+    });
+    l.push_back(AlignedHeap {
+        data: vec![4, 5, 6, 7],
+    });
+
+    let per_node_overhead =
+        core::mem::size_of::<LinkedListNode<AlignedHeap>>() - core::mem::size_of::<AlignedHeap>();
+    let mut refs = mem_dbg::HashMap::new();
+    let inner: usize = l
+        .iter()
+        .map(|x| {
+            <AlignedHeap as MemSize>::mem_size_rec(x, SizeFlags::default(), &mut refs)
+                + per_node_overhead
+        })
+        .sum();
+    assert_eq!(
+        l.mem_size(SizeFlags::default()),
+        core::mem::size_of::<LinkedList<AlignedHeap>>() + inner
+    );
+}
+
+#[test]
 fn test_linked_list_mem_dbg() {
     let mut l: LinkedList<u32> = LinkedList::new();
     l.push_back(1);
     l.push_back(2);
-    l.mem_dbg(DbgFlags::default()).unwrap();
-}
-
-#[test]
-fn test_linked_list_mem_dbg_depth() {
-    let mut l: LinkedList<u32> = LinkedList::new();
-    l.push_back(1);
+    let expected_size = l.mem_size(SizeFlags::default());
 
     for depth in 0..3 {
-        let result = l.mem_dbg_depth(depth, DbgFlags::default());
-        assert!(result.is_ok());
+        let mut output = String::new();
+        l.mem_dbg_depth_on(&mut output, depth, DbgFlags::default())
+            .expect("mem_dbg_depth_on should not fail");
+        assert!(
+            output.contains("LinkedList"),
+            "output at depth {depth} missing type name: {output:?}"
+        );
+        assert!(
+            output.contains(&expected_size.to_string()),
+            "output at depth {depth} missing total size {expected_size}: {output:?}"
+        );
     }
 }

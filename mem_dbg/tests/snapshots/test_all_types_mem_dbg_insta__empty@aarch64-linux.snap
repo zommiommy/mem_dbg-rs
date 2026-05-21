@@ -1,8 +1,8 @@
 ---
 source: mem_dbg/tests/test_all_types_mem_dbg_insta.rs
-expression: depth_output
+expression: output
 ---
-62915 B ⏺
+63103 B ⏺
     0 B ├╴unit
     1 B ├╴boolean
     4 B ├╴character
@@ -58,19 +58,40 @@ expression: depth_output
    28 B ├╴slice
    42 B ├╴slice_str
    38 B ├╴tuple2
+    4 B │ ├╴0 [4B]
+   30 B │ ╰╴1
    43 B ├╴tuple3
+    4 B │ ├╴0 [4B]
+   27 B │ ├╴1
+    8 B │ ╰╴2
    43 B ├╴tuple4
+    4 B │ ├╴0
+   27 B │ ├╴1
+    8 B │ ├╴2
+    1 B │ ╰╴3 [3B]
    43 B ├╴tuple5
+    4 B │ ├╴0
+   27 B │ ├╴1
+    8 B │ ├╴2
+    1 B │ ├╴3
+    1 B │ ╰╴4 [2B]
    16 B ├╴range
+    8 B │ ├╴start
+    8 B │ ╰╴end
     8 B ├╴range_from
+    8 B │ ╰╴start
    24 B ├╴range_inclusive
+    8 B │ ├╴start
+    8 B │ ╰╴end
     8 B ├╴range_to
+    8 B │ ╰╴end
     8 B ├╴range_to_inclusive
+    8 B │ ╰╴end
     4 B ├╴cell
    16 B ├╴ref_cell
     4 B ├╴unsafe_cell
    35 B ├╴once_cell
-   16 B ├╴mutex
+   12 B ├╴mutex
    46 B ├╴rw_lock
    76 B ├╴hash_set
   157 B ├╴hash_set_str
@@ -82,7 +103,8 @@ expression: depth_output
   128 B ├╴btree_map_copy
    36 B ├╴vec_deque
    32 B ├╴binary_heap
-    0 B ├╴build_hasher [10B]
+   72 B ├╴linked_list
+    0 B ├╴build_hasher [14B]
    16 B ├╴random_state
    33 B ├╴path_buf
    16 B ├╴path
@@ -102,6 +124,7 @@ expression: depth_output
     8 B ├╴rc
    92 B ├╴vec_deque_nested
    84 B ├╴binary_heap_nested
+  116 B ├╴linked_list_nested
    16 B ├╴mutex_guard
    16 B ├╴rw_lock_read_guard
    16 B ├╴rw_lock_write_guard

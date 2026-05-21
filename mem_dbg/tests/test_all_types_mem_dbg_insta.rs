@@ -41,9 +41,13 @@ fn test_all_types_mem_dbg_snapshot() {
         ("follow_refs", DbgFlags::default() | DbgFlags::FOLLOW_REFS),
     ];
 
-    // Use architecture-specific snapshots since memory sizes differ
-    // (e.g., GROUP_WIDTH is 16 on x86_64 with SSE2, 8 on ARM64)
-    let arch = std::env::consts::ARCH;
+    // Use target-specific snapshots since memory sizes differ by architecture
+    // and aarch64 differs between Linux and Darwin.
+    let snapshot_suffix = match (std::env::consts::ARCH, std::env::consts::OS) {
+        ("aarch64", "linux") => "aarch64-linux",
+        ("aarch64", "macos") => "aarch64-darwin",
+        (arch, _) => arch,
+    };
 
     for (name, flags) in combinations {
         let output = run_all_types_test(|all_types| {
@@ -54,7 +58,7 @@ fn test_all_types_mem_dbg_snapshot() {
             output
         });
         let output = redact_addresses(&output);
-        with_settings!({snapshot_suffix => arch}, {
+        with_settings!({snapshot_suffix => snapshot_suffix}, {
             assert_snapshot!(name, output);
         });
         for depth in 0..3 {
@@ -66,7 +70,7 @@ fn test_all_types_mem_dbg_snapshot() {
                 output
             });
             let depth_output = redact_addresses(&depth_output);
-            with_settings!({snapshot_suffix => arch}, {
+            with_settings!({snapshot_suffix => snapshot_suffix}, {
                 assert_snapshot!(format!("{name}_depth_{depth}"), depth_output);
             });
         }
