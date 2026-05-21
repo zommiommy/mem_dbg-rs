@@ -658,10 +658,12 @@ impl<T: FlatType + MemSize> MemSizeHelper<False> for VecDeque<T> {
 /// the formula reports 48 bytes against an actual 64.
 ///
 /// A mirror struct with the same field types and order sidesteps this. The
-/// compiler applies its default-`repr` layout rules identically to both, so
+/// default Rust representation is not formally specified across distinct
+/// type definitions, but rustc's current layout algorithm is deterministic
+/// for two structs with identical field types in identical order, so
 /// `size_of::<LinkedListNode<T>>()` matches `size_of::<Node<T>>()` for any
-/// `T`. The same pattern is used for `Rc<T>` and `Arc<T>` (see `RcInner`
-/// and `ArcInner`).
+/// `T`. We accept this implementation detail, same as the `RcInner` and
+/// `ArcInner` mirrors used for `Rc<T>` and `Arc<T>`.
 ///
 /// # Stability
 ///
