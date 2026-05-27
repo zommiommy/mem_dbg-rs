@@ -1157,8 +1157,18 @@ impl<T: MemDbgImpl> MemDbgImpl for parking_lot::Mutex<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.lock()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        // Dispatch directly to `T`'s `_mem_dbg_rec_on`. Going through the
+        // `MutexGuard<T>` impl would pick the FOLLOW_REFS-gated guard impl and
+        // silently drop children under default flags (mirrors std Mutex/RwLock).
+        <T as MemDbgImpl>::_mem_dbg_rec_on(
+            &*self.lock(),
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            is_last,
+            flags,
+            dbg_refs,
         )
     }
 }
@@ -1175,8 +1185,16 @@ impl<T: MemDbgImpl> MemDbgImpl for parking_lot::RwLock<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        self.read()._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        // Dispatch directly to `T`'s `_mem_dbg_rec_on`; see `Mutex<T>` above.
+        <T as MemDbgImpl>::_mem_dbg_rec_on(
+            &*self.read(),
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            is_last,
+            flags,
+            dbg_refs,
         )
     }
 }
