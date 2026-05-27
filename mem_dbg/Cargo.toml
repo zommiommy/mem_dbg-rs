@@ -48,6 +48,10 @@ criterion = "0.8"
 default = ["std", "derive"]
 std = []
 derive = ["mem_dbg-derive"]
+# DashMap is not no_std and the impls reuse the std-gated Swiss-table
+# machinery (MemSizeHelper2, capacity_to_buckets, GROUP_WIDTH), so the
+# feature requires `std`.
+dashmap = ["std", "dep:dashmap"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
 [[example]]
