@@ -110,7 +110,8 @@ which however needs the nightly compiler, as it enables the unstable feature
 - `mmap-rs`: support for the [`mmap-rs`] crate.
 - `rand`: support for the [`rand`] crate.
 - `aliasable`: support for the [`aliasable`] crate.
-- `maybe_dangling`: support for the [`maybe-dangling`] crate.
+- `maybe_dangling`: support for the [`maybe-dangling`] crate (but [`SizeFlags::CAPACITY`]
+  is a no-op).
 
 ## Examples
 
@@ -467,6 +468,7 @@ w.mem_dbg(DbgFlags::empty())?;
 [`DbgFlags::FOLLOW_RCS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_RCS
 [`SizeFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_REFS
 [`SizeFlags::FOLLOW_RCS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.FOLLOW_RCS
+[`SizeFlags::CAPACITY`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.SizeFlags.html#associatedconstant.CAPACITY
 [`HashSet`]: https://doc.rust-lang.org/std/collections/struct.HashSet.html
 [`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
