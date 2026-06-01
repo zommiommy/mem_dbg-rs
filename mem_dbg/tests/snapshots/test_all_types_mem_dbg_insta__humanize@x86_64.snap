@@ -20,17 +20,17 @@ expression: output
     8  B   0.01% ├╴i64_val: i64
    16  B   0.03% ├╴i128_val: i128
     8  B   0.01% ├╴isize_val: isize
-    1  B   0.00% ├╴atomic_bool: core::sync::atomic::AtomicBool
-    1  B   0.00% ├╴atomic_i8: core::sync::atomic::AtomicI8
-    2  B   0.00% ├╴atomic_i16: core::sync::atomic::AtomicI16
-    4  B   0.01% ├╴atomic_i32: core::sync::atomic::AtomicI32
-    8  B   0.01% ├╴atomic_i64: core::sync::atomic::AtomicI64
-    8  B   0.01% ├╴atomic_isize: core::sync::atomic::AtomicIsize
-    1  B   0.00% ├╴atomic_u8: core::sync::atomic::AtomicU8
-    2  B   0.00% ├╴atomic_u16: core::sync::atomic::AtomicU16
-    4  B   0.01% ├╴atomic_u32: core::sync::atomic::AtomicU32
-    8  B   0.01% ├╴atomic_u64: core::sync::atomic::AtomicU64
-    8  B   0.01% ├╴atomic_usize: core::sync::atomic::AtomicUsize
+    1  B   0.00% ├╴atomic_bool: core::sync::atomic::Atomic<bool>
+    1  B   0.00% ├╴atomic_i8: core::sync::atomic::Atomic<i8>
+    2  B   0.00% ├╴atomic_i16: core::sync::atomic::Atomic<i16>
+    4  B   0.01% ├╴atomic_i32: core::sync::atomic::Atomic<i32>
+    8  B   0.01% ├╴atomic_i64: core::sync::atomic::Atomic<i64>
+    8  B   0.01% ├╴atomic_isize: core::sync::atomic::Atomic<isize>
+    1  B   0.00% ├╴atomic_u8: core::sync::atomic::Atomic<u8>
+    2  B   0.00% ├╴atomic_u16: core::sync::atomic::Atomic<u16>
+    4  B   0.01% ├╴atomic_u32: core::sync::atomic::Atomic<u32>
+    8  B   0.01% ├╴atomic_u64: core::sync::atomic::Atomic<u64>
+    8  B   0.01% ├╴atomic_usize: core::sync::atomic::Atomic<usize>
     1  B   0.00% ├╴nz_i8: core::num::nonzero::NonZero<i8>
     2  B   0.00% ├╴nz_i16: core::num::nonzero::NonZero<i16>
     4  B   0.01% ├╴nz_i32: core::num::nonzero::NonZero<i32>
