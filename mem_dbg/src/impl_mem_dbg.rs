@@ -1176,3 +1176,70 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
 
 #[cfg(feature = "half")]
 impl_mem_dbg!(half::f16, half::bf16);
+
+// aliasable crate
+//
+// Debug traversal mirrors each wrapper's core/alloc twin: AliasableBox forwards
+// into its pointee like Box; AliasableVec and AliasableString use the default
+// leaf traversal like Vec and String; AliasableMut follows its pointee under
+// FOLLOW_REFS with deduplication, like &mut T.
+#[cfg(feature = "aliasable")]
+mod aliasable {
+    use super::*;
+    use ::aliasable::AliasableMut;
+    use ::aliasable::boxed::AliasableBox;
+    use ::aliasable::string::AliasableString;
+    use ::aliasable::vec::AliasableVec;
+    use core::ops::Deref;
+
+    impl<T: ?Sized + MemDbgImpl> MemDbgImpl for AliasableBox<T> {
+        fn _mem_dbg_rec_on(
+            &self,
+            writer: &mut impl core::fmt::Write,
+            total_size: usize,
+            max_depth: usize,
+            prefix: &mut String,
+            is_last: bool,
+            flags: DbgFlags,
+            dbg_refs: &mut HashSet<usize>,
+        ) -> core::fmt::Result {
+            self.deref()._mem_dbg_rec_on(
+                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            )
+        }
+    }
+
+    impl<T: FlatType + MemDbgImpl> MemDbgImpl for AliasableVec<T> where
+        [T]: MemSizeHelper<<T as FlatType>::Flat>
+    {
+    }
+
+    impl MemDbgImpl for AliasableString {}
+
+    impl<T: ?Sized + MemDbgImpl> MemDbgImpl for AliasableMut<'_, T> {
+        impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| s.deref() as *const T as *const () as usize);
+    }
+}
+
+// maybe-dangling crate
+
+// MaybeDangling<T> is repr(transparent) over T, so we forward traversal through
+// its Deref, exactly like maligned::Aligned.
+#[cfg(feature = "maybe_dangling")]
+impl<T: MemDbgImpl> MemDbgImpl for maybe_dangling::MaybeDangling<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        use core::ops::Deref;
+        self.deref()._mem_dbg_rec_on(
+            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+        )
+    }
+}

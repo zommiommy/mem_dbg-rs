@@ -23,6 +23,8 @@ half = { version = "2.0.4", optional = true }
 rand = { version = "0.10.0", optional = true }
 maligned = { version = "0.2.1", optional = true }
 hashbrown = "0.16"
+aliasable = { version = "0.1.3", optional = true }
+maybe-dangling = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
 anyhow = "1"
@@ -40,6 +42,8 @@ std = []
 derive = ["mem_dbg-derive"]
 maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
+aliasable = ["dep:aliasable"]
+maybe_dangling = ["dep:maybe-dangling"]
 
 [[example]]
 name = "btree_set_comp"

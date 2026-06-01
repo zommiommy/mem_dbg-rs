@@ -2,21 +2,15 @@
 
 ## [Unreleased]
 
-### Changed
-
-- **Breaking** (size): `mmap_rs::Mmap` and `mmap_rs::MmapMut` now always
-  count their mapped region as part of `mem_size`. Previously the bytes were
-  only counted under `SizeFlags::FOLLOW_REFS`, which is inconsistent with
-  ownership semantics (the mapping is unmapped on drop).
-
-- **Breaking** (display): `core::ops::Range`, `RangeFrom`,
-  `RangeInclusive`, `RangeTo`, `RangeToInclusive`, `core::cmp::Reverse`,
-  `core::ops::Bound`, `core::ops::ControlFlow`, and `core::task::Poll` now
-  render their inner fields with labels (`start`, `end`, `0`, `Break`,
-  `Continue`, `Ready`, `Included`, `Excluded`) and proper tree corners.
-  Previously they emitted unlabeled grandchildren at the wrong depth.
-
 ### New
+
+- Added `MemSize`/`MemDbg` implementations, behind the `aliasable` feature,
+  for the `aliasable` crate: `AliasableBox` mirrors `Box`, `AliasableVec`
+  mirrors `Vec`, `AliasableString` mirrors `String`, and `AliasableMut`
+  mirrors `&mut T`.
+
+- Added `MemSize`/`MemDbg` implementations, behind the `maybe_dangling`
+  feature, for `maybe_dangling::MaybeDangling<T>`.
 
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
   `*mut T`, `std::rc::Weak<T>`, and `std::sync::Weak<T>`. None of these are
@@ -25,7 +19,6 @@
 
 - Added `MemSize`/`MemDbg` implementations for `core::cmp::Reverse`,
   `core::ops::Bound`, `core::task::Poll`, and `core::ops::ControlFlow`.
-  These wrappers only visit the payload variant that is actually present.
 
 - Added generic `MemSize`/`MemDbg` implementations for
   `core::pin::Pin<P>`. `Pin<P>` keeps the memory accounting, traversal
@@ -54,6 +47,18 @@
   instead of allocating a temporary `Vec` per tuple traversal.
 
 ### Fixed
+
+- `mmap_rs::Mmap` and `mmap_rs::MmapMut` now always count their mapped region as
+  part of `mem_size`. Previously the bytes were only counted under
+  `SizeFlags::FOLLOW_REFS`, which is inconsistent with ownership semantics (the
+  mapping is unmapped on drop).
+
+- `core::ops::Range`, `RangeFrom`, `RangeInclusive`, `RangeTo`,
+  `RangeToInclusive`, `core::cmp::Reverse`, `core::ops::Bound`,
+  `core::ops::ControlFlow`, and `core::task::Poll` now render their inner fields
+  with labels (`start`, `end`, `0`, `Break`, `Continue`, `Ready`, `Included`,
+  `Excluded`) and proper tree corners. Previously they emitted unlabeled
+  grandchildren at the wrong depth.
 
 - `core::cell::OnceCell<T>` and `std::sync::OnceLock<T>` `_mem_dbg_rec_on`
   were no-ops: they delegated to `Option::<&T>::_mem_dbg_rec_on` (the

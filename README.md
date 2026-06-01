@@ -109,6 +109,8 @@ which however needs the nightly compiler, as it enables the unstable feature
 - `maligned`: support for the [`maligned`] crate.
 - `mmap-rs`: support for the [`mmap-rs`] crate.
 - `rand`: support for the [`rand`] crate.
+- `aliasable`: support for the [`aliasable`] crate.
+- `maybe_dangling`: support for the [`maybe-dangling`] crate.
 
 ## Examples
 
@@ -457,6 +459,8 @@ w.mem_dbg(DbgFlags::empty())?;
 [`mmap-rs`]: https://crates.io/crates/mmap-rs
 [`half`]: https://crates.io/crates/half
 [`rand`]: https://crates.io/crates/rand
+[`aliasable`]: https://crates.io/crates/aliasable
+[`maybe-dangling`]: https://crates.io/crates/maybe-dangling
 [`Rc`]: https://doc.rust-lang.org/std/rc/struct.Rc.html
 [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 [`DbgFlags::FOLLOW_REFS`]: https://docs.rs/mem_dbg/latest/mem_dbg/struct.DbgFlags.html#associatedconstant.FOLLOW_REFS

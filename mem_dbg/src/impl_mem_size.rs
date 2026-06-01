@@ -236,10 +236,11 @@ impl<T: FlatType> FlatType for core::cmp::Reverse<T> {
     type Flat = T::Flat;
 }
 
+// Reverse<T> is repr(transparent) over T, so we forward straight to the inner
+// value, like Cell, UnsafeCell, and Pin.
 impl<T: MemSize> MemSize for core::cmp::Reverse<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(&self.0, flags, refs)
-            - core::mem::size_of::<T>()
+        <T as MemSize>::mem_size_rec(&self.0, flags, refs)
     }
 }
 
@@ -1675,3 +1676,84 @@ impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
 
 #[cfg(feature = "half")]
 impl_size_of!(True; half::f16, half::bf16);
+
+// aliasable crate
+//
+// The aliasable crate provides non-Unique pointer types used to escape noalias.
+// Each wrapper is the memory-layout twin of a core/alloc type, so we forward to
+// the same sizing policy: AliasableBox mirrors Box, AliasableVec mirrors Vec
+// (through the slice helper), AliasableString mirrors String, and AliasableMut
+// mirrors &mut T.
+//
+// For the time being, SizeFlags::CAPACITY is a no-op because aliasable 0.1.3
+// exposes no capacity accessor on AliasableVec or AliasableString.
+#[cfg(feature = "aliasable")]
+mod aliasable {
+    use super::*;
+    use ::aliasable::AliasableMut;
+    use ::aliasable::boxed::AliasableBox;
+    use ::aliasable::string::AliasableString;
+    use ::aliasable::vec::AliasableVec;
+    use core::ops::Deref;
+
+    impl<T: ?Sized> FlatType for AliasableBox<T> {
+        type Flat = False;
+    }
+
+    impl<T: ?Sized + MemSize> MemSize for AliasableBox<T> {
+        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+            core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
+        }
+    }
+
+    impl<T> FlatType for AliasableVec<T> {
+        type Flat = False;
+    }
+
+    impl<T: FlatType> MemSize for AliasableVec<T>
+    where
+        [T]: MemSizeHelper<<T as FlatType>::Flat>,
+    {
+        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+            core::mem::size_of::<Self>() + <[T] as MemSize>::mem_size_rec(self.deref(), flags, refs)
+        }
+    }
+
+    impl FlatType for AliasableString {
+        type Flat = False;
+    }
+
+    impl MemSize for AliasableString {
+        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            core::mem::size_of::<Self>() + self.deref().len()
+        }
+    }
+
+    impl<T: ?Sized + MemSize> FlatType for AliasableMut<'_, T> {
+        type Flat = False;
+    }
+
+    impl<T: ?Sized + MemSize> MemSize for AliasableMut<'_, T> {
+        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+            <&T as MemSize>::mem_size_rec(&self.deref(), flags, refs)
+        }
+    }
+}
+
+// maybe-dangling crate
+
+// MaybeDangling<T> is a repr(transparent) wrapper over T, so it has the same
+// layout and sizing policy as T; we forward straight through its Deref, like
+// Cell, UnsafeCell, and Pin.
+#[cfg(feature = "maybe_dangling")]
+impl<T: FlatType> FlatType for maybe_dangling::MaybeDangling<T> {
+    type Flat = T::Flat;
+}
+
+#[cfg(feature = "maybe_dangling")]
+impl<T: MemSize> MemSize for maybe_dangling::MaybeDangling<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        use core::ops::Deref;
+        <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
+    }
+}

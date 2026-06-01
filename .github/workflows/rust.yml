@@ -15,7 +15,7 @@ jobs:
       - name: Build
         run: cargo build
       - name: Run tests on all non-nightly features
-        run: cargo test --features std,derive,half,maligned,mmap-rs,rand -- --skip _snapshot
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling -- --skip _snapshot
       - name: Run no default features tests
         run: cargo test --no-default-features -- --skip _snapshot
       - name: Run tests with alloc and derive feature
@@ -30,7 +30,7 @@ jobs:
       - name: Clippy (no default features)
         run: cargo clippy --no-default-features -- -D warnings
       - name: Clippy (all stable features)
-        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand -- -D warnings
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling -- -D warnings
 
   build-nightly:
     runs-on: ubuntu-latest
@@ -101,10 +101,10 @@ jobs:
       - name: Build
         run: cargo build
       - name: Test (default features, includes snapshots)
-        run: cargo test --features std,derive,half,maligned,mmap-rs,rand
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling
       - name: Test (no default features)
         run: cargo test --no-default-features -- --skip _snapshot
       - name: Test (alloc + derive)
         run: cargo test --no-default-features --features derive -- --skip _snapshot
       - name: Clippy (all stable features)
-        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand -- -D warnings
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling -- -D warnings
