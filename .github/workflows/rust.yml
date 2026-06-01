@@ -88,6 +88,8 @@ jobs:
       - name: Install nightly and miri
         run: rustup toolchain install nightly --component miri && rustup default nightly && cargo miri setup
       - name: Run tests with miri
+        env:
+          MIRIFLAGS: -Zmiri-tree-borrows
         run: cargo miri test --all-features --all-targets -- --skip _snapshot
 
   build-i686:

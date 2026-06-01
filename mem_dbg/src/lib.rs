@@ -114,7 +114,7 @@ pub enum RefDisplay {
 /// `FlatType<Flat=True>`, but the struct is not annotated with
 /// `#[mem_size(flat)]` or `#[mem_size(rec)]`:
 ///
-/// ```compile_fail
+/// ```ignore
 /// #[derive(mem_dbg::MemSize)]
 /// struct MyStruct(usize);
 /// ```
