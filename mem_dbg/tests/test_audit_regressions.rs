@@ -26,7 +26,7 @@ fn render<T: MemDbg>(value: &T) -> String {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn oncecell_renders_inner_children() {
+fn test_oncecell_renders_inner_children() {
     use std::cell::OnceCell;
 
     let cell: OnceCell<Inner> = OnceCell::new();
@@ -45,7 +45,7 @@ fn oncecell_renders_inner_children() {
 }
 
 #[test]
-fn oncecell_empty_renders_only_self() {
+fn test_oncecell_empty_renders_only_self() {
     use std::cell::OnceCell;
 
     let cell: OnceCell<Inner> = OnceCell::new();
@@ -55,7 +55,7 @@ fn oncecell_empty_renders_only_self() {
 }
 
 #[test]
-fn oncelock_renders_inner_children() {
+fn test_oncelock_renders_inner_children() {
     use std::sync::OnceLock;
 
     let cell: OnceLock<Inner> = OnceLock::new();
@@ -74,7 +74,7 @@ fn oncelock_renders_inner_children() {
 }
 
 #[test]
-fn oncelock_empty_renders_only_self() {
+fn test_oncelock_empty_renders_only_self() {
     use std::sync::OnceLock;
 
     let cell: OnceLock<Inner> = OnceLock::new();
@@ -91,7 +91,7 @@ fn oncelock_empty_renders_only_self() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn mutex_renders_inner_children_under_default_flags() {
+fn test_mutex_renders_inner_children_under_default_flags() {
     use std::sync::Mutex;
 
     let m = Mutex::new(Inner {
@@ -106,7 +106,7 @@ fn mutex_renders_inner_children_under_default_flags() {
 }
 
 #[test]
-fn rwlock_renders_inner_children_under_default_flags() {
+fn test_rwlock_renders_inner_children_under_default_flags() {
     use std::sync::RwLock;
 
     let r = RwLock::new(Inner {
@@ -128,7 +128,7 @@ fn rwlock_renders_inner_children_under_default_flags() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn range_labels_start_and_end() {
+fn test_range_labels_start_and_end() {
     let r: std::ops::Range<u32> = 1..100;
     let out = render(&r);
     assert!(out.contains("├╴start"), "missing labeled start:\n{out}");
@@ -136,7 +136,7 @@ fn range_labels_start_and_end() {
 }
 
 #[test]
-fn range_inclusive_labels_start_and_end() {
+fn test_range_inclusive_labels_start_and_end() {
     let r: std::ops::RangeInclusive<u32> = 1..=100;
     let out = render(&r);
     assert!(out.contains("├╴start"), "missing labeled start:\n{out}");
@@ -144,7 +144,7 @@ fn range_inclusive_labels_start_and_end() {
 }
 
 #[test]
-fn one_sided_ranges_label_their_only_field() {
+fn test_one_sided_ranges_label_their_only_field() {
     let from: std::ops::RangeFrom<u32> = 5..;
     assert!(render(&from).contains("╰╴start"));
 
@@ -156,7 +156,7 @@ fn one_sided_ranges_label_their_only_field() {
 }
 
 #[test]
-fn reverse_labels_inner_field() {
+fn test_reverse_labels_inner_field() {
     let value = core::cmp::Reverse(Box::new(7u32));
     let out = render(&value);
     assert!(out.contains("Reverse"));
@@ -164,7 +164,7 @@ fn reverse_labels_inner_field() {
 }
 
 #[test]
-fn bound_variants_label_payload() {
+fn test_bound_variants_label_payload() {
     let included: std::ops::Bound<Box<u32>> = std::ops::Bound::Included(Box::new(1));
     let excluded: std::ops::Bound<Box<u32>> = std::ops::Bound::Excluded(Box::new(2));
     let unbounded: std::ops::Bound<Box<u32>> = std::ops::Bound::Unbounded;
@@ -178,7 +178,7 @@ fn bound_variants_label_payload() {
 }
 
 #[test]
-fn poll_variants_label_payload() {
+fn test_poll_variants_label_payload() {
     let ready: core::task::Poll<Box<u32>> = core::task::Poll::Ready(Box::new(1));
     let pending: core::task::Poll<Box<u32>> = core::task::Poll::Pending;
 
@@ -188,7 +188,7 @@ fn poll_variants_label_payload() {
 }
 
 #[test]
-fn control_flow_variants_label_payload() {
+fn test_control_flow_variants_label_payload() {
     let brk: core::ops::ControlFlow<Box<u32>, Box<u32>> =
         core::ops::ControlFlow::Break(Box::new(1));
     let cont: core::ops::ControlFlow<Box<u32>, Box<u32>> =

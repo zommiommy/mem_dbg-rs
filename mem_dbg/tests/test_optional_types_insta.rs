@@ -1,6 +1,6 @@
 #![cfg(all(
     feature = "aliasable",
-    feature = "maybe_dangling",
+    feature = "maybe-dangling",
     feature = "std",
     feature = "derive"
 ))]

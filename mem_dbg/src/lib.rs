@@ -104,7 +104,7 @@ pub enum RefDisplay {
 /// unhelpful due to the contrived way we have to implement mutually exclusive
 /// types [working around the bug that prevents the compiler from understanding
 /// that implementations for the two flavors of `FlatType` are mutually
-/// exclusive](https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983).
+/// exclusive][rfc-1672].
 ///
 /// If you use the provided derive macros all this logic will be hidden from
 /// you. You'll just have to add the attribute `#[mem_size(flat)]` to your
@@ -129,7 +129,10 @@ pub enum RefDisplay {
 /// Note that this approach forces us to compute the size of non-flat types that
 /// contain references by iteration _even if you do not specify_
 /// [`SizeFlags::FOLLOW_REFS`].
+///
+/// [rfc-1672]: https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983
 pub trait FlatType {
+    /// Whether the type is flat ([`True`]) or not ([`False`]).
     type Flat: Boolean;
 }
 
@@ -346,6 +349,10 @@ impl<T: MemDbgImpl> MemDbg for T {}
 /// make sense, or it is impossible, to recurse.
 #[allow(clippy::too_many_arguments)]
 pub trait MemDbgImpl: MemSize {
+    /// Recursively displays the fields of `self` below the current line.
+    ///
+    /// The default implementation is a no-op, used by types in which it does
+    /// not make sense, or it is impossible, to recurse.
     fn _mem_dbg_rec_on(
         &self,
         _writer: &mut impl core::fmt::Write,
@@ -394,6 +401,9 @@ pub trait MemDbgImpl: MemSize {
         )
     }
 
+    /// Displays `self` at the given depth without any reference-address
+    /// annotation; forwards to [`_mem_dbg_depth_on_impl`](Self::_mem_dbg_depth_on_impl)
+    /// with [`RefDisplay::None`].
     fn _mem_dbg_depth_on(
         &self,
         writer: &mut impl core::fmt::Write,

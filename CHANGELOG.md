@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [0.4.2] - 2026-06-01
 
 ### New
 
@@ -9,10 +9,15 @@
   mirrors `Vec`, `AliasableString` mirrors `String`, and `AliasableMut`
   mirrors `&mut T`.
 
-- Added `MemSize`/`MemDbg` implementations, behind the `maybe_dangling`
+- Added `MemSize`/`MemDbg` implementations, behind the `maybe-dangling`
   feature, for `maybe_dangling::MaybeDangling<T>`.
 
-- Added `MemSize`/`MemDbg` implementations for `LinkedList<T>`, available under both `no_std + alloc` and `std`. Per-node accounting mirrors the standard library's internal `Node<T>` layout (two pointers plus the element), so the reported size is exact for flat element types and correctly recurses for non-flat ones. `LinkedList` has no reserved spare capacity, so `SizeFlags::CAPACITY` returns the same value as the default.
+- Added `MemSize`/`MemDbg` implementations for `LinkedList<T>`, available
+  under both `no_std + alloc` and `std`. Per-node accounting mirrors the
+  standard library's internal `Node<T>` layout (two pointers plus the
+  element), so the reported size is exact for flat element types and
+  correctly recurses for non-flat ones. `LinkedList` has no reserved spare
+  capacity, so `SizeFlags::CAPACITY` returns the same value as the default.
 
 - Added handle-only `MemSize`/`MemDbg` implementations for `*const T`,
   `*mut T`, `std::rc::Weak<T>`, and `std::sync::Weak<T>`. None of these are

@@ -18,7 +18,7 @@ struct PinFields<'a> {
 }
 
 #[test]
-fn pin_size_matches_wrapped_pointer_policy() {
+fn test_pin_size_matches_wrapped_pointer_policy() {
     let plain_box = Box::new(1usize);
     let pinned_box = Box::pin(1usize);
     assert_eq!(
@@ -73,7 +73,7 @@ fn pin_size_matches_wrapped_pointer_policy() {
 }
 
 #[test]
-fn pin_rc_dedup_matches_plain_rc() {
+fn test_pin_rc_dedup_matches_plain_rc() {
     // Two `Pin<Rc<T>>` aliasing the same allocation must dedup under
     // `FOLLOW_RCS` exactly as two plain `Rc<T>` would, and must dedup with
     // a plain `Rc<T>` to the same allocation.
@@ -144,7 +144,7 @@ fn dbg_with_follow_rcs<T: MemDbg>(value: &T) -> String {
 }
 
 #[test]
-fn pin_fields_derive_mem_dbg() {
+fn test_pin_fields_derive_mem_dbg() {
     let value = 2usize;
     let mut mutable_value = 5usize;
     let fields = PinFields {

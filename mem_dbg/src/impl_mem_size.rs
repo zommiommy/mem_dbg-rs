@@ -1827,12 +1827,12 @@ mod aliasable {
 // MaybeDangling<T> is a repr(transparent) wrapper over T, so it has the same
 // layout and sizing policy as T; we forward straight through its Deref, like
 // Cell, UnsafeCell, and Pin.
-#[cfg(feature = "maybe_dangling")]
+#[cfg(feature = "maybe-dangling")]
 impl<T: FlatType> FlatType for maybe_dangling::MaybeDangling<T> {
     type Flat = T::Flat;
 }
 
-#[cfg(feature = "maybe_dangling")]
+#[cfg(feature = "maybe-dangling")]
 impl<T: MemSize> MemSize for maybe_dangling::MaybeDangling<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
         use core::ops::Deref;

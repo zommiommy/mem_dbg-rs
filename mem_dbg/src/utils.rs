@@ -7,10 +7,6 @@
 
 /// Given a size in bytes, returns it in a human-readable format using SI-prefixed units.
 ///
-/// # Arguments
-///
-/// * `x` - The size to humanize.
-///
 /// # Examples
 ///
 /// ```rust
@@ -54,10 +50,6 @@ pub const fn humanize_float(x: usize) -> (f64, &'static str) {
 }
 
 /// Returns the color code corresponding to the size.
-///
-/// # Arguments
-///
-/// * `x` - The size in bytes.
 ///
 /// # Examples
 ///

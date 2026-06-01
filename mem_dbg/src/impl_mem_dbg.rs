@@ -1232,7 +1232,7 @@ mod aliasable {
 
 // MaybeDangling<T> is repr(transparent) over T, so we forward traversal through
 // its Deref, exactly like maligned::Aligned.
-#[cfg(feature = "maybe_dangling")]
+#[cfg(feature = "maybe-dangling")]
 impl<T: MemDbgImpl> MemDbgImpl for maybe_dangling::MaybeDangling<T> {
     fn _mem_dbg_rec_on(
         &self,

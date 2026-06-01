@@ -15,7 +15,7 @@ jobs:
       - name: Build
         run: cargo build
       - name: Run tests on all non-nightly features
-        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling -- --skip _snapshot
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe-dangling -- --skip _snapshot
       - name: Run no default features tests
         run: cargo test --no-default-features -- --skip _snapshot
       - name: Run tests with alloc and derive feature
@@ -30,7 +30,7 @@ jobs:
       - name: Clippy (no default features)
         run: cargo clippy --no-default-features -- -D warnings
       - name: Clippy (all stable features)
-        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling -- -D warnings
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe-dangling -- -D warnings
 
   build-msrv:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
       - name: Install MSRV toolchain (1.85)
         run: rustup toolchain install 1.85 && rustup default 1.85
       - name: Build with all stable features (except offset_of_enum)
-        run: cargo build --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling
+        run: cargo build --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe-dangling
 
   build-nightly:
     runs-on: ubuntu-latest
@@ -112,10 +112,10 @@ jobs:
       - name: Build
         run: cargo build
       - name: Test (default features, includes snapshots)
-        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling
+        run: cargo test --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe-dangling
       - name: Test (no default features)
         run: cargo test --no-default-features -- --skip _snapshot
       - name: Test (alloc + derive)
         run: cargo test --no-default-features --features derive -- --skip _snapshot
       - name: Clippy (all stable features)
-        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe_dangling -- -D warnings
+        run: cargo clippy --features std,derive,half,maligned,mmap-rs,rand,aliasable,maybe-dangling -- -D warnings

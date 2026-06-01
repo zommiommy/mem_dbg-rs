@@ -110,7 +110,7 @@ which however needs the nightly compiler, as it enables the unstable feature
 - `mmap-rs`: support for the [`mmap-rs`] crate.
 - `rand`: support for the [`rand`] crate.
 - `aliasable`: support for the [`aliasable`] crate.
-- `maybe_dangling`: support for the [`maybe-dangling`] crate (but [`SizeFlags::CAPACITY`]
+- `maybe-dangling`: support for the [`maybe-dangling`] crate (but [`SizeFlags::CAPACITY`]
   is a no-op).
 
 ## Examples

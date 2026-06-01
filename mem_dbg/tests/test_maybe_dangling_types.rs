@@ -1,4 +1,4 @@
-#![cfg(all(feature = "maybe_dangling", feature = "std", feature = "derive"))]
+#![cfg(all(feature = "maybe-dangling", feature = "std", feature = "derive"))]
 
 //! `MaybeDangling<T>` is a `#[repr(transparent)]` wrapper over `T`, so its
 //! `MemSize`/`MemDbg` behaviour must match the wrapped `T` exactly.

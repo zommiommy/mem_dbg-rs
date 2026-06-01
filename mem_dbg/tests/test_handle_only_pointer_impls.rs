@@ -23,7 +23,7 @@ struct GenericWeakHandleNode<T> {
 }
 
 #[test]
-fn raw_pointer_fields_are_counted_as_handles() {
+fn test_raw_pointer_fields_are_counted_as_handles() {
     let mut node = RawPointerNode {
         value: 1,
         next: core::ptr::null(),
@@ -48,7 +48,7 @@ fn raw_pointer_fields_are_counted_as_handles() {
 }
 
 #[test]
-fn weak_pointer_fields_do_not_bound_target_type() {
+fn test_weak_pointer_fields_do_not_bound_target_type() {
     let node = GenericWeakHandleNode::<OpaqueMarker> {
         parent: Some(std::rc::Weak::new()),
         sync_parent: Some(std::sync::Weak::new()),

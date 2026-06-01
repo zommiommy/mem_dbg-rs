@@ -41,7 +41,7 @@ impl MemDbgImpl for TooSmallPadding {
 }
 
 #[test]
-fn too_small_padded_size_does_not_underflow() {
+fn test_too_small_padded_size_does_not_underflow() {
     let value = TooSmallPadding(0);
     let mut out = String::new();
 

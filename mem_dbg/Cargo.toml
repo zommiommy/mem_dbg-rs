@@ -15,6 +15,12 @@ authors = [
 ]
 rust-version = "1.85"
 
+# docs.rs builds on stable, so we cannot enable the nightly-only
+# `offset_of_enum` feature; we enable every other feature so all third-party
+# type implementations are documented.
+[package.metadata.docs.rs]
+features = ["std", "derive", "half", "maligned", "mmap-rs", "rand", "aliasable", "maybe-dangling"]
+
 [dependencies]
 bitflags = "2.4.1"
 mem_dbg-derive = { workspace = true, optional = true }
@@ -40,10 +46,7 @@ regex = "1"
 default = ["std", "derive"]
 std = []
 derive = ["mem_dbg-derive"]
-maligned = ["dep:maligned"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
-aliasable = ["dep:aliasable"]
-maybe_dangling = ["dep:maybe-dangling"]
 
 [[example]]
 name = "btree_set_comp"
