@@ -90,17 +90,17 @@ pub enum RefDisplay {
 /// computation of size must be done by iterating recursively on the size of the
 /// fields.
 ///
-/// The trait comes in two flavors: `FlatType<Flat=True>` and
-/// `FlatType<Flat=False>`. In the first case, [`MemSize::mem_size`] can be
+/// The trait comes in two flavors: `FlatType<Flat = True>` and
+/// `FlatType<Flat = False>`. In the first case, [`MemSize::mem_size`] can be
 /// computed on arrays, vectors, slices, and supported containers by multiplying
 /// the length or capacity by the size of the element type; in the second case,
 /// it is necessary to iterate on each element.
 ///
 /// Since we cannot use negative trait bounds, every type that is used as a
 /// parameter of an array, vector, slice, or container type, must implement
-/// either `FlatType<Flat = True>` or `FlatType<Flat = False>`. If you do not
-/// implement either of these traits, you will not be able to compute the size
-/// of arrays, vectors, slices, and containers.
+/// either `FlatType<Flat = True>` or `FlatType<Flat = False>`; otherwise, you
+/// will not be able to compute the size of arrays, vectors, slices, and
+/// containers.
 ///
 /// If you use the provided derive macros all this logic will be hidden from
 /// you. You'll just have to add the attribute `#[mem_size(flat)]` to your
