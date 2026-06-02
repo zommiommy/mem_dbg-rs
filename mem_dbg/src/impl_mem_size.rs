@@ -500,6 +500,44 @@ where
     }
 }
 
+/// Computes per-entry recursive heap contributions for a map beyond inline
+/// key/value storage, in a single pass over the entries. Flat keys or values
+/// contribute nothing, and a fully flat map skips the traversal entirely.
+#[cfg(feature = "std")]
+#[inline(always)]
+fn map_heap_extras<'a, K, V, I>(
+    iter: I,
+    flags: SizeFlags,
+    refs: &mut HashMap<usize, usize>,
+) -> usize
+where
+    K: FlatType + MemSize + 'a,
+    V: FlatType + MemSize + 'a,
+    I: IntoIterator<Item = (&'a K, &'a V)>,
+{
+    let key_flat = <<K as FlatType>::Flat as Boolean>::VALUE;
+    let value_flat = <<V as FlatType>::Flat as Boolean>::VALUE;
+    if key_flat && value_flat {
+        0
+    } else {
+        iter.into_iter()
+            .map(|(k, v)| {
+                let key_extra = if key_flat {
+                    0
+                } else {
+                    <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>()
+                };
+                let value_extra = if value_flat {
+                    0
+                } else {
+                    <V as MemSize>::mem_size_rec(v, flags, refs) - core::mem::size_of::<V>()
+                };
+                key_extra + value_extra
+            })
+            .sum()
+    }
+}
+
 // Slices
 
 impl<T: FlatType> FlatType for [T] {
@@ -1235,9 +1273,11 @@ impl<K, V> FlatType for std::collections::HashMap<K, V> {
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::HashMap<K, V> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        let keys_size = element_storage_size(self.keys(), self.len(), flags, refs);
-        let values_size = element_storage_size(self.values(), self.len(), flags, refs);
-        fix_map_for_capacity(self, keys_size + values_size, flags)
+        // Inline key/value storage plus, in a single pass over the entries,
+        // any per-entry heap (zero when both K and V are flat).
+        let inline_size = self.len() * (core::mem::size_of::<K>() + core::mem::size_of::<V>());
+        let elements_size = inline_size + map_heap_extras(self.iter(), flags, refs);
+        fix_map_for_capacity(self, elements_size, flags)
     }
 }
 
@@ -1379,10 +1419,9 @@ impl<K, V> FlatType for std::collections::BTreeMap<K, V> {
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::BTreeMap<K, V> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        let key_heap_size = element_heap_extras(self.keys(), flags, refs);
-        let value_heap_size = element_heap_extras(self.values(), flags, refs);
+        let item_heap_size = map_heap_extras(self.iter(), flags, refs);
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
-            + estimate_btree_size::<K, V>(self.len(), key_heap_size + value_heap_size)
+            + estimate_btree_size::<K, V>(self.len(), item_heap_size)
     }
 }
 
