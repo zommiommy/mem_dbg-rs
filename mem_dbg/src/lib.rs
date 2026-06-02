@@ -83,7 +83,7 @@ pub enum RefDisplay {
 
 /// Marker trait for flat types.
 ///
-/// "Flat" means that the type has no heap indirection to account for, so its
+/// “Flat” means that the type has no heap indirection to account for, so its
 /// size can be computed using [`size_of`]. The scope of the trait is slightly
 /// wider than that of [`Copy`] because, for example, atomic types are not
 /// [`Copy`] but they are considered to be flat. In a non-flat type the
@@ -98,13 +98,9 @@ pub enum RefDisplay {
 ///
 /// Since we cannot use negative trait bounds, every type that is used as a
 /// parameter of an array, vector, slice, or container type, must implement
-/// either `FlatType<Flat=True>` or `FlatType<Flat=False>`. If you do not
+/// either `FlatType<Flat = True>` or `FlatType<Flat = False>`. If you do not
 /// implement either of these traits, you will not be able to compute the size
-/// of arrays, vectors, slices, and containers, but error messages will be very
-/// unhelpful due to the contrived way we have to implement mutually exclusive
-/// types [working around the bug that prevents the compiler from understanding
-/// that implementations for the two flavors of `FlatType` are mutually
-/// exclusive][rfc-1672].
+/// of arrays, vectors, slices, and containers.
 ///
 /// If you use the provided derive macros all this logic will be hidden from
 /// you. You'll just have to add the attribute `#[mem_size(flat)]` to your
@@ -125,12 +121,6 @@ pub enum RefDisplay {
 /// #[derive(mem_dbg::MemSize)]
 /// struct MyStruct(usize);
 /// ```
-///
-/// Note that this approach forces us to compute the size of non-flat types that
-/// contain references by iteration _even if you do not specify_
-/// [`SizeFlags::FOLLOW_REFS`].
-///
-/// [rfc-1672]: https://github.com/rust-lang/rfcs/pull/1672#issuecomment-1405377983
 pub trait FlatType {
     /// Whether the type is flat ([`True`]) or not ([`False`]).
     type Flat: Boolean;

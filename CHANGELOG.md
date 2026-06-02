@@ -1,5 +1,17 @@
 # Change Log
 
+## [unreleased]
+
+### Changed
+
+- Container size computation no longer dispatches through the hidden
+  `MemSizeHelper`/`MemSizeHelper2` traits. Each container (`[T]`, `[T; N]`,
+  `Vec`, `VecDeque`, `BinaryHeap`, `LinkedList`, `HashSet`, `HashMap`,
+  `BTreeSet`, `BTreeMap`) now has a single `MemSize` implementation that
+  branches on the constant `FlatType` flag, which the optimizer folds away, so
+  reported sizes and generated code are unchanged. A `mem_size` benchmark guards
+  the flat and per-element size paths.
+
 ## [0.4.2] - 2026-06-01
 
 ### New
@@ -52,14 +64,6 @@
 
 - Tuple `MemDbg` rendering now builds its field-offset table on the stack
   instead of allocating a temporary `Vec` per tuple traversal.
-
-- Container size computation no longer dispatches through the hidden
-  `MemSizeHelper`/`MemSizeHelper2` traits. Each container (`[T]`, `[T; N]`,
-  `Vec`, `VecDeque`, `BinaryHeap`, `LinkedList`, `HashSet`, `HashMap`,
-  `BTreeSet`, `BTreeMap`) now has a single `MemSize` implementation that
-  branches on the constant `FlatType` flag, which the optimizer folds away, so
-  reported sizes and generated code are unchanged. A `mem_size` benchmark guards
-  the flat and per-element size paths.
 
 ### Fixed
 
