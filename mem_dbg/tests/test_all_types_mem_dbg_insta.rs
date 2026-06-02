@@ -32,13 +32,32 @@ fn redact_addresses(s: &str) -> String {
 
 /// Normalize type-name rendering that changed across Rust toolchains.
 fn normalize_type_names(s: String) -> String {
-    s.replace(
-        "all_types_helper::AllTypesStruct<'_>",
-        "all_types_helper::AllTypesStruct",
-    )
-    .replace("MutexGuard<'_, ", "MutexGuard<")
-    .replace("RwLockReadGuard<'_, ", "RwLockReadGuard<")
-    .replace("RwLockWriteGuard<'_, ", "RwLockWriteGuard<")
+    let mut s = s
+        .replace(
+            "all_types_helper::AllTypesStruct<'_>",
+            "all_types_helper::AllTypesStruct",
+        )
+        .replace("MutexGuard<'_, ", "MutexGuard<")
+        .replace("RwLockReadGuard<'_, ", "RwLockReadGuard<")
+        .replace("RwLockWriteGuard<'_, ", "RwLockWriteGuard<");
+    // Atomics render as `Atomic<bool>` on some toolchains and `AtomicBool` on
+    // others; canonicalize to the legacy `AtomicBool` spelling.
+    for (generic, legacy) in [
+        ("Atomic<bool>", "AtomicBool"),
+        ("Atomic<i8>", "AtomicI8"),
+        ("Atomic<i16>", "AtomicI16"),
+        ("Atomic<i32>", "AtomicI32"),
+        ("Atomic<i64>", "AtomicI64"),
+        ("Atomic<isize>", "AtomicIsize"),
+        ("Atomic<u8>", "AtomicU8"),
+        ("Atomic<u16>", "AtomicU16"),
+        ("Atomic<u32>", "AtomicU32"),
+        ("Atomic<u64>", "AtomicU64"),
+        ("Atomic<usize>", "AtomicUsize"),
+    ] {
+        s = s.replace(generic, legacy);
+    }
+    s
 }
 
 #[test]
