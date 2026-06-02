@@ -41,7 +41,7 @@ get-size = "0.1.4"
 deepsize = "0.2.0"
 insta = "1.46.1"
 regex = "1"
-criterion = "0.5"
+criterion = "0.8"
 
 [features]
 default = ["std", "derive"]
