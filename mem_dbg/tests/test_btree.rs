@@ -51,3 +51,39 @@ fn test_btree_map_recursive() {
         std::mem::size_of::<BTreeMap<u8, Vec<u8>>>() + btree_leaf_size::<u8, Vec<u8>>() + 2;
     assert_eq!(size, expected);
 }
+
+#[test]
+fn test_btree_map_string_keys() {
+    // Non-flat key, flat value: heap comes only from the keys.
+    let map: BTreeMap<String, u8> = (0..3).map(|x| (x.to_string(), x as u8)).collect();
+    let item_heap: usize = map
+        .keys()
+        .map(|k| {
+            <String as MemSize>::mem_size(k, SizeFlags::default()) - core::mem::size_of::<String>()
+        })
+        .sum();
+    let size = map.mem_size(SizeFlags::default());
+    let expected =
+        std::mem::size_of::<BTreeMap<String, u8>>() + btree_leaf_size::<String, u8>() + item_heap;
+    assert_eq!(size, expected);
+}
+
+#[test]
+fn test_btree_map_string_keys_and_values() {
+    // Non-flat key and value: heap comes from both, in a single pass over entries.
+    let map: BTreeMap<String, String> = (0..3).map(|x| (x.to_string(), x.to_string())).collect();
+    let item_heap: usize = map
+        .iter()
+        .map(|(k, v)| {
+            (<String as MemSize>::mem_size(k, SizeFlags::default())
+                - core::mem::size_of::<String>())
+                + (<String as MemSize>::mem_size(v, SizeFlags::default())
+                    - core::mem::size_of::<String>())
+        })
+        .sum();
+    let size = map.mem_size(SizeFlags::default());
+    let expected = std::mem::size_of::<BTreeMap<String, String>>()
+        + btree_leaf_size::<String, String>()
+        + item_heap;
+    assert_eq!(size, expected);
+}
