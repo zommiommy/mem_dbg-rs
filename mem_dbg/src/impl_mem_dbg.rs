@@ -10,7 +10,7 @@ use core::marker::PhantomPinned;
 use core::num::*;
 use core::{marker::PhantomData, sync::atomic::*};
 
-use crate::{DbgFlags, FlatType, HashSet, MemDbgImpl, RefDisplay, impl_mem_size::MemSizeHelper};
+use crate::{DbgFlags, FlatType, HashSet, MemDbgImpl, RefDisplay};
 
 #[cfg(not(feature = "std"))]
 use alloc::borrow::{Cow, ToOwned};
@@ -439,42 +439,27 @@ impl<T: ?Sized> MemDbgImpl for std::sync::Weak<T> {}
 
 // Slices
 
-impl<T: FlatType + MemDbgImpl> MemDbgImpl for [T] where [T]: MemSizeHelper<<T as FlatType>::Flat> {}
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for [T] {}
 
 // Arrays
 
-impl<T: FlatType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] where
-    [T; N]: MemSizeHelper<<T as FlatType>::Flat>
-{
-}
+impl<T: FlatType + MemDbgImpl, const N: usize> MemDbgImpl for [T; N] {}
 
 // Vectors
 
-impl<T: FlatType + MemDbgImpl> MemDbgImpl for Vec<T> where
-    Vec<T>: MemSizeHelper<<T as FlatType>::Flat>
-{
-}
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for Vec<T> {}
 
 // BinaryHeap
 
-impl<T: FlatType + MemDbgImpl> MemDbgImpl for BinaryHeap<T> where
-    BinaryHeap<T>: MemSizeHelper<<T as FlatType>::Flat>
-{
-}
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for BinaryHeap<T> {}
 
 // VecDeque
 
-impl<T: FlatType + MemDbgImpl> MemDbgImpl for VecDeque<T> where
-    VecDeque<T>: MemSizeHelper<<T as FlatType>::Flat>
-{
-}
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for VecDeque<T> {}
 
 // LinkedList
 
-impl<T: FlatType + MemDbgImpl> MemDbgImpl for LinkedList<T> where
-    LinkedList<T>: MemSizeHelper<<T as FlatType>::Flat>
-{
-}
+impl<T: FlatType + MemDbgImpl> MemDbgImpl for LinkedList<T> {}
 
 // Tuples
 
@@ -575,26 +560,24 @@ impl_mem_dbg_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9);
 
 #[cfg(feature = "std")]
 impl<K: FlatType> MemDbgImpl for std::collections::HashSet<K> where
-    std::collections::HashSet<K>: MemSizeHelper<<K as FlatType>::Flat>
+    std::collections::HashSet<K>: crate::MemSize
 {
 }
 #[cfg(feature = "std")]
 impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::HashMap<K, V> where
-    std::collections::HashMap<K, V>:
-        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
+    std::collections::HashMap<K, V>: crate::MemSize
 {
 }
 
 #[cfg(feature = "std")]
 impl<T: FlatType> MemDbgImpl for std::collections::BTreeSet<T> where
-    std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>
+    std::collections::BTreeSet<T>: crate::MemSize
 {
 }
 
 #[cfg(feature = "std")]
 impl<K: FlatType, V: FlatType> MemDbgImpl for std::collections::BTreeMap<K, V> where
-    std::collections::BTreeMap<K, V>:
-        crate::impl_mem_size::MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>
+    std::collections::BTreeMap<K, V>: crate::MemSize
 {
 }
 
@@ -1216,10 +1199,7 @@ mod aliasable {
         }
     }
 
-    impl<T: FlatType + MemDbgImpl> MemDbgImpl for AliasableVec<T> where
-        [T]: MemSizeHelper<<T as FlatType>::Flat>
-    {
-    }
+    impl<T: FlatType + MemDbgImpl> MemDbgImpl for AliasableVec<T> {}
 
     impl MemDbgImpl for AliasableString {}
 

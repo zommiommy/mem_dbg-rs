@@ -425,14 +425,79 @@ impl<T: ?Sized> MemSize for std::sync::Weak<T> {
     }
 }
 
-/// A helper trait that makes it possible to implement differently
-/// the size computation for arrays, vectors, and slices of
-/// flat types.
-///
-/// See [`crate::FlatType`] for more information.
-#[doc(hidden)]
-pub trait MemSizeHelper<T: Boolean> {
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+// Containers branch on the Boolean value instead of selecting helper impls for
+// `T::Flat`. This also covers non-normalized forms such as `T::Flat::And<False>`.
+
+/// Computes the used element storage for collection-like values.
+#[inline(always)]
+fn element_storage_size<'a, T, I>(
+    iter: I,
+    len: usize,
+    flags: SizeFlags,
+    refs: &mut HashMap<usize, usize>,
+) -> usize
+where
+    T: FlatType + MemSize + 'a,
+    I: IntoIterator<Item = &'a T>,
+{
+    if <<T as FlatType>::Flat as Boolean>::VALUE {
+        len * core::mem::size_of::<T>()
+    } else {
+        iter.into_iter()
+            .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
+            .sum()
+    }
+}
+
+/// Computes element storage for collections that can reserve spare capacity.
+#[inline(always)]
+fn capacity_backed_storage_size<'a, T, I>(
+    iter: I,
+    len: usize,
+    capacity: usize,
+    flags: SizeFlags,
+    refs: &mut HashMap<usize, usize>,
+) -> usize
+where
+    T: FlatType + MemSize + 'a,
+    I: IntoIterator<Item = &'a T>,
+{
+    if <<T as FlatType>::Flat as Boolean>::VALUE {
+        let len = if flags.contains(SizeFlags::CAPACITY) {
+            capacity
+        } else {
+            len
+        };
+        len * core::mem::size_of::<T>()
+    } else {
+        element_storage_size(iter, len, flags, refs)
+            + if flags.contains(SizeFlags::CAPACITY) {
+                (capacity - len) * core::mem::size_of::<T>()
+            } else {
+                0
+            }
+    }
+}
+
+/// Computes recursive heap contributions beyond inline element storage.
+#[cfg(feature = "std")]
+#[inline(always)]
+fn element_heap_extras<'a, T, I>(
+    iter: I,
+    flags: SizeFlags,
+    refs: &mut HashMap<usize, usize>,
+) -> usize
+where
+    T: FlatType + MemSize + 'a,
+    I: IntoIterator<Item = &'a T>,
+{
+    if <<T as FlatType>::Flat as Boolean>::VALUE {
+        0
+    } else {
+        iter.into_iter()
+            .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>())
+            .sum()
+    }
 }
 
 // Slices
@@ -441,28 +506,9 @@ impl<T: FlatType> FlatType for [T] {
     type Flat = False;
 }
 
-impl<T: FlatType> MemSize for [T]
-where
-    [T]: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for [T] {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <[T] as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<True> for [T] {
-    #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of_val(self)
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<False> for [T] {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        self.iter()
-            .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
-            .sum::<usize>()
+        element_storage_size(self.iter(), self.len(), flags, refs)
     }
 }
 
@@ -472,30 +518,9 @@ impl<T: FlatType, const N: usize> FlatType for [T; N] {
     type Flat = T::Flat;
 }
 
-impl<T: FlatType, const N: usize> MemSize for [T; N]
-where
-    [T; N]: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize, const N: usize> MemSize for [T; N] {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <[T; N] as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
-    }
-}
-
-impl<T: MemSize, const N: usize> MemSizeHelper<True> for [T; N] {
-    #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-    }
-}
-
-impl<T: MemSize, const N: usize> MemSizeHelper<False> for [T; N] {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-            + self
-                .iter()
-                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>())
-                .sum::<usize>()
+        element_storage_size(self.iter(), N, flags, refs)
     }
 }
 
@@ -505,40 +530,10 @@ impl<T> FlatType for Vec<T> {
     type Flat = False;
 }
 
-impl<T: FlatType> MemSize for Vec<T>
-where
-    Vec<T>: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for Vec<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <Vec<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<True> for Vec<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::CAPACITY) {
-                self.capacity()
-            } else {
-                self.len()
-            } * core::mem::size_of::<T>()
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<False> for Vec<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-            + self
-                .iter()
-                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
-                .sum::<usize>()
-            + if flags.contains(SizeFlags::CAPACITY) {
-                (self.capacity() - self.len()) * core::mem::size_of::<T>()
-            } else {
-                0
-            }
+            + capacity_backed_storage_size(self.iter(), self.len(), self.capacity(), flags, refs)
     }
 }
 
@@ -549,40 +544,10 @@ impl<T> FlatType for BinaryHeap<T> {
     type Flat = False;
 }
 
-impl<T: FlatType> MemSize for BinaryHeap<T>
-where
-    BinaryHeap<T>: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for BinaryHeap<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <BinaryHeap<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<True> for BinaryHeap<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::CAPACITY) {
-                self.capacity()
-            } else {
-                self.len()
-            } * core::mem::size_of::<T>()
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<False> for BinaryHeap<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-            + self
-                .iter()
-                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
-                .sum::<usize>()
-            + if flags.contains(SizeFlags::CAPACITY) {
-                (self.capacity() - self.len()) * core::mem::size_of::<T>()
-            } else {
-                0
-            }
+            + capacity_backed_storage_size(self.iter(), self.len(), self.capacity(), flags, refs)
     }
 }
 
@@ -592,40 +557,10 @@ impl<T> FlatType for VecDeque<T> {
     type Flat = False;
 }
 
-impl<T: FlatType> MemSize for VecDeque<T>
-where
-    VecDeque<T>: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for VecDeque<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <VecDeque<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<True> for VecDeque<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
-            + if flags.contains(SizeFlags::CAPACITY) {
-                self.capacity()
-            } else {
-                self.len()
-            } * core::mem::size_of::<T>()
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<False> for VecDeque<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>()
-            + self
-                .iter()
-                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs))
-                .sum::<usize>()
-            + if flags.contains(SizeFlags::CAPACITY) {
-                (self.capacity() - self.len()) * core::mem::size_of::<T>()
-            } else {
-                0
-            }
+            + capacity_backed_storage_size(self.iter(), self.len(), self.capacity(), flags, refs)
     }
 }
 
@@ -682,32 +617,18 @@ impl<T> FlatType for LinkedList<T> {
     type Flat = False;
 }
 
-impl<T: FlatType> MemSize for LinkedList<T>
-where
-    LinkedList<T>: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for LinkedList<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <LinkedList<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(self, flags, refs)
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<True> for LinkedList<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<Self>() + self.len() * core::mem::size_of::<LinkedListNode<T>>()
-    }
-}
-
-impl<T: FlatType + MemSize> MemSizeHelper<False> for LinkedList<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        let per_node_overhead =
-            core::mem::size_of::<LinkedListNode<T>>() - core::mem::size_of::<T>();
         core::mem::size_of::<Self>()
-            + self
-                .iter()
-                .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) + per_node_overhead)
-                .sum::<usize>()
+            + if <<T as FlatType>::Flat as Boolean>::VALUE {
+                self.len() * core::mem::size_of::<LinkedListNode<T>>()
+            } else {
+                let per_node_overhead =
+                    core::mem::size_of::<LinkedListNode<T>>() - core::mem::size_of::<T>();
+                self.iter()
+                    .map(|x| <T as MemSize>::mem_size_rec(x, flags, refs) + per_node_overhead)
+                    .sum::<usize>()
+            }
     }
 }
 
@@ -1277,14 +1198,10 @@ impl<T> FlatType for std::collections::HashSet<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: FlatType> MemSize for std::collections::HashSet<T>
-where
-    std::collections::HashSet<T>: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for std::collections::HashSet<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::HashSet<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
-            self, flags, refs,
-        )
+        let elements_size = element_storage_size(self.iter(), self.len(), flags, refs);
+        fix_set_for_capacity(self, elements_size, flags)
     }
 }
 
@@ -1311,53 +1228,16 @@ fn fix_set_for_capacity<K>(
 }
 
 #[cfg(feature = "std")]
-impl<K: FlatType + MemSize> MemSizeHelper<True> for std::collections::HashSet<K> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        fix_set_for_capacity(self, core::mem::size_of::<K>() * self.len(), flags)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize> MemSizeHelper<False> for std::collections::HashSet<K> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        fix_set_for_capacity(
-            self,
-            self.iter()
-                .map(|x| <K as MemSize>::mem_size_rec(x, flags, refs))
-                .sum::<usize>(),
-            flags,
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-/// A helper trait that makes it possible to implement differently
-/// the size computation for maps in which keys or values are
-/// flat types.
-///
-/// See [`crate::FlatType`] for more information.
-#[doc(hidden)]
-pub trait MemSizeHelper2<K: Boolean, V: Boolean> {
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
-}
-
-#[cfg(feature = "std")]
 impl<K, V> FlatType for std::collections::HashMap<K, V> {
     type Flat = False;
 }
 
 #[cfg(feature = "std")]
-impl<K: FlatType, V: FlatType> MemSize for std::collections::HashMap<K, V>
-where
-    std::collections::HashMap<K, V>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
-{
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::HashMap<K, V> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::HashMap<K, V> as MemSizeHelper2<
-            <K as FlatType>::Flat,
-            <V as FlatType>::Flat,
-        >>::mem_size_impl(self, flags, refs)
+        let keys_size = element_storage_size(self.keys(), self.len(), flags, refs);
+        let values_size = element_storage_size(self.values(), self.len(), flags, refs);
+        fix_map_for_capacity(self, keys_size + values_size, flags)
     }
 }
 
@@ -1381,74 +1261,6 @@ fn fix_map_for_capacity<K, V>(
         + (buckets - hash_map.len()) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
         + buckets * core::mem::size_of::<u8>()
         + if buckets > 0 { GROUP_WIDTH } else { 0 }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
-    for std::collections::HashMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
-            (core::mem::size_of::<K>() + core::mem::size_of::<V>()) * self.len(),
-            flags,
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
-    for std::collections::HashMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
-            (core::mem::size_of::<K>()) * self.len()
-                + self
-                    .values()
-                    .map(|v| <V as MemSize>::mem_size_rec(v, flags, refs))
-                    .sum::<usize>(),
-            flags,
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
-    for std::collections::HashMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
-            self.keys()
-                .map(|k| <K as MemSize>::mem_size_rec(k, flags, refs))
-                .sum::<usize>()
-                + (core::mem::size_of::<V>()) * self.len(),
-            flags,
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
-    for std::collections::HashMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        fix_map_for_capacity(
-            self,
-            self.iter()
-                .map(|(k, v)| {
-                    <K as MemSize>::mem_size_rec(k, flags, refs)
-                        + <V as MemSize>::mem_size_rec(v, flags, refs)
-                })
-                .sum::<usize>(),
-            flags,
-        )
-    }
 }
 
 /// Estimates the heap-allocated memory of a BTree-based container.
@@ -1551,39 +1363,11 @@ impl<T> FlatType for std::collections::BTreeSet<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: FlatType> MemSize for std::collections::BTreeSet<T>
-where
-    std::collections::BTreeSet<T>: MemSizeHelper<<T as FlatType>::Flat>,
-{
+impl<T: FlatType + MemSize> MemSize for std::collections::BTreeSet<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::BTreeSet<T> as MemSizeHelper<<T as FlatType>::Flat>>::mem_size_impl(
-            self, flags, refs,
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-impl<T: FlatType + MemSize> MemSizeHelper<True> for std::collections::BTreeSet<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        let item_heap_size = element_heap_extras(self.iter(), flags, refs);
         core::mem::size_of::<std::collections::BTreeSet<T>>()
-            + estimate_btree_size::<T, ()>(self.len(), 0)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<T: FlatType + MemSize> MemSizeHelper<False> for std::collections::BTreeSet<T> {
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<std::collections::BTreeSet<T>>()
-            + estimate_btree_size::<T, ()>(
-                self.len(),
-                self.iter()
-                    .map(|x| {
-                        <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>()
-                    })
-                    .sum::<usize>(),
-            )
+            + estimate_btree_size::<T, ()>(self.len(), item_heap_size)
     }
 }
 
@@ -1593,82 +1377,12 @@ impl<K, V> FlatType for std::collections::BTreeMap<K, V> {
 }
 
 #[cfg(feature = "std")]
-impl<K: FlatType, V: FlatType> MemSize for std::collections::BTreeMap<K, V>
-where
-    std::collections::BTreeMap<K, V>: MemSizeHelper2<<K as FlatType>::Flat, <V as FlatType>::Flat>,
-{
+impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::BTreeMap<K, V> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        <std::collections::BTreeMap<K, V> as MemSizeHelper2<
-            <K as FlatType>::Flat,
-            <V as FlatType>::Flat,
-        >>::mem_size_impl(self, flags, refs)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, True>
-    for std::collections::BTreeMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        let key_heap_size = element_heap_extras(self.keys(), flags, refs);
+        let value_heap_size = element_heap_extras(self.values(), flags, refs);
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
-            + estimate_btree_size::<K, V>(self.len(), 0)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<True, False>
-    for std::collections::BTreeMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
-            + estimate_btree_size::<K, V>(
-                self.len(),
-                self.values()
-                    .map(|v| {
-                        <V as MemSize>::mem_size_rec(v, flags, refs) - core::mem::size_of::<V>()
-                    })
-                    .sum::<usize>(),
-            )
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, True>
-    for std::collections::BTreeMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
-            + estimate_btree_size::<K, V>(
-                self.len(),
-                self.keys()
-                    .map(|k| {
-                        <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>()
-                    })
-                    .sum::<usize>(),
-            )
-    }
-}
-
-#[cfg(feature = "std")]
-impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSizeHelper2<False, False>
-    for std::collections::BTreeMap<K, V>
-{
-    #[inline(always)]
-    fn mem_size_impl(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        core::mem::size_of::<std::collections::BTreeMap<K, V>>()
-            + estimate_btree_size::<K, V>(
-                self.len(),
-                self.iter()
-                    .map(|(k, v)| {
-                        <K as MemSize>::mem_size_rec(k, flags, refs) - core::mem::size_of::<K>()
-                            + <V as MemSize>::mem_size_rec(v, flags, refs)
-                            - core::mem::size_of::<V>()
-                    })
-                    .sum::<usize>(),
-            )
+            + estimate_btree_size::<K, V>(self.len(), key_heap_size + value_heap_size)
     }
 }
 
@@ -1792,10 +1506,7 @@ mod aliasable {
         type Flat = False;
     }
 
-    impl<T: FlatType> MemSize for AliasableVec<T>
-    where
-        [T]: MemSizeHelper<<T as FlatType>::Flat>,
-    {
+    impl<T: FlatType + MemSize> MemSize for AliasableVec<T> {
         fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
             core::mem::size_of::<Self>() + <[T] as MemSize>::mem_size_rec(self.deref(), flags, refs)
         }

@@ -41,6 +41,7 @@ get-size = "0.1.4"
 deepsize = "0.2.0"
 insta = "1.46.1"
 regex = "1"
+criterion = "0.5"
 
 [features]
 default = ["std", "derive"]
@@ -63,3 +64,8 @@ required-features = ["std", "derive"]
 [[example]]
 name = "readme"
 required-features = ["std", "derive"]
+
+[[bench]]
+name = "mem_size"
+harness = false
+required-features = ["std"]
