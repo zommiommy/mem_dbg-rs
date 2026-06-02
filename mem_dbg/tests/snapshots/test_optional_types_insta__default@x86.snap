@@ -1,0 +1,12 @@
+---
+source: mem_dbg/tests/test_optional_types_insta.rs
+expression: output
+---
+ 133 B 100.00% ⏺: test_optional_types_insta::OptionalTypes<'_>
+  12 B   9.02% ├╴a_box: aliasable::boxed::AliasableBox<u64>
+  32 B  24.06% ├╴a_vec: aliasable::vec::AliasableVec<i32>
+  45 B  33.83% ├╴a_vec_str: aliasable::vec::AliasableVec<alloc::string::String>
+  17 B  12.78% ├╴a_string: aliasable::string::AliasableString
+   4 B   3.01% ├╴a_mut: aliasable::mut_ref::AliasableMut<'_, u64>
+   8 B   6.02% ├╴md_flat: maybe_dangling::maybe_dangling::MaybeDangling<u64>
+  15 B  11.28% ╰╴md_heap: maybe_dangling::maybe_dangling::MaybeDangling<alloc::vec::Vec<u8>>

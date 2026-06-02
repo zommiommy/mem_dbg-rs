@@ -1,0 +1,12 @@
+---
+source: mem_dbg/tests/test_optional_types_insta.rs
+expression: output
+---
+213 B ⏺
+ 16 B ├╴a_box
+ 44 B ├╴a_vec
+ 81 B ├╴a_vec_str
+ 29 B ├╴a_string
+  8 B ├╴a_mut
+  8 B ├╴md_flat
+ 27 B ╰╴md_heap
