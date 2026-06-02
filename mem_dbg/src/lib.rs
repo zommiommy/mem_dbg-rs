@@ -136,7 +136,9 @@ bitflags::bitflags! {
         /// computes only the size of the reference itself. Note that the size
         /// of every reference will be added once (i.e., if you have two
         /// identical references to the same memory region, the size of that
-        /// region will be added only once).
+        /// region will be added only once). Reference cycles are handled by
+        /// this same once-per-address accounting, so following a cyclic value
+        /// terminates instead of recursing forever.
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///
@@ -157,7 +159,9 @@ bitflags::bitflags! {
         /// and computes only the size of the reference itself. Note that the
         /// size of every counted reference will be added once (i.e., if you
         /// have two identical counted references to the same memory region,
-        /// the size of that region will be added only once).
+        /// the size of that region will be added only once). Counted-reference
+        /// cycles are handled by this same once-per-address accounting, so
+        /// following a cyclic value terminates instead of recursing forever.
         const FOLLOW_RCS = 1 << 2;
     }
 }

@@ -12,6 +12,13 @@
   reported sizes and generated code are unchanged. A `mem_size` benchmark guards
   the flat and per-element size paths.
 
+### Fixed
+
+- Following a reference, `Rc`, or `Arc` cycle under `SizeFlags::FOLLOW_REFS` or
+  `SizeFlags::FOLLOW_RCS` no longer recurses forever. The pointer address is now
+  recorded before recursing, so a cycle is cut on re-entry while the allocation
+  is still counted once.
+
 ## [0.4.2] - 2026-06-01
 
 ### New
