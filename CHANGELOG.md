@@ -63,6 +63,11 @@
 
 ### Fixed
 
+- Following a reference, `Rc`, or `Arc` cycle under `SizeFlags::FOLLOW_REFS` or
+  `SizeFlags::FOLLOW_RCS` no longer recurses forever. The pointer address is now
+  recorded before recursing, so a cycle is cut on re-entry while the allocation
+  is still counted once.
+
 - `mmap_rs::Mmap` and `mmap_rs::MmapMut` now always count their mapped region as
   part of `mem_size`. Previously the bytes were only counted under
   `SizeFlags::FOLLOW_REFS`, which is inconsistent with ownership semantics (the
