@@ -74,12 +74,20 @@ mod harness {
         let deque: VecDeque<String> = non_flat_vec().into_iter().collect();
         let map: HashMap<u64, String> = (0..N as u64).map(|i| (i, i.to_string())).collect();
         let bmap: BTreeMap<u64, String> = (0..N as u64).map(|i| (i, i.to_string())).collect();
+        let smap: HashMap<String, String> = (0..N as u64)
+            .map(|i| (i.to_string(), i.to_string()))
+            .collect();
+        let sbmap: BTreeMap<String, String> = (0..N as u64)
+            .map(|i| (i.to_string(), i.to_string()))
+            .collect();
         let list: LinkedList<String> = non_flat_vec().into_iter().collect();
 
         bench!(group, "vec_string", &v);
         bench!(group, "vecdeque_string", &deque);
         bench!(group, "hashmap_u64_string", &map);
         bench!(group, "btreemap_u64_string", &bmap);
+        bench!(group, "hashmap_string_string", &smap);
+        bench!(group, "btreemap_string_string", &sbmap);
         bench!(group, "linkedlist_string", &list);
 
         group.finish();
