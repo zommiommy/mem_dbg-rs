@@ -145,3 +145,39 @@ fn test_hashmap_string_keys() {
         predicted_map_size::<String, u32>(&map, SizeFlags::default(), item_size)
     );
 }
+
+#[test]
+fn test_hashmap_flat_keys_string_values() {
+    // Flat key, non-flat value: exercises the mixed single-pass path where the
+    // key contributes only its inline slot and the value also contributes heap.
+    let map: HashMap<u32, String> = (0..16).map(|x| (x, x.to_string())).collect();
+    let item_size: usize = map
+        .iter()
+        .map(|(k, v)| {
+            <u32 as MemSize>::mem_size(k, SizeFlags::default())
+                + <String as MemSize>::mem_size(v, SizeFlags::default())
+        })
+        .sum();
+    assert_eq!(
+        map.mem_size(SizeFlags::default()),
+        predicted_map_size::<u32, String>(&map, SizeFlags::default(), item_size)
+    );
+}
+
+#[test]
+fn test_hashmap_string_keys_and_values() {
+    // Non-flat key and value: the fully recursive single-pass path where both
+    // key and value contribute heap beyond their inline slots.
+    let map: HashMap<String, String> = (0..16).map(|x| (x.to_string(), x.to_string())).collect();
+    let item_size: usize = map
+        .iter()
+        .map(|(k, v)| {
+            <String as MemSize>::mem_size(k, SizeFlags::default())
+                + <String as MemSize>::mem_size(v, SizeFlags::default())
+        })
+        .sum();
+    assert_eq!(
+        map.mem_size(SizeFlags::default()),
+        predicted_map_size::<String, String>(&map, SizeFlags::default(), item_size)
+    );
+}
