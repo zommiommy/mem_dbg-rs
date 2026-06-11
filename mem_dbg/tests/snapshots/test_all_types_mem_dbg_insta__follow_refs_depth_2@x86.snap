@@ -51,6 +51,7 @@ expression: depth_output
      8 B   0.02% ├╴mut_reference: &mut i32 @ 0x[ADDR_2]
      4 B   0.01% │ ├╴: i32
      8 B   0.02% ├╴opt_some: core::option::Option<i32>
+     4 B   0.01% │ ╰╴Some: i32
     12 B   0.03% ├╴opt_none: core::option::Option<alloc::string::String>
     12 B   0.03% ├╴boxed: alloc::boxed::Box<u64>
     32 B   0.07% ├╴vec: alloc::vec::Vec<i32>
