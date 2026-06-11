@@ -2,6 +2,13 @@
 
 ## [0.4.3] - unreleased
 
+### Fixed
+
+- The tuple `MemDbg` implementation now breaks field-offset ties by size,
+  so zero-sized fields sharing an offset with a non-zero-sized field are
+  not attributed spurious padding. This mirrors the tie-breaking already
+  performed by the derive macro since 0.4.1.
+
 ### Changed
 
 - Container size computation no longer dispatches through the hidden

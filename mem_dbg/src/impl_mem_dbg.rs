@@ -501,23 +501,29 @@ macro_rules! impl_tuples_muncher {
                 let mut _max_idx = $idx;
                 $(_max_idx = _max_idx.max($nidx);)*
 
-                // Build the (field-index, field-offset) array on the stack.
+                // Build the (field-index, field-offset, field-size) array on
+                // the stack.
                 let mut id_sizes = [
-                    ($idx, core::mem::offset_of!($tty, $idx)),
-                    $(($nidx, core::mem::offset_of!($tty, $nidx)),)*
+                    ($idx, core::mem::offset_of!($tty, $idx), core::mem::size_of::<$ty>()),
+                    $(($nidx, core::mem::offset_of!($tty, $nidx), core::mem::size_of::<$nty>()),)*
                 ];
                 let n = id_sizes.len();
                 let total_size_self = core::mem::size_of::<Self>();
 
                 // Sort by offset to compute padded sizes via consecutive
                 // offset diffs; the last field stretches to `size_of::<Self>()`.
-                id_sizes.sort_by_key(|x| x.1);
+                // Ties are broken by size, so ZSTs come before non-ZSTs at the
+                // same offset (mirroring the derive macro), and then by index,
+                // which keeps the unstable sort deterministic.
+                id_sizes.sort_unstable_by(|a, b| {
+                    a.1.cmp(&b.1).then(a.2.cmp(&b.2)).then(a.0.cmp(&b.0))
+                });
                 for i in 0..n - 1 {
                     id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                 }
                 id_sizes[n - 1].1 = total_size_self - id_sizes[n - 1].1;
                 // Restore declaration order so we can index by field number.
-                id_sizes.sort_by_key(|x| x.0);
+                id_sizes.sort_unstable_by_key(|x| x.0);
 
                 self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags, dbg_refs)?;
                 $(
