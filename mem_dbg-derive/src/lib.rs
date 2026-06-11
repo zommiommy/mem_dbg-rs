@@ -111,7 +111,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     input_ident
                 );
                 quote! {
-                    const { assert!(
+                    const { ::core::assert!(
                         !(true #(&& <<#fields_ty as ::mem_dbg::FlatType>::Flat
                                       as ::mem_dbg::Boolean>::VALUE)*),
                         #msg
@@ -217,7 +217,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                     input_ident
                 );
                 quote! {
-                    const { assert!(
+                    const { ::core::assert!(
                         !(true #(&& <<#all_field_types as ::mem_dbg::FlatType>::Flat
                                       as ::mem_dbg::Boolean>::VALUE)*),
                         #msg
@@ -293,19 +293,20 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     .predicates
                     .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemDbgImpl + ::mem_dbg::FlatType));
 
-                // We push the field index, its offset, and its size
+                // We list the field index, its offset, and its size
                 // (the size is used to break ties when sorting by offset,
                 // ensuring ZSTs come before non-ZSTs at the same offset)
                 id_offset_pushes.push(quote!{
-                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #field_ident), ::core::mem::size_of::<#field_ty>()));
+                    (#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #field_ident), ::core::mem::size_of::<#field_ty>()),
                 });
                 // This is the arm of the match statement that invokes
                 // _mem_dbg_depth_on on the field.
                 match_code.push(quote!{
-                    #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
+                    #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(&self.#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, ::core::option::Option::Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                 });
             }
 
+            let n_fields = s.fields.len();
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
@@ -314,34 +315,47 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_writer: &mut impl ::core::fmt::Write,
                         _memdbg_total_size: usize,
                         _memdbg_max_depth: usize,
-                        _memdbg_prefix: &mut String,
+                        _memdbg_prefix: &mut ::mem_dbg::String,
                         _memdbg_is_last: bool,
                         _memdbg_flags: ::mem_dbg::DbgFlags,
                         _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
                     ) -> ::core::fmt::Result {
-                        let mut id_sizes: Vec<(usize, usize, usize)> = vec![];
-                        #(#id_offset_pushes)*
-                        let n = id_sizes.len();
-                        id_sizes.push((n, ::core::mem::size_of::<Self>(), usize::MAX));
+                        let n = #n_fields;
+                        // The field table is a stack array: the field count is
+                        // a compile-time constant, so no allocation is needed.
+                        let mut id_sizes: [(usize, usize, usize); #n_fields + 1] = [
+                            #(#id_offset_pushes)*
+                            (#n_fields, ::core::mem::size_of::<Self>(), usize::MAX),
+                        ];
                         // Sort by offset, breaking ties by size so ZSTs come
-                        // before non-ZSTs at the same offset
-                        id_sizes.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
+                        // before non-ZSTs at the same offset; the index is a
+                        // final tie-breaker that keeps the sort deterministic.
+                        id_sizes.sort_unstable_by(|a, b| {
+                            ::core::cmp::Ord::cmp(&a.1, &b.1)
+                                .then(::core::cmp::Ord::cmp(&a.2, &b.2))
+                                .then(::core::cmp::Ord::cmp(&a.0, &b.0))
+                        });
                         // Compute padded sizes
                         for i in 0..n {
                             id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
-                        };
+                        }
                         // Put the candle back unless the user requested otherwise
                         if ! _memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT) {
-                            id_sizes.sort_by_key(|x| x.0);
+                            id_sizes.sort_unstable_by_key(|x| x.0);
                         }
 
-                        for (i, (field_idx, padded_size, _)) in id_sizes.into_iter().enumerate().take(n) {
+                        for (i, (field_idx, padded_size, _)) in ::core::iter::Iterator::enumerate(
+                            ::core::iter::Iterator::take(
+                                ::core::iter::IntoIterator::into_iter(id_sizes),
+                                n,
+                            ),
+                        ) {
                             match field_idx {
                                 #(#match_code)*
-                                _ => unreachable!(),
+                                _ => ::core::unreachable!(),
                             }
                         }
-                        Ok(())
+                        ::core::result::Result::Ok(())
                     }
                 }
             }
@@ -382,23 +396,23 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push({
                                 let variant_ident = &variant.ident;
                                 quote!{
-                                    // We push the offset and size of the field;
+                                    // We list the offset and size of the field;
                                     // the size is used to break ties when sorting
                                     // by offset (ZSTs before non-ZSTs).
-                                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident), ::core::mem::size_of_val(#binding_ident)));
+                                    (#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #field_ident), ::core::mem::size_of_val(#binding_ident)),
                                 }
                             });
                             #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
-                                // We push the size of the field, which will be
+                                // We list the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#binding_ident)));
+                                (#field_idx, ::core::mem::size_of_val(#binding_ident)),
                             });
 
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#binding_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#binding_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, ::core::option::Option::Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                             });
                             args.extend([quote! { #field_ident: #binding_ident, }]);
 
@@ -431,24 +445,24 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             id_offset_pushes.push({
                                 let variant_ident = &variant.ident;
                                 quote!{
-                                    // We push the offset and size of the field;
+                                    // We list the offset and size of the field;
                                     // the size is used to break ties when sorting
                                     // by offset (ZSTs before non-ZSTs).
-                                    id_sizes.push((#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx), ::core::mem::size_of_val(#field_ident)));
+                                    (#field_idx, ::core::mem::offset_of!(#input_ident #ty_generics, #variant_ident . #_field_tuple_idx), ::core::mem::size_of_val(#field_ident)),
                                 }
                             });
 
                             #[cfg(not(feature = "offset_of_enum"))]
                             id_offset_pushes.push(quote!{
-                                // We push the size of the field, which will be
+                                // We list the size of the field, which will be
                                 // used as a surrogate of the padded size.
-                                id_sizes.push((#field_idx, ::core::mem::size_of_val(#field_ident)));
+                                (#field_idx, ::core::mem::size_of_val(#field_ident)),
                             });
 
                             // This is the arm of the match statement that
                             // invokes _mem_dbg_depth_on on the field.
                             match_code.push(quote! {
-                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
+                                #field_idx => <#field_ty as ::mem_dbg::MemDbgImpl>::_mem_dbg_depth_on(#field_ident, _memdbg_writer, _memdbg_total_size, _memdbg_max_depth, _memdbg_prefix, ::core::option::Option::Some(#field_ident_str), i == n - 1, padded_size, _memdbg_flags, _memdbg_refs)?,
                             });
 
                             args.extend([field_ident]);
@@ -473,58 +487,80 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 // IMPORTANT: We must push exactly ONE item to variants_code per
                 // variant to match the length of the variants Vec.
 
+                let n_var_fields = id_offset_pushes.len();
+
                 #[cfg(feature = "offset_of_enum")]
                 variants_code.push(quote!{{
-                    _memdbg_writer.write_char(#arrow)?;
-                    _memdbg_writer.write_char('╴')?;
-                    _memdbg_writer.write_str(#variant_name)?;
+                    ::core::fmt::Write::write_char(_memdbg_writer, #arrow)?;
+                    ::core::fmt::Write::write_char(_memdbg_writer, '╴')?;
+                    ::core::fmt::Write::write_str(_memdbg_writer, #variant_name)?;
 
-                    let mut id_sizes: Vec<(usize, usize, usize)> = vec![];
-                    #(#id_offset_pushes)*
-                    let n = id_sizes.len();
-
-                    // We use the offset_of information to build the real
-                    // space occupied by a field.
-                    id_sizes.push((n, ::core::mem::size_of::<Self>(), usize::MAX));
+                    let n = #n_var_fields;
+                    // The field table is a stack array: the field count is a
+                    // compile-time constant, so no allocation is needed. We
+                    // use the offset_of information to build the real space
+                    // occupied by a field.
+                    let mut id_sizes: [(usize, usize, usize); #n_var_fields + 1] = [
+                        #(#id_offset_pushes)*
+                        (#n_var_fields, ::core::mem::size_of::<Self>(), usize::MAX),
+                    ];
                     // Sort by offset, breaking ties by size so ZSTs come
-                    // before non-ZSTs at the same offset
-                    id_sizes.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
+                    // before non-ZSTs at the same offset; the index is a
+                    // final tie-breaker that keeps the sort deterministic.
+                    id_sizes.sort_unstable_by(|a, b| {
+                        ::core::cmp::Ord::cmp(&a.1, &b.1)
+                            .then(::core::cmp::Ord::cmp(&a.2, &b.2))
+                            .then(::core::cmp::Ord::cmp(&a.0, &b.0))
+                    });
                     // Compute padded sizes
                     for i in 0..n {
                         id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
-                    };
+                    }
                     // Put the candle back unless the user requested otherwise
                     if ! _memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT) {
-                        id_sizes.sort_by_key(|x| x.0);
+                        id_sizes.sort_unstable_by_key(|x| x.0);
                     }
 
-                    for (i, (field_idx, padded_size, _)) in id_sizes.into_iter().enumerate().take(n) {
+                    for (i, (field_idx, padded_size, _)) in ::core::iter::Iterator::enumerate(
+                        ::core::iter::Iterator::take(
+                            ::core::iter::IntoIterator::into_iter(id_sizes),
+                            n,
+                        ),
+                    ) {
                         match field_idx {
                             #(#match_code)*
-                            _ => unreachable!(),
+                            _ => ::core::unreachable!(),
                         }
                     }
                 }});
 
                 #[cfg(not(feature = "offset_of_enum"))]
                 variants_code.push(quote!{{
-                    _memdbg_writer.write_char(#arrow)?;
-                    _memdbg_writer.write_char('╴')?;
-                    _memdbg_writer.write_str(#variant_name)?;
+                    ::core::fmt::Write::write_char(_memdbg_writer, #arrow)?;
+                    ::core::fmt::Write::write_char(_memdbg_writer, '╴')?;
+                    ::core::fmt::Write::write_str(_memdbg_writer, #variant_name)?;
 
-                    let mut id_sizes: Vec<(usize, usize)> = vec![];
-                    #(#id_offset_pushes)*
-                    let n = id_sizes.len();
-
+                    let n = #n_var_fields;
+                    // The field table is a stack array: the field count is a
+                    // compile-time constant, so no allocation is needed.
                     // Lacking offset_of for enums, id_sizes contains the
                     // size_of of each field which we use as a surrogate of
                     // the padded size.
-                    assert!(!_memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT), "DbgFlags::RUST_LAYOUT for enums requires the offset_of_enum feature");
+                    let id_sizes: [(usize, usize); #n_var_fields] = [
+                        #(#id_offset_pushes)*
+                    ];
 
-                    for (i, (field_idx, padded_size)) in id_sizes.into_iter().enumerate().take(n) {
+                    ::core::assert!(!_memdbg_flags.contains(::mem_dbg::DbgFlags::RUST_LAYOUT), "DbgFlags::RUST_LAYOUT for enums requires the offset_of_enum feature");
+
+                    for (i, (field_idx, padded_size)) in ::core::iter::Iterator::enumerate(
+                        ::core::iter::Iterator::take(
+                            ::core::iter::IntoIterator::into_iter(id_sizes),
+                            n,
+                        ),
+                    ) {
                         match field_idx {
                             #(#match_code)*
-                            _ => unreachable!(),
+                            _ => ::core::unreachable!(),
                         }
                     }
                 }});
@@ -538,7 +574,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_writer: &mut impl ::core::fmt::Write,
                         _memdbg_total_size: usize,
                         _memdbg_max_depth: usize,
-                        _memdbg_prefix: &mut String,
+                        _memdbg_prefix: &mut ::mem_dbg::String,
                         _memdbg_is_last: bool,
                         _memdbg_flags: ::mem_dbg::DbgFlags,
                         _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
@@ -556,24 +592,23 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         }
 
                         for _ in 0.._memdbg_digits_number + 3 {
-                            _memdbg_writer.write_char(' ')?;
+                            ::core::fmt::Write::write_char(_memdbg_writer, ' ')?;
                         }
                         if !_memdbg_prefix.is_empty() {
                             // Find the byte index of the 3rd character (skip first 2 chars)
                             // to handle multi-byte UTF-8 characters like "│"
-                            let start_byte = _memdbg_prefix
-                                .char_indices()
-                                .nth(2)
+                            let mut _memdbg_char_indices = _memdbg_prefix.char_indices();
+                            let start_byte = ::core::iter::Iterator::nth(&mut _memdbg_char_indices, 2)
                                 .map(|(idx, _)| idx)
                                 .unwrap_or(_memdbg_prefix.len());
-                            _memdbg_writer.write_str(&_memdbg_prefix[start_byte..])?;
+                            ::core::fmt::Write::write_str(_memdbg_writer, &_memdbg_prefix[start_byte..])?;
                         }
                         match self {
                             #(
                                #input_ident::#variants => #variants_code,
                             )*
                         }
-                        Ok(())
+                        ::core::result::Result::Ok(())
                    }
                 }
             }
