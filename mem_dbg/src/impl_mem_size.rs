@@ -1002,6 +1002,11 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 /// Helper function to compute the size of a Deref pointer type,
 /// such as `MutexGuard`, `RwLockReadGuard`, `RwLockWriteGuard`.
 ///
+/// Under [`SizeFlags::FOLLOW_REFS`] the guarded value is recorded in the
+/// deduplication map exactly like a plain reference, so several guards of
+/// the same lock (or a guard and a reference to the same value) count the
+/// target once.
+///
 /// # Arguments
 ///
 /// * `obj` - The Deref pointer object.
@@ -1012,13 +1017,9 @@ fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, Re
 where
     M: Deref<Target: MemSize + Sized>,
 {
+    let target = obj.deref();
+    record_followed_pointer_size(target, target as *const M::Target as usize, flags, refs);
     core::mem::size_of::<M>()
-        + if flags.contains(SizeFlags::FOLLOW_REFS) {
-            <M::Target as MemSize>::mem_size_rec(obj.deref(), flags, refs)
-                - core::mem::size_of::<M::Target>()
-        } else {
-            0
-        }
 }
 
 #[cfg(feature = "std")]
