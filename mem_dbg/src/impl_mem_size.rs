@@ -1128,21 +1128,22 @@ impl<T: MemSize> MemSize for std::io::Cursor<T> {
     }
 }
 
-// IpAddr
-#[cfg(feature = "std")]
+// IpAddr: these types live in core::net (stable since Rust 1.77), so they
+// are available under no_std; std::net re-exports them.
 impl_size_of!(True;
-    std::net::Ipv4Addr,
-    std::net::Ipv6Addr,
-    std::net::IpAddr,
-    std::net::SocketAddrV4,
-    std::net::SocketAddrV6,
-    std::net::SocketAddr
+    core::net::Ipv4Addr,
+    core::net::Ipv6Addr,
+    core::net::IpAddr,
+    core::net::SocketAddrV4,
+    core::net::SocketAddrV6,
+    core::net::SocketAddr
 );
 
-// Time
+// Time: Duration lives in core::time; the clock-backed types need std.
+impl_size_of!(True; core::time::Duration);
+
 #[cfg(feature = "std")]
 impl_size_of!(True;
-    std::time::Duration,
     std::time::Instant,
     std::time::SystemTime,
     std::time::SystemTimeError

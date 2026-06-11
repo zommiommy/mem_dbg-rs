@@ -9,6 +9,13 @@
   under `no_std`, a `Layout` field made `#[derive(MemDbg)]` fail. The
   implementation is now available unconditionally, like the type.
 
+- The network address types and `Duration` are now implemented via
+  `core::net`/`core::time`, so they are available under `no_std`
+  (previously they were gated behind the `std` feature). Moreover, the
+  network and time types had no `MemDbgImpl` implementation at all, so a
+  field of one of these types made `#[derive(MemDbg)]` fail; they are now
+  leaf types for `MemDbg` too.
+
 ### Changed
 
 - Container size computation no longer dispatches through the hidden
