@@ -70,7 +70,7 @@ fn test_linked_list_aligned_element_node_size() {
         fn mem_size_rec(
             &self,
             _flags: SizeFlags,
-            _refs: &mut mem_dbg::HashMap<usize, usize>,
+            _refs: &mut mem_dbg::HashMap<usize, RefRecord>,
         ) -> usize {
             core::mem::size_of::<Self>()
         }
@@ -103,7 +103,7 @@ fn test_linked_list_with_aligned_heap_elements() {
         fn mem_size_rec(
             &self,
             flags: SizeFlags,
-            refs: &mut mem_dbg::HashMap<usize, usize>,
+            refs: &mut mem_dbg::HashMap<usize, RefRecord>,
         ) -> usize {
             core::mem::size_of::<Self>()
                 + (<Vec<u8> as MemSize>::mem_size_rec(&self.data, flags, refs)

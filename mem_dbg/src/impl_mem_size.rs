@@ -13,7 +13,7 @@ use core::sync::atomic::*;
 #[cfg(feature = "std")]
 use core::ops::Deref;
 
-use crate::{Boolean, False, FlatType, HashMap, MemSize, SizeFlags, True};
+use crate::{Boolean, False, FlatType, HashMap, MemSize, RefRecord, SizeFlags, True};
 
 #[cfg(not(feature = "std"))]
 use alloc::borrow::{Cow, ToOwned};
@@ -36,7 +36,7 @@ macro_rules! impl_size_of {
 
         impl MemSize for $ty {
             #[inline(always)]
-            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
                 core::mem::size_of::<Self>()
             }
         }
@@ -65,7 +65,7 @@ impl FlatType for str {
 }
 
 impl MemSize for str {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         self.len()
     }
 }
@@ -75,7 +75,7 @@ impl FlatType for String {
 }
 
 impl MemSize for String {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
@@ -92,7 +92,7 @@ impl<T: ?Sized> FlatType for PhantomData<T> {
 }
 
 impl<T: ?Sized> MemSize for PhantomData<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         0
     }
 }
@@ -102,17 +102,53 @@ impl<T: ?Sized> MemSize for PhantomData<T> {
 /// Records the recursive size behind a reference once when `FOLLOW_REFS` is
 /// set, keyed by pointer address. A zero-size sentinel is inserted before
 /// recursing so that reference cycles terminate instead of recursing forever.
+///
+/// Two references can share an address while spanning regions of different
+/// sizes (e.g., a reference to a struct and a reference to its first
+/// field). The recorded [`RefRecord::extent`] disambiguates: an address is
+/// skipped only if the recorded extent already covers the new referent,
+/// while a strictly larger referent is recursed again and replaces the
+/// record, as it strictly contains the smaller one.
 #[inline(always)]
 fn record_followed_pointer_size<T: ?Sized + MemSize>(
     value: &T,
     ptr: usize,
     flags: SizeFlags,
-    refs: &mut HashMap<usize, usize>,
+    refs: &mut HashMap<usize, RefRecord>,
 ) {
-    if flags.contains(SizeFlags::FOLLOW_REFS) && !refs.contains_key(&ptr) {
-        refs.insert(ptr, 0);
-        let inner_size = <T as MemSize>::mem_size_rec(value, flags, refs);
-        refs.insert(ptr, inner_size);
+    if flags.contains(SizeFlags::FOLLOW_REFS) {
+        let extent = core::mem::size_of_val(value);
+        record_followed_size(ptr, extent, refs, |refs| {
+            <T as MemSize>::mem_size_rec(value, flags, refs)
+        });
+    }
+}
+
+/// Common extent-aware recording logic for followed pointers: skips
+/// referents already covered by a recorded extent at the same address,
+/// inserts a zero-size sentinel to break cycles, and never overwrites a
+/// record left by a larger referent.
+#[inline(always)]
+fn record_followed_size(
+    ptr: usize,
+    extent: usize,
+    refs: &mut HashMap<usize, RefRecord>,
+    compute_size: impl FnOnce(&mut HashMap<usize, RefRecord>) -> usize,
+) {
+    if let Some(record) = refs.get(&ptr) {
+        if record.extent >= extent {
+            return;
+        }
+    }
+    refs.insert(ptr, RefRecord { extent, size: 0 });
+    let size = compute_size(refs);
+    // While recursing, a larger referent at the same address may have
+    // been recorded; do not clobber it.
+    match refs.get(&ptr) {
+        Some(record) if record.extent > extent => {}
+        _ => {
+            refs.insert(ptr, RefRecord { extent, size });
+        }
     }
 }
 
@@ -121,7 +157,7 @@ impl<T: ?Sized + MemSize> FlatType for &'_ T {
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ T {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         record_followed_pointer_size(*self, *self as *const T as *const () as usize, flags, refs);
         core::mem::size_of::<Self>()
     }
@@ -132,7 +168,7 @@ impl<T: ?Sized + MemSize> FlatType for &'_ mut T {
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ mut T {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         <&'_ T as MemSize>::mem_size_rec(&&**self, flags, refs)
     }
 }
@@ -145,7 +181,7 @@ impl<T: ?Sized> FlatType for *const T {
 }
 
 impl<T: ?Sized> MemSize for *const T {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -155,7 +191,7 @@ impl<T: ?Sized> FlatType for *mut T {
 }
 
 impl<T: ?Sized> MemSize for *mut T {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -167,7 +203,7 @@ impl<T: FlatType> FlatType for Option<T> {
 }
 
 impl<T: MemSize> MemSize for Option<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + self.as_ref().map_or(0, |x| {
                 <T as MemSize>::mem_size_rec(x, flags, refs) - core::mem::size_of::<T>()
@@ -182,7 +218,7 @@ impl<T: FlatType, E: FlatType> FlatType for Result<T, E> {
 }
 
 impl<T: MemSize, E: MemSize> MemSize for Result<T, E> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 Ok(t) => <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>(),
@@ -198,7 +234,7 @@ impl<B: FlatType, C: FlatType> FlatType for core::ops::ControlFlow<B, C> {
 }
 
 impl<B: MemSize, C: MemSize> MemSize for core::ops::ControlFlow<B, C> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 core::ops::ControlFlow::Break(b) => {
@@ -216,7 +252,7 @@ impl<T: FlatType> FlatType for core::task::Poll<T> {
 }
 
 impl<T: MemSize> MemSize for core::task::Poll<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 core::task::Poll::Ready(t) => {
@@ -232,7 +268,7 @@ impl<T: FlatType> FlatType for core::ops::Bound<T> {
 }
 
 impl<T: MemSize> MemSize for core::ops::Bound<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 core::ops::Bound::Included(t) | core::ops::Bound::Excluded(t) => {
@@ -250,7 +286,7 @@ impl<T: FlatType> FlatType for core::cmp::Reverse<T> {
 // Reverse<T> is repr(transparent) over T, so we forward straight to the inner
 // value, like Cell, UnsafeCell, and Pin.
 impl<T: MemSize> MemSize for core::cmp::Reverse<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         <T as MemSize>::mem_size_rec(&self.0, flags, refs)
     }
 }
@@ -262,7 +298,7 @@ impl<T: ?Sized> FlatType for Box<T> {
 }
 
 impl<T: ?Sized + MemSize> MemSize for Box<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
     }
 }
@@ -279,7 +315,7 @@ where
     B: ToOwned + MemSize + ?Sized,
     B::Owned: MemSize,
 {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + match self {
                 Cow::Borrowed(borrowed) => {
@@ -301,7 +337,7 @@ impl<P: FlatType> FlatType for core::pin::Pin<P> {
 }
 
 impl<P: MemSize> MemSize for core::pin::Pin<P> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         // SAFETY: `Pin<P>` is `#[repr(transparent)]` over `P`, so `&Pin<P>`
         // and `&P` have identical layout. Taking a shared reference to `P`
         // does not move the pointee.
@@ -323,7 +359,8 @@ struct RcInner<T: ?Sized> {
 
 /// Records the allocation behind an `Rc`/`Arc`-style shared pointer once when
 /// `FOLLOW_RCS` is set, including its control-block header. A zero-size
-/// sentinel is inserted before recursing so that cycles terminate.
+/// sentinel is inserted before recursing so that cycles terminate. Extents
+/// are handled as in [`record_followed_pointer_size`].
 #[cfg(feature = "std")]
 #[inline(always)]
 fn record_followed_shared_size<T: MemSize>(
@@ -331,13 +368,14 @@ fn record_followed_shared_size<T: MemSize>(
     ptr: usize,
     inner_header_size: usize,
     flags: SizeFlags,
-    refs: &mut HashMap<usize, usize>,
+    refs: &mut HashMap<usize, RefRecord>,
 ) {
-    if flags.contains(SizeFlags::FOLLOW_RCS) && !refs.contains_key(&ptr) {
-        refs.insert(ptr, 0);
-        let inner_size = inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
-            - core::mem::size_of::<T>();
-        refs.insert(ptr, inner_size);
+    if flags.contains(SizeFlags::FOLLOW_RCS) {
+        let extent = core::mem::size_of::<T>();
+        record_followed_size(ptr, extent, refs, |refs| {
+            inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
+                - core::mem::size_of::<T>()
+        });
     }
 }
 
@@ -363,7 +401,7 @@ impl<T> FlatType for std::rc::Rc<T> {
 /// ```
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::rc::Rc<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         record_followed_shared_size(
             self.as_ref(),
             std::rc::Rc::as_ptr(self) as usize,
@@ -385,7 +423,7 @@ impl<T: ?Sized> FlatType for std::rc::Weak<T> {
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemSize for std::rc::Weak<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -424,7 +462,7 @@ struct ArcInner<T: ?Sized> {
 /// ```
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Arc<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         record_followed_shared_size(
             self.as_ref(),
             std::sync::Arc::as_ptr(self) as usize,
@@ -445,7 +483,7 @@ impl<T: ?Sized> FlatType for std::sync::Weak<T> {
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemSize for std::sync::Weak<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -459,7 +497,7 @@ fn element_storage_size<'a, T, I>(
     iter: I,
     len: usize,
     flags: SizeFlags,
-    refs: &mut HashMap<usize, usize>,
+    refs: &mut HashMap<usize, RefRecord>,
 ) -> usize
 where
     T: FlatType + MemSize + 'a,
@@ -481,7 +519,7 @@ fn capacity_backed_storage_size<'a, T, I>(
     len: usize,
     capacity: usize,
     flags: SizeFlags,
-    refs: &mut HashMap<usize, usize>,
+    refs: &mut HashMap<usize, RefRecord>,
 ) -> usize
 where
     T: FlatType + MemSize + 'a,
@@ -510,7 +548,7 @@ where
 fn element_heap_extras<'a, T, I>(
     iter: I,
     flags: SizeFlags,
-    refs: &mut HashMap<usize, usize>,
+    refs: &mut HashMap<usize, RefRecord>,
 ) -> usize
 where
     T: FlatType + MemSize + 'a,
@@ -533,7 +571,7 @@ where
 fn map_heap_extras<'a, K, V, I>(
     iter: I,
     flags: SizeFlags,
-    refs: &mut HashMap<usize, usize>,
+    refs: &mut HashMap<usize, RefRecord>,
 ) -> usize
 where
     K: FlatType + MemSize + 'a,
@@ -570,7 +608,7 @@ impl<T: FlatType> FlatType for [T] {
 }
 
 impl<T: FlatType + MemSize> MemSize for [T] {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         element_storage_size(self.iter(), self.len(), flags, refs)
     }
 }
@@ -582,7 +620,7 @@ impl<T: FlatType, const N: usize> FlatType for [T; N] {
 }
 
 impl<T: FlatType + MemSize, const N: usize> MemSize for [T; N] {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         element_storage_size(self.iter(), N, flags, refs)
     }
 }
@@ -594,7 +632,7 @@ impl<T> FlatType for Vec<T> {
 }
 
 impl<T: FlatType + MemSize> MemSize for Vec<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + capacity_backed_storage_size(self.iter(), self.len(), self.capacity(), flags, refs)
     }
@@ -608,7 +646,7 @@ impl<T> FlatType for BinaryHeap<T> {
 }
 
 impl<T: FlatType + MemSize> MemSize for BinaryHeap<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + capacity_backed_storage_size(self.iter(), self.len(), self.capacity(), flags, refs)
     }
@@ -621,7 +659,7 @@ impl<T> FlatType for VecDeque<T> {
 }
 
 impl<T: FlatType + MemSize> MemSize for VecDeque<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + capacity_backed_storage_size(self.iter(), self.len(), self.capacity(), flags, refs)
     }
@@ -681,7 +719,7 @@ impl<T> FlatType for LinkedList<T> {
 }
 
 impl<T: FlatType + MemSize> MemSize for LinkedList<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + if <<T as FlatType>::Flat as Boolean>::VALUE {
                 self.len() * core::mem::size_of::<LinkedListNode<T>>()
@@ -725,7 +763,7 @@ macro_rules! impl_tuples_muncher {
         }
 
         impl<$ty: MemSize, $($nty: MemSize,)*> MemSize for ($ty, $($nty,)*) {
-            fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
                 let mut bytes = ::core::mem::size_of::<Self>();
                 bytes += <$ty as MemSize>::mem_size_rec(&self.$idx, flags, refs) - ::core::mem::size_of::<$ty>();
                 $( bytes += <$nty as MemSize>::mem_size_rec(&self.$nidx, flags, refs) - ::core::mem::size_of::<$nty>(); )*
@@ -738,7 +776,7 @@ macro_rules! impl_tuples_muncher {
         }
 
         impl<$ty, $($nty,)* R> MemSize for fn($ty, $($nty,)*) -> R {
-            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
                 ::core::mem::size_of::<Self>()
             }
         }
@@ -765,7 +803,7 @@ impl<R> FlatType for fn() -> R {
 }
 
 impl<R> MemSize for fn() -> R {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -777,7 +815,7 @@ impl<Idx: FlatType> FlatType for core::ops::Range<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::Range<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + <Idx as MemSize>::mem_size_rec(&self.start, flags, refs)
             + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
@@ -790,7 +828,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeFrom<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeFrom<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.start, flags, refs)
             - core::mem::size_of::<Idx>()
     }
@@ -801,7 +839,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeInclusive<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeInclusive<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + <Idx as MemSize>::mem_size_rec(self.start(), flags, refs)
             + <Idx as MemSize>::mem_size_rec(self.end(), flags, refs)
@@ -814,7 +852,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeTo<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeTo<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - core::mem::size_of::<Idx>()
     }
@@ -825,7 +863,7 @@ impl<Idx: FlatType> FlatType for core::ops::RangeToInclusive<Idx> {
 }
 
 impl<Idx: MemSize> MemSize for core::ops::RangeToInclusive<Idx> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() + <Idx as MemSize>::mem_size_rec(&self.end, flags, refs)
             - core::mem::size_of::<Idx>()
     }
@@ -852,7 +890,7 @@ impl<T: MemSize> MemSize for core::cell::RefCell<T> {
     /// be observed, so this returns only `size_of::<Self>()` and silently
     /// undercounts any heap reachable through `T`. The `MemDbg`
     /// implementation surfaces this with a `<mutably borrowed>` marker.
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         if let Ok(borrow) = self.try_borrow() {
             core::mem::size_of::<Self>() - core::mem::size_of::<T>()
                 + <T as MemSize>::mem_size_rec(&*borrow, flags, refs)
@@ -874,7 +912,7 @@ impl<T: MemSize> MemSize for core::cell::Cell<T> {
     /// cell while traversal holds the temporary shared reference below.
     /// Violating that contract makes the result invalid and may violate
     /// Rust's aliasing rules.
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value;
         // callers must not reentrantly mutate the same cell during traversal.
         let borrow = unsafe { &*self.as_ptr() };
@@ -887,7 +925,7 @@ impl<T: FlatType> FlatType for core::cell::OnceCell<T> {
 }
 
 impl<T: MemSize> MemSize for core::cell::OnceCell<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         let mut size = core::mem::size_of::<Self>();
         if let Some(t) = self.get() {
             size += <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>();
@@ -903,7 +941,7 @@ impl<T: FlatType> FlatType for std::sync::OnceLock<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::OnceLock<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         let mut size = core::mem::size_of::<Self>();
         if let Some(t) = self.get() {
             size += <T as MemSize>::mem_size_rec(t, flags, refs) - core::mem::size_of::<T>();
@@ -920,7 +958,7 @@ impl<T: MemSize> MemSize for core::cell::UnsafeCell<T> {
     /// Same reentrancy contract as `Cell<T>`: custom `MemSize` impls must
     /// not mutate this cell through another `UnsafeCell::get()` while
     /// traversal holds the temporary shared reference below.
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         // SAFETY: we temporarily take a shared reference to the inner value;
         // callers must not mutate through another `UnsafeCell::get()` during
         // traversal.
@@ -938,7 +976,7 @@ impl<T: FlatType> FlatType for std::sync::Mutex<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         // Use unwrap_or_else to handle poisoned mutexes gracefully
         let guard = self.lock().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
@@ -953,7 +991,7 @@ impl<T: FlatType> FlatType for std::sync::RwLock<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         // Use unwrap_or_else to handle poisoned locks gracefully
         let guard = self.read().unwrap_or_else(|e| e.into_inner());
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
@@ -970,7 +1008,7 @@ impl<T: MemSize> MemSize for std::sync::RwLock<T> {
 /// * `flags` - The SizeFlags to use for the computation.
 #[cfg(feature = "std")]
 #[inline(always)]
-fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize
+fn deref_pointer_size<M>(obj: &M, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize
 where
     M: Deref<Target: MemSize + Sized>,
 {
@@ -990,7 +1028,7 @@ impl<T> FlatType for std::sync::MutexGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::MutexGuard<'_, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -1002,7 +1040,7 @@ impl<T> FlatType for std::sync::RwLockReadGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockReadGuard<'_, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -1014,7 +1052,7 @@ impl<T> FlatType for std::sync::RwLockWriteGuard<'_, T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLockWriteGuard<'_, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         deref_pointer_size(self, flags, refs)
     }
 }
@@ -1028,7 +1066,7 @@ impl FlatType for std::path::Path {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::Path {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         <std::ffi::OsStr as MemSize>::mem_size_rec(self.as_os_str(), flags, refs)
     }
 }
@@ -1040,7 +1078,7 @@ impl FlatType for std::path::PathBuf {
 
 #[cfg(feature = "std")]
 impl MemSize for std::path::PathBuf {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
             + if flags.contains(SizeFlags::CAPACITY) {
                 self.capacity()
@@ -1057,7 +1095,7 @@ impl FlatType for std::ffi::OsStr {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsStr {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         self.as_encoded_bytes().len()
     }
 }
@@ -1069,7 +1107,7 @@ impl FlatType for std::ffi::OsString {
 
 #[cfg(feature = "std")]
 impl MemSize for std::ffi::OsString {
-    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         // OsString is like String - it has heap-allocated data
         // We use len() by default, and capacity() with CAPACITY flag
         core::mem::size_of::<Self>()
@@ -1119,7 +1157,7 @@ impl<T> FlatType for std::io::BufReader<T> {
 // types and always report `capacity()`.
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Read> MemSize for std::io::BufReader<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + self.capacity()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
@@ -1133,7 +1171,7 @@ impl<T: std::io::Write> FlatType for std::io::BufWriter<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize + std::io::Write> MemSize for std::io::BufWriter<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + self.capacity()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
@@ -1147,7 +1185,7 @@ impl<T> FlatType for std::io::Cursor<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::io::Cursor<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + <T as MemSize>::mem_size_rec(self.get_ref(), flags, refs)
     }
@@ -1182,7 +1220,7 @@ impl FlatType for mmap_rs::Mmap {
 
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::Mmap {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         // `Mmap` owns its mapped region and unmaps it on drop, so its bytes
         // belong to the value's footprint regardless of `FOLLOW_REFS`. There
         // is no notion of unused capacity for an mmap, so `CAPACITY` is a
@@ -1198,7 +1236,7 @@ impl FlatType for mmap_rs::MmapMut {
 
 #[cfg(feature = "mmap-rs")]
 impl MemSize for mmap_rs::MmapMut {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         // See `Mmap` above.
         core::mem::size_of::<Self>() + self.len()
     }
@@ -1262,7 +1300,7 @@ impl<T> FlatType for std::collections::HashSet<T> {
 
 #[cfg(feature = "std")]
 impl<T: FlatType + MemSize> MemSize for std::collections::HashSet<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         let elements_size = element_storage_size(self.iter(), self.len(), flags, refs);
         fix_set_for_capacity(self, elements_size, flags)
     }
@@ -1297,7 +1335,7 @@ impl<K, V> FlatType for std::collections::HashMap<K, V> {
 
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::HashMap<K, V> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         // Inline key/value storage plus, in a single pass over the entries,
         // any per-entry heap (zero when both K and V are flat).
         let inline_size = self.len() * (core::mem::size_of::<K>() + core::mem::size_of::<V>());
@@ -1429,7 +1467,7 @@ impl<T> FlatType for std::collections::BTreeSet<T> {
 
 #[cfg(feature = "std")]
 impl<T: FlatType + MemSize> MemSize for std::collections::BTreeSet<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         let item_heap_size = element_heap_extras(self.iter(), flags, refs);
         core::mem::size_of::<std::collections::BTreeSet<T>>()
             + estimate_btree_size::<T, ()>(self.len(), item_heap_size)
@@ -1443,7 +1481,7 @@ impl<K, V> FlatType for std::collections::BTreeMap<K, V> {
 
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::BTreeMap<K, V> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         let item_heap_size = map_heap_extras(self.iter(), flags, refs);
         core::mem::size_of::<std::collections::BTreeMap<K, V>>()
             + estimate_btree_size::<K, V>(self.len(), item_heap_size)
@@ -1456,7 +1494,7 @@ impl<H> FlatType for core::hash::BuildHasherDefault<H> {
     type Flat = True;
 }
 impl<H> MemSize for core::hash::BuildHasherDefault<H> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         // it's a phantom hash
         debug_assert_eq!(core::mem::size_of::<Self>(), 0);
         0
@@ -1472,7 +1510,7 @@ impl FlatType for std::hash::DefaultHasher {
 // This implementation assumes that DefaultHasher is a fixed-size type
 // that does not allocate memory on the heap.
 impl MemSize for std::hash::DefaultHasher {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1484,7 +1522,7 @@ impl FlatType for std::collections::hash_map::RandomState {
 
 #[cfg(feature = "std")]
 impl MemSize for std::collections::hash_map::RandomState {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1498,7 +1536,7 @@ impl<T: ?Sized> FlatType for core::ptr::NonNull<T> {
 }
 
 impl<T: ?Sized> MemSize for core::ptr::NonNull<T> {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of::<Self>()
     }
 }
@@ -1525,7 +1563,7 @@ impl<A: maligned::Alignment, T: MemSize + FlatType> FlatType for maligned::Align
 
 #[cfg(feature = "maligned")]
 impl<A: maligned::Alignment, T: MemSize> MemSize for maligned::Aligned<A, T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         use core::ops::Deref;
         core::mem::size_of::<Self>() - core::mem::size_of::<T>()
             + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
@@ -1561,7 +1599,7 @@ mod aliasable {
     }
 
     impl<T: ?Sized + MemSize> MemSize for AliasableBox<T> {
-        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
             core::mem::size_of::<Self>() + <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
         }
     }
@@ -1571,7 +1609,7 @@ mod aliasable {
     }
 
     impl<T: FlatType + MemSize> MemSize for AliasableVec<T> {
-        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
             core::mem::size_of::<Self>() + <[T] as MemSize>::mem_size_rec(self.deref(), flags, refs)
         }
     }
@@ -1581,7 +1619,7 @@ mod aliasable {
     }
 
     impl MemSize for AliasableString {
-        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
             core::mem::size_of::<Self>() + self.deref().len()
         }
     }
@@ -1591,7 +1629,7 @@ mod aliasable {
     }
 
     impl<T: ?Sized + MemSize> MemSize for AliasableMut<'_, T> {
-        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
             <&T as MemSize>::mem_size_rec(&self.deref(), flags, refs)
         }
     }
@@ -1609,7 +1647,7 @@ impl<T: FlatType> FlatType for maybe_dangling::MaybeDangling<T> {
 
 #[cfg(feature = "maybe-dangling")]
 impl<T: MemSize> MemSize for maybe_dangling::MaybeDangling<T> {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         use core::ops::Deref;
         <T as MemSize>::mem_size_rec(self.deref(), flags, refs)
     }

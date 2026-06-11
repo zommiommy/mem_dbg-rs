@@ -786,7 +786,7 @@ impl crate::MemSize for MutablyBorrowed {
     fn mem_size_rec(
         &self,
         _flags: crate::SizeFlags,
-        _refs: &mut crate::HashMap<usize, usize>,
+        _refs: &mut crate::HashMap<usize, crate::RefRecord>,
     ) -> usize {
         0
     }

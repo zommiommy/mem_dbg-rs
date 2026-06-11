@@ -374,7 +374,7 @@ impl MemSize for IntOrFloatI {
     fn mem_size_rec(
         &self,
         _flags: SizeFlags,
-        _refs: &mut HashMap<usize, usize>,
+        _refs: &mut HashMap<usize, RefRecord>,
     ) -> usize {
         core::mem::size_of::<Self>()
     }
@@ -413,7 +413,7 @@ impl MemSize for IntOrFloatF {
     fn mem_size_rec(
         &self,
         _flags: SizeFlags,
-        _refs: &mut HashMap<usize, usize>,
+        _refs: &mut HashMap<usize, RefRecord>,
     ) -> usize {
         core::mem::size_of::<Self>()
     }

@@ -21,6 +21,27 @@ pub use hashbrown::HashMap;
 #[doc(hidden)]
 pub use hashbrown::HashSet;
 
+/// Record of a followed reference in the deduplication map passed to
+/// [`MemSize::mem_size_rec`].
+///
+/// The map is keyed by the referent's address. Since two references can
+/// share an address while spanning different regions (e.g., a reference
+/// to a struct and a reference to its first field), each record stores
+/// the stack extent of the referent: a re-encountered address is skipped
+/// only if the recorded extent already covers the new referent, and a
+/// larger referent at the same address replaces the record, as it
+/// strictly contains the smaller one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RefRecord {
+    /// The stack extent in bytes of the referent, as returned by
+    /// [`core::mem::size_of_val`].
+    pub extent: usize,
+    /// The recursively computed size of the referent; zero while the
+    /// recursive computation is still in progress (this sentinel breaks
+    /// reference cycles).
+    pub size: usize,
+}
+
 #[cfg(feature = "derive")]
 pub use mem_dbg_derive::{MemDbg, MemSize};
 
@@ -197,21 +218,25 @@ pub trait MemSize {
     fn mem_size(&self, flags: SizeFlags) -> usize {
         let mut refs = HashMap::new();
         let base = self.mem_size_rec(flags, &mut refs);
-        base + refs.into_values().sum::<usize>()
+        base + refs.into_values().map(|record| record.size).sum::<usize>()
     }
 
     /// Recursive implementation that tracks visited references for deduplication.
     ///
     /// The parameter `refs` is a map from pointer addresses (coming from
-    /// references) to their computed size that is used to count the space
+    /// references) to a [`RefRecord`] containing the stack extent of the
+    /// referent and its computed size. It is used to count the space
     /// occupied by references only once in case any of the flags
-    /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RCS`] is set.
+    /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RCS`] is set;
+    /// the extent disambiguates references that share an address but span
+    /// regions of different sizes (e.g., a reference to a struct and a
+    /// reference to its first field).
     ///
     /// In case of custom (non-derive) implementations: types that do not
     /// contain references can simply ignore the `refs` parameter; otherwise,
     /// please have a look at the [implementation for
     /// references](#impl-MemSize-for-%26T).
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize;
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize;
 }
 
 bitflags::bitflags! {

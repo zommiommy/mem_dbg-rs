@@ -7,7 +7,7 @@ impl FlatType for TooSmallPadding {
 }
 
 impl MemSize for TooSmallPadding {
-    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, RefRecord>) -> usize {
         core::mem::size_of_val(&self.0)
     }
 }

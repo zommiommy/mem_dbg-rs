@@ -130,7 +130,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
+                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, ::mem_dbg::RefRecord>) -> usize {
                         #const_assert
                         let mut bytes = ::core::mem::size_of::<Self>();
                         #(bytes += <#fields_ty as ::mem_dbg::MemSize>::mem_size_rec(&self.#fields_ident, _memsize_flags, _memsize_refs) - ::core::mem::size_of::<#fields_ty>();)*
@@ -236,7 +236,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
 
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
-                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
+                    fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, ::mem_dbg::RefRecord>) -> usize {
                         #const_assert
                         match self {
                             #(

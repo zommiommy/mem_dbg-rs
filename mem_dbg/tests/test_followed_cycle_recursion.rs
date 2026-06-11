@@ -19,7 +19,11 @@ impl FlatType for CountingRcCycle {
 }
 
 impl MemSize for CountingRcCycle {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(
+        &self,
+        flags: SizeFlags,
+        refs: &mut mem_dbg::HashMap<usize, RefRecord>,
+    ) -> usize {
         let visits = self.size_visits.get() + 1;
         self.size_visits.set(visits);
         assert!(visits <= MAX_CYCLE_VISITS);
@@ -76,7 +80,11 @@ impl FlatType for CountingArcCycle {
 }
 
 impl MemSize for CountingArcCycle {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(
+        &self,
+        flags: SizeFlags,
+        refs: &mut mem_dbg::HashMap<usize, RefRecord>,
+    ) -> usize {
         let visits = self
             .size_visits
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -137,7 +145,11 @@ impl FlatType for CountingRefCycle {
 }
 
 impl MemSize for CountingRefCycle {
-    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut mem_dbg::HashMap<usize, usize>) -> usize {
+    fn mem_size_rec(
+        &self,
+        flags: SizeFlags,
+        refs: &mut mem_dbg::HashMap<usize, RefRecord>,
+    ) -> usize {
         let visits = self.size_visits.get() + 1;
         self.size_visits.set(visits);
         assert!(visits <= MAX_CYCLE_VISITS);

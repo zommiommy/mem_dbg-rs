@@ -61,7 +61,22 @@
   reported sizes and generated code are unchanged. A `mem_size` benchmark guards
   the flat and per-element size paths.
 
+### Changed
+
+- The deduplication map passed to `MemSize::mem_size_rec` now maps pointer
+  addresses to a `RefRecord` containing the stack extent of the referent
+  and its computed size, instead of the size alone. Manual implementations
+  that mention the map type must be updated; implementations that ignore
+  the parameter are unaffected.
+
 ### Fixed
+
+- Under `SizeFlags::FOLLOW_REFS`, two references sharing an address but
+  spanning regions of different sizes (e.g., a reference to a struct and a
+  reference to its first field, or overlapping slices) were deduplicated by
+  address alone, making the result dependent on encounter order and
+  undercounting when the smaller referent was met first. The region is now
+  counted once by its largest extent, regardless of order.
 
 - Following a reference, `Rc`, or `Arc` cycle under `SizeFlags::FOLLOW_REFS` or
   `SizeFlags::FOLLOW_RCS` no longer recurses forever. The pointer address is now
