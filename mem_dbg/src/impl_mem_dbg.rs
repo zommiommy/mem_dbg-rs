@@ -414,8 +414,8 @@ impl<P: MemDbgImpl> MemDbgImpl for core::pin::Pin<P> {
 /// This implementation displays the referenced data with deduplication
 /// when FOLLOW_RCS is set.
 #[cfg(feature = "std")]
-impl<T: MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
-    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::rc::Rc::as_ptr(s) as usize);
+impl<T: ?Sized + MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::rc::Rc::as_ptr(s) as *const () as usize);
 }
 
 // Weak pointers are displayed as handles only.
@@ -428,8 +428,9 @@ impl<T: ?Sized> MemDbgImpl for std::rc::Weak<T> {}
 /// This implementation displays the referenced data with deduplication
 /// when FOLLOW_RCS is set.
 #[cfg(feature = "std")]
-impl<T: MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
-    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::sync::Arc::as_ptr(s) as usize);
+impl<T: ?Sized + MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::sync::Arc::as_ptr(s) as *const ()
+        as usize);
 }
 
 // Weak pointers are displayed as handles only.
