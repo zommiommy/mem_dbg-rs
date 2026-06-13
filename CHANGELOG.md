@@ -2,6 +2,13 @@
 
 ## [0.4.3] - unreleased
 
+### Fixed
+
+- The `MemDbgImpl` implementation for `core::alloc::Layout` was gated
+  behind the `std` feature, while its `MemSize` implementation was not:
+  under `no_std`, a `Layout` field made `#[derive(MemDbg)]` fail. The
+  implementation is now available unconditionally, like the type.
+
 ### Changed
 
 - Container size computation no longer dispatches through the hidden
