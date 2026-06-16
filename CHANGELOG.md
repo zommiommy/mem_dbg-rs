@@ -71,6 +71,13 @@
 
 ### Fixed
 
+- Under `SizeFlags::FOLLOW_REFS`, lock guards (`MutexGuard`,
+  `RwLockReadGuard`, `RwLockWriteGuard`) now record their target in the
+  same deduplication map as plain references, so several guards of the
+  same lock (or a guard and a reference to the same value) count the
+  target once. The guarded value is now counted in full, like `&T`,
+  rather than by its heap extras only.
+
 - Under `SizeFlags::FOLLOW_REFS`, two references sharing an address but
   spanning regions of different sizes (e.g., a reference to a struct and a
   reference to its first field, or overlapping slices) were deduplicated by
