@@ -163,13 +163,74 @@ impl<T: ?Sized> MemDbgImpl for *const T {}
 
 impl<T: ?Sized> MemDbgImpl for *mut T {}
 
-// Option
+// Option and Result render the active payload as a labeled child, like
+// the other sum types below (ControlFlow, Poll, Bound).
 
-impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
+impl<T: MemDbgImpl> MemDbgImpl for Option<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        _is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            Some(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Some"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
+            ),
+            None => Ok(()),
+        }
+    }
+}
 
-// Result
-
-impl<T: MemDbgImpl, E: MemDbgImpl> MemDbgImpl for Result<T, E> {}
+impl<T: MemDbgImpl, E: MemDbgImpl> MemDbgImpl for Result<T, E> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        _is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            Ok(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Ok"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
+            ),
+            Err(e) => e._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Err"),
+                true,
+                core::mem::size_of::<E>(),
+                flags,
+                dbg_refs,
+            ),
+        }
+    }
+}
 
 // Sum/newtype wrappers delegate debug traversal to the active payload only.
 

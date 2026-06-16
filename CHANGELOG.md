@@ -20,6 +20,11 @@
   field of one of these types made `#[derive(MemDbg)]` fail; they are now
   leaf types for `MemDbg` too.
 
+- `Option` and `Result` now render their active payload as a labeled
+  child (`Some`, `Ok`, `Err`) in `MemDbg` output, consistently with
+  `ControlFlow`, `Poll`, `Bound`, and `Reverse`. Previously they rendered
+  no children at all, even though `MemSize` counts the payload.
+
 ### Changed
 
 - Container size computation no longer dispatches through the hidden

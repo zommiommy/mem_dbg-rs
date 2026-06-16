@@ -49,6 +49,7 @@ expression: depth_output
     8 B ├╴reference
     4 B ├╴mut_reference
     8 B ├╴opt_some
+    4 B │ ╰╴Some
    12 B ├╴opt_none
    12 B ├╴boxed
    32 B ├╴vec
