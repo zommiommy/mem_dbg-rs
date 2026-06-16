@@ -1055,6 +1055,27 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
     }
 }
 
+// Network and time: flat leaf types. The network types and Duration are
+// available under no_std (core::net, core::time); the clock-backed types
+// need std.
+
+impl_mem_dbg!(
+    core::net::Ipv4Addr,
+    core::net::Ipv6Addr,
+    core::net::IpAddr,
+    core::net::SocketAddrV4,
+    core::net::SocketAddrV6,
+    core::net::SocketAddr,
+    core::time::Duration
+);
+
+#[cfg(feature = "std")]
+impl_mem_dbg!(
+    std::time::Instant,
+    std::time::SystemTime,
+    std::time::SystemTimeError
+);
+
 // Os stuff
 
 #[cfg(feature = "std")]
