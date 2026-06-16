@@ -48,6 +48,9 @@ criterion = "0.8"
 default = ["std", "derive"]
 std = []
 derive = ["mem_dbg-derive"]
+# parking_lot is not no_std and its guard MemSize impls reuse the std-gated
+# `deref_pointer_size` helper, so the feature requires `std`.
+parking_lot = ["std", "dep:parking_lot"]
 offset_of_enum = ["derive", "mem_dbg-derive/offset_of_enum"]
 
 [[example]]
