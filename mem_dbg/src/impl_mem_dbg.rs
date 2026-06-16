@@ -608,10 +608,9 @@ impl MemDbgImpl for std::collections::hash_map::RandomState {
 
 // alloc
 
-#[cfg(feature = "std")]
 impl MemDbgImpl for core::alloc::Layout {
-    // Layout is size + align, but align is unstable so we can't recurse
-    // on that, nor implement memdbg or memsize for that :)
+    // Layout is a flat type (size and alignment); its fields are private,
+    // and there is nothing worth recursing into.
 }
 
 // Ranges

@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- The `MemDbgImpl` implementation for `core::alloc::Layout` was gated
+  behind the `std` feature, while its `MemSize` implementation was not:
+  under `no_std`, a `Layout` field made `#[derive(MemDbg)]` fail. The
+  implementation is now available unconditionally, like the type.
 - The tuple `MemDbg` implementation now breaks field-offset ties by size,
   so zero-sized fields sharing an offset with a non-zero-sized field are
   not attributed spurious padding. This mirrors the tie-breaking already
