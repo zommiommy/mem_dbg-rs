@@ -17,3 +17,6 @@ Cargo.lock
 lcov.info
 *.png
 build_rs_cov.profraw
+
+# Pending insta snapshots (review with `cargo insta`, never commit)
+*.snap.new
