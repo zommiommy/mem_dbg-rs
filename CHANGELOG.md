@@ -4,6 +4,11 @@
 
 ### New
 
+- `Rc<T>` and `Arc<T>` now support unsized pointees (`Rc<str>`,
+  `Arc<[T]>`, ...). The control-block allocation is measured by extending
+  the header layout with the layout of the pointed-to value, exactly like
+  the standard library computes it.
+
 - Added `MemSize`/`MemDbg` implementations, behind the `aliasable` feature,
   for the `aliasable` crate: `AliasableBox` mirrors `Box`, `AliasableVec`
   mirrors `Vec`, `AliasableString` mirrors `String`, and `AliasableMut`

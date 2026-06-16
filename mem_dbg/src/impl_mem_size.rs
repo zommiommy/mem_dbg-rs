@@ -348,7 +348,9 @@ impl<P: MemSize> MemSize for core::pin::Pin<P> {
 
 // Rc: uses map for deduplication when FOLLOW_RCS is set
 
-// Structure used to measure the size of RcInner in std
+// Structure used to measure the layout of std's RcInner header; only
+// instantiated as RcInner<()>, whose layout is extended with the layout of
+// the pointed-to value exactly like std::rc::Rc::allocate_for_layout does.
 #[cfg(feature = "std")]
 #[repr(C, align(2))]
 struct RcInner<T: ?Sized> {
@@ -361,26 +363,38 @@ struct RcInner<T: ?Sized> {
 /// `FOLLOW_RCS` is set, including its control-block header. A zero-size
 /// sentinel is inserted before recursing so that cycles terminate. Extents
 /// are handled as in [`record_followed_pointer_size`].
+///
+/// The allocation size is computed like the standard library computes it:
+/// the control-block header layout is extended with the layout of the
+/// pointed-to value and padded to alignment. This is exact for sized and
+/// unsized pointees alike.
 #[cfg(feature = "std")]
 #[inline(always)]
-fn record_followed_shared_size<T: MemSize>(
+fn record_followed_shared_size<T: ?Sized + MemSize>(
     inner: &T,
     ptr: usize,
-    inner_header_size: usize,
+    header_layout: core::alloc::Layout,
     flags: SizeFlags,
     refs: &mut HashMap<usize, RefRecord>,
 ) {
     if flags.contains(SizeFlags::FOLLOW_RCS) {
-        let extent = core::mem::size_of::<T>();
+        let extent = core::mem::size_of_val(inner);
         record_followed_size(ptr, extent, refs, |refs| {
-            inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
-                - core::mem::size_of::<T>()
+            let alloc_size = header_layout
+                .extend(core::alloc::Layout::for_value(inner))
+                // Cannot overflow: the allocation exists.
+                .expect("layout overflow")
+                .0
+                .pad_to_align()
+                .size();
+            alloc_size - core::mem::size_of_val(inner)
+                + <T as MemSize>::mem_size_rec(inner, flags, refs)
         });
     }
 }
 
 #[cfg(feature = "std")]
-impl<T> FlatType for std::rc::Rc<T> {
+impl<T: ?Sized> FlatType for std::rc::Rc<T> {
     type Flat = False;
 }
 
@@ -400,12 +414,12 @@ impl<T> FlatType for std::rc::Rc<T> {
 /// }
 /// ```
 #[cfg(feature = "std")]
-impl<T: MemSize> MemSize for std::rc::Rc<T> {
+impl<T: ?Sized + MemSize> MemSize for std::rc::Rc<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         record_followed_shared_size(
             self.as_ref(),
-            std::rc::Rc::as_ptr(self) as usize,
-            core::mem::size_of::<RcInner<T>>(),
+            std::rc::Rc::as_ptr(self) as *const () as usize,
+            core::alloc::Layout::new::<RcInner<()>>(),
             flags,
             refs,
         );
@@ -431,11 +445,13 @@ impl<T: ?Sized> MemSize for std::rc::Weak<T> {
 // Arc: uses map for deduplication when FOLLOW_RCS is set
 
 #[cfg(feature = "std")]
-impl<T> FlatType for std::sync::Arc<T> {
+impl<T: ?Sized> FlatType for std::sync::Arc<T> {
     type Flat = False;
 }
 
-// Structure used to measure the size of ArcInner in std
+// Structure used to measure the layout of std's ArcInner header; only
+// instantiated as ArcInner<()>, whose layout is extended with the layout of
+// the pointed-to value exactly like std::sync::Arc::allocate_for_layout does.
 #[cfg(feature = "std")]
 #[repr(C, align(2))]
 struct ArcInner<T: ?Sized> {
@@ -461,12 +477,12 @@ struct ArcInner<T: ?Sized> {
 /// }
 /// ```
 #[cfg(feature = "std")]
-impl<T: MemSize> MemSize for std::sync::Arc<T> {
+impl<T: ?Sized + MemSize> MemSize for std::sync::Arc<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, RefRecord>) -> usize {
         record_followed_shared_size(
             self.as_ref(),
-            std::sync::Arc::as_ptr(self) as usize,
-            core::mem::size_of::<ArcInner<T>>(),
+            std::sync::Arc::as_ptr(self) as *const () as usize,
+            core::alloc::Layout::new::<ArcInner<()>>(),
             flags,
             refs,
         );
