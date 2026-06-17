@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- `mem_dbg()`/`mem_dbg_depth()` now hold one `stderr` lock and use
+  `write_all`, so formatted output cannot silently truncate mid-fragment.
 - Followed references, `Rc`, and `Arc` now record only visible first
   encounters in `MemDbg`, and their single followed child renders with the
   correct tree corner.

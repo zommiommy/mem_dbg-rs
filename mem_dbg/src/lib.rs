@@ -384,21 +384,18 @@ pub trait MemDbgImpl: MemSize {
         padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        struct Wrapper(std::io::Stderr);
-        impl core::fmt::Write for Wrapper {
+        struct Wrapper<'a>(std::io::StderrLock<'a>);
+        impl core::fmt::Write for Wrapper<'_> {
             #[inline(always)]
             fn write_str(&mut self, s: &str) -> core::fmt::Result {
                 use std::io::Write;
-                self.0
-                    .lock()
-                    .write(s.as_bytes())
-                    .map_err(|_| core::fmt::Error)
-                    .map(|_| ())
+                self.0.write_all(s.as_bytes()).map_err(|_| core::fmt::Error)
             }
         }
+        let stderr = std::io::stderr();
         let mut dbg_refs = HashSet::new();
         self._mem_dbg_depth_on(
-            &mut Wrapper(std::io::stderr()),
+            &mut Wrapper(stderr.lock()),
             total_size,
             max_depth,
             &mut String::new(),
