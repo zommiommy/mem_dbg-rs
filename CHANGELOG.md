@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Followed references, `Rc`, and `Arc` now record only visible first
+  encounters in `MemDbg`, and their single followed child renders with the
+  correct tree corner.
 - `Cow::Borrowed` now participates in `MemDbg` reference markers and
   deduplication under `FOLLOW_REFS`, matching its `MemSize` behavior.
 - `MutexGuard` and `RwLock*Guard` now follow and deduplicate their target

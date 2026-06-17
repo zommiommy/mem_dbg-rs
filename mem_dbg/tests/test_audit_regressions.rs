@@ -260,3 +260,32 @@ fn test_empty_enum_derives_compile() {
     fn assert_traits<T: MemSize + MemDbg>() {}
     assert_traits::<EmptyAuditEnum>();
 }
+
+// ---------------------------------------------------------------------------
+// Bug 6: Followed references were inserted into the display dedup set before
+// depth gating, so a hidden first encounter could make a later visible alias
+// render as a back-reference without any visible first-reference marker.
+// ---------------------------------------------------------------------------
+
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+struct DepthHiddenRef<'a> {
+    hidden: Option<&'a u32>,
+    visible: &'a u32,
+}
+
+#[test]
+fn test_hidden_followed_ref_does_not_poison_visible_marker() {
+    let value = 7;
+    let s = DepthHiddenRef {
+        hidden: Some(&value),
+        visible: &value,
+    };
+    let mut out = String::new();
+
+    s.mem_dbg_depth_on(&mut out, 1, DbgFlags::FOLLOW_REFS)
+        .expect("mem_dbg_depth_on");
+
+    assert!(out.contains("visible @ 0x"), "{out}");
+    assert!(!out.contains("visible →"), "{out}");
+}

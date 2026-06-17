@@ -51,6 +51,12 @@ macro_rules! impl_mem_dbg_for_deref {
             flags: DbgFlags,
             dbg_refs: &mut HashSet<usize>,
         ) -> core::fmt::Result {
+            // Match `_mem_dbg_depth_on_impl`'s depth cutoff before mutating
+            // `dbg_refs`; hidden first encounters must not create visible
+            // back-references without a visible `@` line.
+            if prefix.chars().count() / 2 > max_depth {
+                return Ok(());
+            }
             if flags.contains(DbgFlags::$flag) {
                 let $self = self;
                 let ptr: usize = $get_ptr;
@@ -104,7 +110,7 @@ macro_rules! impl_mem_dbg_for_deref {
             total_size: usize,
             max_depth: usize,
             prefix: &mut String,
-            is_last: bool,
+            _is_last: bool,
             flags: DbgFlags,
             dbg_refs: &mut HashSet<usize>,
         ) -> core::fmt::Result {
@@ -118,7 +124,7 @@ macro_rules! impl_mem_dbg_for_deref {
                     max_depth,
                     prefix,
                     None,
-                    is_last,
+                    true,
                     padded_size,
                     flags,
                     dbg_refs,
