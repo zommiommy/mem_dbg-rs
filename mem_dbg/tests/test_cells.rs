@@ -141,6 +141,7 @@ fn test_unsafe_cell_in_struct() {
 #[test]
 fn test_unsafe_cell_with_vec() {
     #[derive(MemSize)]
+    #[mem_size(flat)]
     struct Test {
         unsafe_cell: UnsafeCell<Vec<i32>>,
     }
@@ -150,8 +151,7 @@ fn test_unsafe_cell_with_vec() {
     };
 
     let size = s.mem_size(SizeFlags::default());
-    // UnsafeCell adds overhead around the Vec
-    assert!(size > std::mem::size_of::<UnsafeCell<Vec<i32>>>());
+    assert_eq!(size, std::mem::size_of::<Test>());
 }
 
 #[test]
@@ -177,6 +177,45 @@ fn test_unsafe_cell_with_memdbg() {
         let result = s.mem_dbg_depth(depth, DbgFlags::default());
         assert!(result.is_ok());
     }
+}
+
+#[test]
+fn test_cell_and_unsafe_cell_do_not_recurse_into_inner_value() {
+    struct PanicOnVisit;
+
+    impl FlatType for PanicOnVisit {
+        type Flat = False;
+    }
+
+    impl MemSize for PanicOnVisit {
+        fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+            panic!("inner value must not be inspected");
+        }
+    }
+
+    impl MemDbgImpl for PanicOnVisit {}
+
+    let cell = Cell::new(PanicOnVisit);
+    assert_eq!(
+        cell.mem_size(SizeFlags::default()),
+        std::mem::size_of_val(&cell)
+    );
+
+    let mut output = String::new();
+    assert!(cell.mem_dbg_on(&mut output, DbgFlags::default()).is_ok());
+
+    let unsafe_cell = UnsafeCell::new(PanicOnVisit);
+    assert_eq!(
+        unsafe_cell.mem_size(SizeFlags::default()),
+        std::mem::size_of_val(&unsafe_cell)
+    );
+
+    output.clear();
+    assert!(
+        unsafe_cell
+            .mem_dbg_on(&mut output, DbgFlags::default())
+            .is_ok()
+    );
 }
 
 #[test]

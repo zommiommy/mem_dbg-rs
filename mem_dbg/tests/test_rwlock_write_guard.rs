@@ -26,3 +26,15 @@ fn test_rwlock_write_guard() {
         "A RwLockWriteGuard is two pointers in size"
     );
 }
+
+#[test]
+fn test_rwlock_write_guard_follow_refs_counts_target_header() {
+    let rwlock_source = RwLock::new(vec![1_u8, 2, 3]);
+    let mut guard = rwlock_source.write().unwrap();
+    guard.push(4);
+
+    assert_eq!(
+        guard.mem_size(SizeFlags::FOLLOW_REFS),
+        core::mem::size_of_val(&guard) + core::mem::size_of::<Vec<u8>>() + 4
+    );
+}

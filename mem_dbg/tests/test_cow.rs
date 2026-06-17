@@ -116,3 +116,19 @@ fn test_cow_mem_dbg_borrowed_and_owned() {
             .is_ok()
     );
 }
+
+#[test]
+fn test_cow_borrowed_mem_dbg_deduplicates_refs() {
+    let value = "shared";
+    let pair = (
+        Cow::<'_, str>::Borrowed(value),
+        Cow::<'_, str>::Borrowed(value),
+    );
+    let mut output = String::new();
+
+    pair.mem_dbg_on(&mut output, DbgFlags::FOLLOW_REFS)
+        .expect("mem_dbg_on");
+
+    assert_eq!(output.matches("@ 0x").count(), 1, "{output}");
+    assert_eq!(output.matches("→ 0x").count(), 1, "{output}");
+}

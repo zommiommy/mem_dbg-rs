@@ -51,6 +51,12 @@ macro_rules! impl_mem_dbg_for_deref {
             flags: DbgFlags,
             dbg_refs: &mut HashSet<usize>,
         ) -> core::fmt::Result {
+            // Match `_mem_dbg_depth_on_impl`'s depth cutoff before mutating
+            // `dbg_refs`; hidden first encounters must not create visible
+            // back-references without a visible `@` line.
+            if prefix.chars().count() / 2 > max_depth {
+                return Ok(());
+            }
             if flags.contains(DbgFlags::$flag) {
                 let $self = self;
                 let ptr: usize = $get_ptr;
@@ -104,7 +110,7 @@ macro_rules! impl_mem_dbg_for_deref {
             total_size: usize,
             max_depth: usize,
             prefix: &mut String,
-            is_last: bool,
+            _is_last: bool,
             flags: DbgFlags,
             dbg_refs: &mut HashSet<usize>,
         ) -> core::fmt::Result {
@@ -118,7 +124,7 @@ macro_rules! impl_mem_dbg_for_deref {
                     max_depth,
                     prefix,
                     None,
-                    is_last,
+                    true,
                     padded_size,
                     flags,
                     dbg_refs,
@@ -408,9 +414,21 @@ where
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         match self {
-            Cow::Borrowed(borrowed) => <&B as MemDbgImpl>::_mem_dbg_rec_on(
-                borrowed, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            ),
+            Cow::Borrowed(borrowed) if flags.contains(DbgFlags::FOLLOW_REFS) => {
+                <&B as MemDbgImpl>::_mem_dbg_depth_on(
+                    borrowed,
+                    writer,
+                    total_size,
+                    max_depth,
+                    prefix,
+                    None,
+                    true,
+                    core::mem::size_of::<&B>(),
+                    flags,
+                    dbg_refs,
+                )
+            }
+            Cow::Borrowed(_) => Ok(()),
             Cow::Owned(owned) => <B::Owned as MemDbgImpl>::_mem_dbg_rec_on(
                 owned, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
             ),
@@ -479,10 +497,21 @@ impl<T: MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
     impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::rc::Rc::as_ptr(s) as usize);
 }
 
+#[cfg(not(feature = "std"))]
+impl<T: MemDbgImpl> MemDbgImpl for alloc::rc::Rc<T> {
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| {
+        // The pointer address is used only as an identity key for deduplication.
+        alloc::rc::Rc::as_ptr(s) as usize
+    });
+}
+
 // Weak pointers are displayed as handles only.
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemDbgImpl for std::rc::Weak<T> {}
+
+#[cfg(not(feature = "std"))]
+impl<T: ?Sized> MemDbgImpl for alloc::rc::Weak<T> {}
 
 // Arc
 
@@ -493,10 +522,21 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
     impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::sync::Arc::as_ptr(s) as usize);
 }
 
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: MemDbgImpl> MemDbgImpl for alloc::sync::Arc<T> {
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| {
+        // The pointer address is used only as an identity key for deduplication.
+        alloc::sync::Arc::as_ptr(s) as usize
+    });
+}
+
 // Weak pointers are displayed as handles only.
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemDbgImpl for std::sync::Weak<T> {}
+
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: ?Sized> MemDbgImpl for alloc::sync::Weak<T> {}
 
 // Slices
 
@@ -887,6 +927,56 @@ impl MemDbgImpl for MutablyBorrowed {
     }
 }
 
+/// Zero-sized placeholder displayed when a lock is already held.
+#[cfg(feature = "std")]
+struct Locked;
+
+#[cfg(feature = "std")]
+impl crate::FlatType for Locked {
+    type Flat = crate::True;
+}
+
+#[cfg(feature = "std")]
+impl crate::MemSize for Locked {
+    fn mem_size_rec(
+        &self,
+        _flags: crate::SizeFlags,
+        _refs: &mut crate::HashMap<usize, usize>,
+    ) -> usize {
+        0
+    }
+}
+
+#[cfg(feature = "std")]
+impl MemDbgImpl for Locked {
+    fn _mem_dbg_depth_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        field_name: Option<&str>,
+        is_last: bool,
+        padded_size: usize,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        // Suppress the type name so the output shows only "<locked>".
+        self._mem_dbg_depth_on_impl(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            field_name,
+            is_last,
+            padded_size,
+            flags & !DbgFlags::TYPE_NAME,
+            dbg_refs,
+            RefDisplay::None,
+        )
+    }
+}
+
 impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
     fn _mem_dbg_rec_on(
         &self,
@@ -918,46 +1008,9 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
     }
 }
 
-impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value;
-        // since &self exists, &mut self cannot exist.
-        let borrow = unsafe { &*self.as_ptr() };
-        borrow._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
-    }
-}
+impl<T: ?Sized> MemDbgImpl for core::cell::Cell<T> {}
 
-impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value; no
-        // concurrent mutation through UnsafeCell::get() can occur during the
-        // temporary borrow.
-        let borrow = unsafe { &*self.get() };
-        borrow._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
-    }
-}
+impl<T: ?Sized> MemDbgImpl for core::cell::UnsafeCell<T> {}
 
 // Mutexes
 
@@ -973,17 +1026,28 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        let guard = self.lock().unwrap_or_else(|e| e.into_inner());
-        // Dispatch directly to `T`'s `_mem_dbg_rec_on` so the inner value's
-        // children are rendered. Going through the `MutexGuard<T>` impl would
-        // pick the FOLLOW_REFS-gated guard impl and silently drop children
-        // under default flags, even though `Mutex::mem_size_rec` always
-        // recurses into `T`.
-        // `is_last` is forwarded for trait shape; typical `_mem_dbg_rec_on`
-        // impls (including the derive's) compute their own per-field value.
-        <T as MemDbgImpl>::_mem_dbg_rec_on(
-            &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        match self.try_lock() {
+            Ok(guard) => <T as MemDbgImpl>::_mem_dbg_rec_on(
+                &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            Err(std::sync::TryLockError::Poisoned(err)) => {
+                let guard = err.into_inner();
+                <T as MemDbgImpl>::_mem_dbg_rec_on(
+                    &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+                )
+            }
+            Err(std::sync::TryLockError::WouldBlock) => Locked._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("<locked>"),
+                true,
+                0,
+                flags,
+                dbg_refs,
+            ),
+        }
     }
 }
 
@@ -999,14 +1063,28 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        let guard = self.read().unwrap_or_else(|e| e.into_inner());
-        // Dispatch directly to `T`'s `_mem_dbg_rec_on`; see `Mutex<T>` for
-        // the rationale.
-        // `is_last` is forwarded for trait shape; typical `_mem_dbg_rec_on`
-        // impls (including the derive's) compute their own per-field value.
-        <T as MemDbgImpl>::_mem_dbg_rec_on(
-            &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        match self.try_read() {
+            Ok(guard) => <T as MemDbgImpl>::_mem_dbg_rec_on(
+                &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            Err(std::sync::TryLockError::Poisoned(err)) => {
+                let guard = err.into_inner();
+                <T as MemDbgImpl>::_mem_dbg_rec_on(
+                    &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+                )
+            }
+            Err(std::sync::TryLockError::WouldBlock) => Locked._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("<locked>"),
+                true,
+                0,
+                flags,
+                dbg_refs,
+            ),
+        }
     }
 }
 
@@ -1055,71 +1133,26 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::OnceLock<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        use core::ops::Deref;
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            self.deref()._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| {
+        // The pointer address is used only as an identity key for reference deduplication.
+        core::ops::Deref::deref(s) as *const T as *const () as usize
+    });
 }
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockReadGuard<'_, T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        use core::ops::Deref;
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            self.deref()._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| {
+        // The pointer address is used only as an identity key for reference deduplication.
+        core::ops::Deref::deref(s) as *const T as *const () as usize
+    });
 }
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        use core::ops::Deref;
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            self.deref()._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| {
+        // The pointer address is used only as an identity key for reference deduplication.
+        core::ops::Deref::deref(s) as *const T as *const () as usize
+    });
 }
 
 // Network and time: flat leaf types. The network types and Duration are

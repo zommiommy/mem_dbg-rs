@@ -212,6 +212,10 @@ pub trait MemSize {
     /// occupied by references only once in case any of the flags
     /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RCS`] is set.
     ///
+    /// Implementations must return at least `core::mem::size_of_val(self)`.
+    /// Wrapper and derive implementations subtract inline field storage before
+    /// adding recursive contributions, so returning a smaller value can
+    /// underflow in debug builds or wrap in optimized builds.
     /// In case of custom (non-derive) implementations: types that do not
     /// contain references can simply ignore the `refs` parameter; otherwise,
     /// please have a look at the [implementation for
@@ -384,21 +388,18 @@ pub trait MemDbgImpl: MemSize {
         padded_size: usize,
         flags: DbgFlags,
     ) -> core::fmt::Result {
-        struct Wrapper(std::io::Stderr);
-        impl core::fmt::Write for Wrapper {
+        struct Wrapper<'a>(std::io::StderrLock<'a>);
+        impl core::fmt::Write for Wrapper<'_> {
             #[inline(always)]
             fn write_str(&mut self, s: &str) -> core::fmt::Result {
                 use std::io::Write;
-                self.0
-                    .lock()
-                    .write(s.as_bytes())
-                    .map_err(|_| core::fmt::Error)
-                    .map(|_| ())
+                self.0.write_all(s.as_bytes()).map_err(|_| core::fmt::Error)
             }
         }
+        let stderr = std::io::stderr();
         let mut dbg_refs = HashSet::new();
         self._mem_dbg_depth_on(
-            &mut Wrapper(std::io::stderr()),
+            &mut Wrapper(stderr.lock()),
             total_size,
             max_depth,
             &mut String::new(),

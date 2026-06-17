@@ -26,3 +26,27 @@ fn test_mutex_guard() {
         "A MutexGuard is two pointers in size"
     );
 }
+
+#[test]
+fn test_mutex_guard_follow_refs_counts_target_header() {
+    let mutex_source = Mutex::new(vec![1_u8, 2, 3]);
+    let guard = mutex_source.lock().unwrap();
+
+    assert_eq!(
+        guard.mem_size(SizeFlags::FOLLOW_REFS),
+        core::mem::size_of_val(&guard) + core::mem::size_of::<Vec<u8>>() + 3
+    );
+}
+
+#[test]
+fn test_mutex_guard_follow_refs_marks_reference() {
+    let mutex_source = Mutex::new(vec![1_u8, 2, 3]);
+    let guard = mutex_source.lock().unwrap();
+    let mut output = String::new();
+
+    guard
+        .mem_dbg_on(&mut output, DbgFlags::FOLLOW_REFS)
+        .expect("mem_dbg_on");
+
+    assert!(output.contains("@ 0x"));
+}

@@ -197,3 +197,95 @@ fn test_control_flow_variants_label_payload() {
     assert!(render(&brk).contains("╰╴Break"));
     assert!(render(&cont).contains("╰╴Continue"));
 }
+
+// ---------------------------------------------------------------------------
+// Bug 4: Named enum fields in derive output used prefixed user field names
+// (`_memsize_flags`, `_memdbg_writer`, ...), which could shadow generated
+// method parameters.
+// ---------------------------------------------------------------------------
+
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+enum ShadowedDeriveNames {
+    MemSizeNames {
+        flags: Vec<u8>,
+        refs: String,
+    },
+    MemDbgNames {
+        writer: Vec<u8>,
+        total_size: String,
+        max_depth: usize,
+        prefix: u8,
+        is_last: bool,
+    },
+}
+
+#[test]
+fn test_named_enum_fields_do_not_shadow_derive_locals() {
+    let size_names = ShadowedDeriveNames::MemSizeNames {
+        flags: vec![1, 2, 3],
+        refs: String::from("abc"),
+    };
+    assert_eq!(
+        size_names.mem_size(SizeFlags::default()),
+        core::mem::size_of::<ShadowedDeriveNames>() + 3 + 3
+    );
+
+    let dbg_names = ShadowedDeriveNames::MemDbgNames {
+        writer: vec![1, 2, 3],
+        total_size: String::from("abc"),
+        max_depth: 1,
+        prefix: 2,
+        is_last: false,
+    };
+    let mut out = String::new();
+    dbg_names
+        .mem_dbg_on(&mut out, DbgFlags::default())
+        .expect("mem_dbg_on");
+    assert!(out.contains("writer"));
+    assert!(out.contains("total_size"));
+}
+
+// ---------------------------------------------------------------------------
+// Bug 5: Zero-variant enum derives emitted `match self {}` over `&Self`,
+// which is non-exhaustive because references are considered inhabited.
+// ---------------------------------------------------------------------------
+
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+enum EmptyAuditEnum {}
+
+#[test]
+fn test_empty_enum_derives_compile() {
+    fn assert_traits<T: MemSize + MemDbg>() {}
+    assert_traits::<EmptyAuditEnum>();
+}
+
+// ---------------------------------------------------------------------------
+// Bug 6: Followed references were inserted into the display dedup set before
+// depth gating, so a hidden first encounter could make a later visible alias
+// render as a back-reference without any visible first-reference marker.
+// ---------------------------------------------------------------------------
+
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+struct DepthHiddenRef<'a> {
+    hidden: Option<&'a u32>,
+    visible: &'a u32,
+}
+
+#[test]
+fn test_hidden_followed_ref_does_not_poison_visible_marker() {
+    let value = 7;
+    let s = DepthHiddenRef {
+        hidden: Some(&value),
+        visible: &value,
+    };
+    let mut out = String::new();
+
+    s.mem_dbg_depth_on(&mut out, 1, DbgFlags::FOLLOW_REFS)
+        .expect("mem_dbg_depth_on");
+
+    assert!(out.contains("visible @ 0x"), "{out}");
+    assert!(!out.contains("visible →"), "{out}");
+}
