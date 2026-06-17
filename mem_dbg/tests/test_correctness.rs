@@ -336,6 +336,26 @@ fn test_correctness() {
             (0..cap).map(|x| (x.to_string(), x.to_string()))
         ));
     }
+
+    // Small-element / small-capacity hash tables reach hashbrown 0.16's
+    // element-size-dependent minimum bucket counts (min_cap 14/7) and the
+    // padded `(K, V)` bucket stride. The u32/String cases above never exercise
+    // them: they all resolve to min_cap 3 with already-aligned bucket bytes, so
+    // cross-check the layout model against the real allocator for these
+    // branches.
+    check!(std::collections::HashSet::<u8>::from_iter(0..3_u8));
+    check!(std::collections::HashSet::<u8>::from_iter(0..10_u8));
+    check!(std::collections::HashSet::<u16>::from_iter(0..3_u16));
+    check!(std::collections::HashSet::<u16>::from_iter(0..12_u16));
+    check!(std::collections::HashMap::<u8, u8>::from_iter(
+        (0..3_u8).map(|x| (x, x))
+    ));
+    check!(std::collections::HashMap::<u8, u64>::from_iter(
+        (0..3_u8).map(|x| (x, u64::from(x)))
+    ));
+    check!(std::collections::HashMap::<u16, u8>::from_iter(
+        (0..10_u8).map(|x| (u16::from(x), x))
+    ));
     // These are hard to get right due because we would need to guess the nodes occupancy
     let btree_threshold = 2.0; // 200%
     for &cap in POWERS {

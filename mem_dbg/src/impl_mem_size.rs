@@ -1207,53 +1207,100 @@ impl MemSize for mmap_rs::MmapMut {
 
 // Hash-based containers from the standard library
 
-// If the standard library changes load factor, this code will have to change
-// accordingly.
+// Hash table allocation layout for the standard library's vendored hashbrown
+// 0.16 RawTable. The allocation stores all buckets first, then control bytes
+// at an offset rounded up to max(align_of::<T>(), Group::WIDTH).
 
-// Group width for Swiss Tables, matching the stdlib's vendored hashbrown.
-// stdlib currently uses SSE2 SIMD on x86/x86_64 (16-byte groups) and the
-// generic (8-byte) implementation everywhere else, including aarch64+NEON
-// (hashbrown's NEON `Group` is `uint8x8_t`, still 8 bytes). Byte-exact
-// mirror in tests/test_hash_collections.rs; cap-allocator cross-check
-// within tolerance in tests/test_correctness.rs.
 #[cfg(feature = "std")]
 #[cfg(all(
     any(target_arch = "x86_64", target_arch = "x86"),
-    any(target_feature = "sse2", target_env = "msvc"),
+    target_feature = "sse2",
+    not(miri),
 ))]
 const GROUP_WIDTH: usize = 16;
 #[cfg(feature = "std")]
-#[cfg(not(all(
-    any(target_arch = "x86_64", target_arch = "x86"),
-    any(target_feature = "sse2", target_env = "msvc"),
-)))]
+#[cfg(all(
+    not(all(
+        any(target_arch = "x86_64", target_arch = "x86"),
+        target_feature = "sse2",
+        not(miri),
+    )),
+    any(
+        target_pointer_width = "64",
+        target_arch = "aarch64",
+        target_arch = "x86_64",
+        target_arch = "wasm32",
+    ),
+))]
 const GROUP_WIDTH: usize = 8;
-
-// Straight from hashbrown
 #[cfg(feature = "std")]
-fn capacity_to_buckets(cap: usize) -> Option<usize> {
+#[cfg(all(
+    not(all(
+        any(target_arch = "x86_64", target_arch = "x86"),
+        target_feature = "sse2",
+        not(miri),
+    )),
+    not(any(
+        target_pointer_width = "64",
+        target_arch = "aarch64",
+        target_arch = "x86_64",
+        target_arch = "wasm32",
+    )),
+))]
+const GROUP_WIDTH: usize = 4;
+
+#[cfg(feature = "std")]
+#[inline(always)]
+fn capacity_to_buckets<T>(cap: usize) -> Option<usize> {
     if cap == 0 {
         return Some(0);
     }
-    // For small tables we require at least 1 empty bucket so that lookups are
-    // guaranteed to terminate if an element doesn't exist in the table.
-    if cap < 8 {
-        // We don't bother with a table size of 2 buckets since that can only
-        // hold a single element. Instead we skip directly to a 4 bucket table
-        // which can hold 3 elements.
-        return Some(if cap < 4 { 4 } else { 8 });
+
+    if cap < 15 {
+        let min_cap = match (GROUP_WIDTH, core::mem::size_of::<T>()) {
+            (16, 0..=1) => 14,
+            (16, 2..=3) => 7,
+            (8, 0..=1) => 7,
+            _ => 3,
+        };
+        let cap = core::cmp::max(cap, min_cap);
+        return Some(if cap < 4 {
+            4
+        } else if cap < 8 {
+            8
+        } else {
+            16
+        });
     }
 
-    // Otherwise require 1/8 buckets to be empty (87.5% load)
-    //
-    // Be careful when modifying this, calculate_layout relies on the
-    // overflow check here.
     let adjusted_cap = cap.checked_mul(8)? / 7;
-
-    // Any overflows will have been caught by the checked_mul. Also, any
-    // rounding errors from the division above will be cleaned up by
-    // next_power_of_two (which can't overflow because of the previous division).
     Some(adjusted_cap.next_power_of_two())
+}
+
+#[cfg(feature = "std")]
+#[inline(always)]
+fn hash_table_allocation_size<T>(capacity: usize) -> usize {
+    let buckets = match capacity_to_buckets::<T>(capacity) {
+        Some(buckets) => buckets,
+        None => return usize::MAX,
+    };
+    if buckets == 0 {
+        return 0;
+    }
+
+    let ctrl_align = core::cmp::max(core::mem::align_of::<T>(), GROUP_WIDTH);
+    let bucket_bytes = match core::mem::size_of::<T>().checked_mul(buckets) {
+        Some(bucket_bytes) => bucket_bytes,
+        None => return usize::MAX,
+    };
+    let ctrl_offset = match bucket_bytes.checked_add(ctrl_align - 1) {
+        Some(offset) => offset & !(ctrl_align - 1),
+        None => return usize::MAX,
+    };
+    ctrl_offset
+        .checked_add(buckets)
+        .and_then(|size| size.checked_add(GROUP_WIDTH))
+        .unwrap_or(usize::MAX)
 }
 
 #[cfg(feature = "std")]
@@ -1264,18 +1311,15 @@ impl<T> FlatType for std::collections::HashSet<T> {
 #[cfg(feature = "std")]
 impl<T: FlatType + MemSize> MemSize for std::collections::HashSet<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        let elements_size = element_storage_size(self.iter(), self.len(), flags, refs);
-        fix_set_for_capacity(self, elements_size, flags)
+        let heap_extras = element_heap_extras(self.iter(), flags, refs);
+        fix_set_for_capacity(self, heap_extras, flags)
     }
 }
 
 #[cfg(feature = "std")]
-// Add to the given size the space occupied on the stack by the hash set, by the unused
-// but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
-// `SizeFlags::CAPACITY`, by empty buckets.
 fn fix_set_for_capacity<K>(
     hash_set: &std::collections::HashSet<K>,
-    size: usize,
+    heap_extras: usize,
     flags: SizeFlags,
 ) -> usize {
     let capacity = if flags.contains(SizeFlags::CAPACITY) {
@@ -1283,12 +1327,9 @@ fn fix_set_for_capacity<K>(
     } else {
         hash_set.len()
     };
-    let buckets = capacity_to_buckets(capacity).unwrap_or(usize::MAX);
     core::mem::size_of::<std::collections::HashSet<K>>()
-        + size
-        + (buckets - hash_set.len()) * core::mem::size_of::<K>()
-        + buckets * core::mem::size_of::<u8>()
-        + if buckets > 0 { GROUP_WIDTH } else { 0 }
+        + hash_table_allocation_size::<K>(capacity)
+        + heap_extras
 }
 
 #[cfg(feature = "std")]
@@ -1299,21 +1340,15 @@ impl<K, V> FlatType for std::collections::HashMap<K, V> {
 #[cfg(feature = "std")]
 impl<K: FlatType + MemSize, V: FlatType + MemSize> MemSize for std::collections::HashMap<K, V> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // Inline key/value storage plus, in a single pass over the entries,
-        // any per-entry heap (zero when both K and V are flat).
-        let inline_size = self.len() * (core::mem::size_of::<K>() + core::mem::size_of::<V>());
-        let elements_size = inline_size + map_heap_extras(self.iter(), flags, refs);
-        fix_map_for_capacity(self, elements_size, flags)
+        let heap_extras = map_heap_extras(self.iter(), flags, refs);
+        fix_map_for_capacity(self, heap_extras, flags)
     }
 }
 
 #[cfg(feature = "std")]
-// Add to the given size the space occupied on the stack by the hash map, by the unused
-// but unavoidable buckets, by the speedup bytes of Swiss Tables, and if `flags` contains
-// `SizeFlags::CAPACITY`, by empty buckets.
 fn fix_map_for_capacity<K, V>(
     hash_map: &std::collections::HashMap<K, V>,
-    size: usize,
+    heap_extras: usize,
     flags: SizeFlags,
 ) -> usize {
     let capacity = if flags.contains(SizeFlags::CAPACITY) {
@@ -1321,12 +1356,9 @@ fn fix_map_for_capacity<K, V>(
     } else {
         hash_map.len()
     };
-    let buckets = capacity_to_buckets(capacity).unwrap_or(usize::MAX);
     core::mem::size_of::<std::collections::HashMap<K, V>>()
-        + size
-        + (buckets - hash_map.len()) * (core::mem::size_of::<K>() + core::mem::size_of::<V>())
-        + buckets * core::mem::size_of::<u8>()
-        + if buckets > 0 { GROUP_WIDTH } else { 0 }
+        + hash_table_allocation_size::<(K, V)>(capacity)
+        + heap_extras
 }
 
 /// Estimates the heap-allocated memory of a BTree-based container.

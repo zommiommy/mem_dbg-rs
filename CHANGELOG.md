@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `HashSet`/`HashMap` sizing now mirrors hashbrown 0.16 `RawTable`
+  allocation rules, including small-table bucket counts, control-byte
+  alignment, and padded `(K, V)` bucket layout.
 - `Mutex<T>` and `RwLock<T>` traversal now uses `try_lock`/`try_read`:
   contended values report only the lock shell size and `MemDbg` renders
   `<locked>` instead of blocking reentrantly.
