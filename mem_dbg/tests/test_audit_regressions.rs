@@ -197,3 +197,51 @@ fn test_control_flow_variants_label_payload() {
     assert!(render(&brk).contains("╰╴Break"));
     assert!(render(&cont).contains("╰╴Continue"));
 }
+
+// ---------------------------------------------------------------------------
+// Bug 4: Named enum fields in derive output used prefixed user field names
+// (`_memsize_flags`, `_memdbg_writer`, ...), which could shadow generated
+// method parameters.
+// ---------------------------------------------------------------------------
+
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+enum ShadowedDeriveNames {
+    MemSizeNames {
+        flags: Vec<u8>,
+        refs: String,
+    },
+    MemDbgNames {
+        writer: Vec<u8>,
+        total_size: String,
+        max_depth: usize,
+        prefix: u8,
+        is_last: bool,
+    },
+}
+
+#[test]
+fn test_named_enum_fields_do_not_shadow_derive_locals() {
+    let size_names = ShadowedDeriveNames::MemSizeNames {
+        flags: vec![1, 2, 3],
+        refs: String::from("abc"),
+    };
+    assert_eq!(
+        size_names.mem_size(SizeFlags::default()),
+        core::mem::size_of::<ShadowedDeriveNames>() + 3 + 3
+    );
+
+    let dbg_names = ShadowedDeriveNames::MemDbgNames {
+        writer: vec![1, 2, 3],
+        total_size: String::from("abc"),
+        max_depth: 1,
+        prefix: 2,
+        is_last: false,
+    };
+    let mut out = String::new();
+    dbg_names
+        .mem_dbg_on(&mut out, DbgFlags::default())
+        .expect("mem_dbg_on");
+    assert!(out.contains("writer"));
+    assert!(out.contains("total_size"));
+}

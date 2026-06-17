@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `#[derive(MemSize, MemDbg)]` for named enums now uses collision-proof
+  generated bindings, so fields named `flags`, `refs`, `writer`, and
+  similar no longer break the expansion.
 - `FOLLOW_REFS` and `FOLLOW_RCS` no longer lose the `Rc`/`Arc` control
   block when a plain reference reaches the same allocation first.
 - `HashSet`/`HashMap` sizing now mirrors hashbrown 0.16 `RawTable`

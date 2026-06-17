@@ -145,14 +145,14 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             let mut variants_size = Vec::new();
             let mut all_field_types = Vec::new();
 
-            for variant in e.variants {
+            for (variant_idx, variant) in e.variants.into_iter().enumerate() {
                 let mut res = variant.ident.to_owned().to_token_stream();
                 let mut var_args_size = quote! {::core::mem::size_of::<Self>()};
                 match &variant.fields {
                     syn::Fields::Unit => {}
                     syn::Fields::Named(fields) => {
                         let mut args = proc_macro2::TokenStream::new();
-                        for field in &fields.named {
+                        for (field_idx, field) in fields.named.iter().enumerate() {
                             let field_ty = &field.ty;
                             where_clause
                                 .predicates
@@ -161,11 +161,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 all_field_types.push(field.ty.to_token_stream());
                             }
                             let field_ident = field.ident.as_ref().unwrap();
-                            // Use a prefixed binding to avoid shadowing
-                            // generated locals.
                             let binding_ident = syn::Ident::new(
-                                &format!("_memsize_{}", field_ident),
-                                field_ident.span(),
+                                &format!("_memsize_field_{variant_idx}_{field_idx}"),
+                                proc_macro2::Span::call_site(),
                             );
                             let field_ty = field.ty.to_token_stream();
                             var_args_size.extend([quote! {
@@ -365,7 +363,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             let mut variants = Vec::new();
             let mut variants_code = Vec::new();
 
-            for variant in &e.variants {
+            for (variant_idx, variant) in e.variants.iter().enumerate() {
                 let mut res = variant.ident.to_owned().to_token_stream();
                 // Depending on the presence of the feature offset_of_enum, this
                 // will contains field indices and offset_of or field indices
@@ -385,11 +383,9 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                             let field_ty = &field.ty;
                             let field_ident = field.ident.as_ref().unwrap();
                             let field_ident_str = format!("{}", field_ident);
-                            // Use a prefixed binding to avoid shadowing
-                            // generated locals such as `n`, `i`, etc.
                             let binding_ident = syn::Ident::new(
-                                &format!("_memdbg_{}", field_ident),
-                                field_ident.span(),
+                                &format!("_memdbg_field_{variant_idx}_{field_idx}"),
+                                proc_macro2::Span::call_site(),
                             );
 
                             #[cfg(feature = "offset_of_enum")]
