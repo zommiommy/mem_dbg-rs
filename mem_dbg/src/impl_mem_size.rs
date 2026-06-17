@@ -923,10 +923,18 @@ impl<T: FlatType> FlatType for std::sync::Mutex<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Mutex<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // Use unwrap_or_else to handle poisoned mutexes gracefully
-        let guard = self.lock().unwrap_or_else(|e| e.into_inner());
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+        match self.try_lock() {
+            Ok(guard) => {
+                core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                    + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+            }
+            Err(std::sync::TryLockError::Poisoned(err)) => {
+                let guard = err.into_inner();
+                core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                    + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+            }
+            Err(std::sync::TryLockError::WouldBlock) => core::mem::size_of::<Self>(),
+        }
     }
 }
 
@@ -938,10 +946,18 @@ impl<T: FlatType> FlatType for std::sync::RwLock<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::RwLock<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        // Use unwrap_or_else to handle poisoned locks gracefully
-        let guard = self.read().unwrap_or_else(|e| e.into_inner());
-        core::mem::size_of::<Self>() - core::mem::size_of::<T>()
-            + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+        match self.try_read() {
+            Ok(guard) => {
+                core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                    + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+            }
+            Err(std::sync::TryLockError::Poisoned(err)) => {
+                let guard = err.into_inner();
+                core::mem::size_of::<Self>() - core::mem::size_of::<T>()
+                    + <T as MemSize>::mem_size_rec(&guard, flags, refs)
+            }
+            Err(std::sync::TryLockError::WouldBlock) => core::mem::size_of::<Self>(),
+        }
     }
 }
 

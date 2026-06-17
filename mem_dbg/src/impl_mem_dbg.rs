@@ -887,6 +887,52 @@ impl MemDbgImpl for MutablyBorrowed {
     }
 }
 
+/// Zero-sized placeholder displayed when a lock is already held.
+struct Locked;
+
+impl crate::FlatType for Locked {
+    type Flat = crate::True;
+}
+
+impl crate::MemSize for Locked {
+    fn mem_size_rec(
+        &self,
+        _flags: crate::SizeFlags,
+        _refs: &mut crate::HashMap<usize, usize>,
+    ) -> usize {
+        0
+    }
+}
+
+impl MemDbgImpl for Locked {
+    fn _mem_dbg_depth_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        field_name: Option<&str>,
+        is_last: bool,
+        padded_size: usize,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        // Suppress the type name so the output shows only "<locked>".
+        self._mem_dbg_depth_on_impl(
+            writer,
+            total_size,
+            max_depth,
+            prefix,
+            field_name,
+            is_last,
+            padded_size,
+            flags & !DbgFlags::TYPE_NAME,
+            dbg_refs,
+            RefDisplay::None,
+        )
+    }
+}
+
 impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
     fn _mem_dbg_rec_on(
         &self,
@@ -936,17 +982,28 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Mutex<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        let guard = self.lock().unwrap_or_else(|e| e.into_inner());
-        // Dispatch directly to `T`'s `_mem_dbg_rec_on` so the inner value's
-        // children are rendered. Going through the `MutexGuard<T>` impl would
-        // pick the FOLLOW_REFS-gated guard impl and silently drop children
-        // under default flags, even though `Mutex::mem_size_rec` always
-        // recurses into `T`.
-        // `is_last` is forwarded for trait shape; typical `_mem_dbg_rec_on`
-        // impls (including the derive's) compute their own per-field value.
-        <T as MemDbgImpl>::_mem_dbg_rec_on(
-            &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        match self.try_lock() {
+            Ok(guard) => <T as MemDbgImpl>::_mem_dbg_rec_on(
+                &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            Err(std::sync::TryLockError::Poisoned(err)) => {
+                let guard = err.into_inner();
+                <T as MemDbgImpl>::_mem_dbg_rec_on(
+                    &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+                )
+            }
+            Err(std::sync::TryLockError::WouldBlock) => Locked._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("<locked>"),
+                true,
+                0,
+                flags,
+                dbg_refs,
+            ),
+        }
     }
 }
 
@@ -962,14 +1019,28 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLock<T> {
         flags: DbgFlags,
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
-        let guard = self.read().unwrap_or_else(|e| e.into_inner());
-        // Dispatch directly to `T`'s `_mem_dbg_rec_on`; see `Mutex<T>` for
-        // the rationale.
-        // `is_last` is forwarded for trait shape; typical `_mem_dbg_rec_on`
-        // impls (including the derive's) compute their own per-field value.
-        <T as MemDbgImpl>::_mem_dbg_rec_on(
-            &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
+        match self.try_read() {
+            Ok(guard) => <T as MemDbgImpl>::_mem_dbg_rec_on(
+                &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+            ),
+            Err(std::sync::TryLockError::Poisoned(err)) => {
+                let guard = err.into_inner();
+                <T as MemDbgImpl>::_mem_dbg_rec_on(
+                    &*guard, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
+                )
+            }
+            Err(std::sync::TryLockError::WouldBlock) => Locked._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("<locked>"),
+                true,
+                0,
+                flags,
+                dbg_refs,
+            ),
+        }
     }
 }
 

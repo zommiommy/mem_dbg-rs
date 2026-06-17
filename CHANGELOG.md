@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `Mutex<T>` and `RwLock<T>` traversal now uses `try_lock`/`try_read`:
+  contended values report only the lock shell size and `MemDbg` renders
+  `<locked>` instead of blocking reentrantly.
 - `Cell<T>` and `UnsafeCell<T>` are now treated as opaque inline storage for
   `MemSize`/`MemDbg` instead of borrowing through interior-mutability
   pointers during traversal.
