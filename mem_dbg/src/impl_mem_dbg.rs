@@ -163,13 +163,74 @@ impl<T: ?Sized> MemDbgImpl for *const T {}
 
 impl<T: ?Sized> MemDbgImpl for *mut T {}
 
-// Option
+// Option and Result render the active payload as a labeled child, like
+// the other sum types below (ControlFlow, Poll, Bound).
 
-impl<T: MemDbgImpl> MemDbgImpl for Option<T> {}
+impl<T: MemDbgImpl> MemDbgImpl for Option<T> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        _is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            Some(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Some"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
+            ),
+            None => Ok(()),
+        }
+    }
+}
 
-// Result
-
-impl<T: MemDbgImpl, E: MemDbgImpl> MemDbgImpl for Result<T, E> {}
+impl<T: MemDbgImpl, E: MemDbgImpl> MemDbgImpl for Result<T, E> {
+    fn _mem_dbg_rec_on(
+        &self,
+        writer: &mut impl core::fmt::Write,
+        total_size: usize,
+        max_depth: usize,
+        prefix: &mut String,
+        _is_last: bool,
+        flags: DbgFlags,
+        dbg_refs: &mut HashSet<usize>,
+    ) -> core::fmt::Result {
+        match self {
+            Ok(t) => t._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Ok"),
+                true,
+                core::mem::size_of::<T>(),
+                flags,
+                dbg_refs,
+            ),
+            Err(e) => e._mem_dbg_depth_on(
+                writer,
+                total_size,
+                max_depth,
+                prefix,
+                Some("Err"),
+                true,
+                core::mem::size_of::<E>(),
+                flags,
+                dbg_refs,
+            ),
+        }
+    }
+}
 
 // Sum/newtype wrappers delegate debug traversal to the active payload only.
 
@@ -501,23 +562,29 @@ macro_rules! impl_tuples_muncher {
                 let mut _max_idx = $idx;
                 $(_max_idx = _max_idx.max($nidx);)*
 
-                // Build the (field-index, field-offset) array on the stack.
+                // Build the (field-index, field-offset, field-size) array on
+                // the stack.
                 let mut id_sizes = [
-                    ($idx, core::mem::offset_of!($tty, $idx)),
-                    $(($nidx, core::mem::offset_of!($tty, $nidx)),)*
+                    ($idx, core::mem::offset_of!($tty, $idx), core::mem::size_of::<$ty>()),
+                    $(($nidx, core::mem::offset_of!($tty, $nidx), core::mem::size_of::<$nty>()),)*
                 ];
                 let n = id_sizes.len();
                 let total_size_self = core::mem::size_of::<Self>();
 
                 // Sort by offset to compute padded sizes via consecutive
                 // offset diffs; the last field stretches to `size_of::<Self>()`.
-                id_sizes.sort_by_key(|x| x.1);
+                // Ties are broken by size, so ZSTs come before non-ZSTs at the
+                // same offset (mirroring the derive macro), and then by index,
+                // which keeps the unstable sort deterministic.
+                id_sizes.sort_unstable_by(|a, b| {
+                    a.1.cmp(&b.1).then(a.2.cmp(&b.2)).then(a.0.cmp(&b.0))
+                });
                 for i in 0..n - 1 {
                     id_sizes[i].1 = id_sizes[i + 1].1 - id_sizes[i].1;
                 }
                 id_sizes[n - 1].1 = total_size_self - id_sizes[n - 1].1;
                 // Restore declaration order so we can index by field number.
-                id_sizes.sort_by_key(|x| x.0);
+                id_sizes.sort_unstable_by_key(|x| x.0);
 
                 self.$idx._mem_dbg_depth_on(writer, total_size, max_depth, prefix, Some(stringify!($idx)), $idx == _max_idx, id_sizes[$idx].1, flags, dbg_refs)?;
                 $(
@@ -602,10 +669,9 @@ impl MemDbgImpl for std::collections::hash_map::RandomState {
 
 // alloc
 
-#[cfg(feature = "std")]
 impl MemDbgImpl for core::alloc::Layout {
-    // Layout is size + align, but align is unstable so we can't recurse
-    // on that, nor implement memdbg or memsize for that :)
+    // Layout is a flat type (size and alignment); its fields are private,
+    // and there is nothing worth recursing into.
 }
 
 // Ranges
@@ -1055,6 +1121,27 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
         }
     }
 }
+
+// Network and time: flat leaf types. The network types and Duration are
+// available under no_std (core::net, core::time); the clock-backed types
+// need std.
+
+impl_mem_dbg!(
+    core::net::Ipv4Addr,
+    core::net::Ipv6Addr,
+    core::net::IpAddr,
+    core::net::SocketAddrV4,
+    core::net::SocketAddrV6,
+    core::net::SocketAddr,
+    core::time::Duration
+);
+
+#[cfg(feature = "std")]
+impl_mem_dbg!(
+    std::time::Instant,
+    std::time::SystemTime,
+    std::time::SystemTimeError
+);
 
 // Os stuff
 

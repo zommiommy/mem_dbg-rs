@@ -49,6 +49,7 @@ expression: output
    16 B ├╴reference
     8 B ├╴mut_reference
     8 B ├╴opt_some
+    4 B │ ╰╴Some
    24 B ├╴opt_none
    16 B ├╴boxed
    44 B ├╴vec

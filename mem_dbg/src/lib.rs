@@ -11,8 +11,18 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
+/// String type used in `MemDbgImpl` signatures (re-exported for the derive
+/// macro, which must name it in generated code without relying on the
+/// caller's prelude).
+#[doc(hidden)]
 #[cfg(not(feature = "std"))]
-use alloc::string::String;
+pub use alloc::string::String;
+/// String type used in `MemDbgImpl` signatures (re-exported for the derive
+/// macro, which must name it in generated code without relying on the
+/// caller's prelude).
+#[doc(hidden)]
+#[cfg(feature = "std")]
+pub use std::string::String;
 
 /// Hash map for pointer deduplication in mem_size (re-exported for derive macro).
 #[doc(hidden)]
