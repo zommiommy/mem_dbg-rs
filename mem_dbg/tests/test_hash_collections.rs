@@ -255,7 +255,13 @@ fn test_hash_table_control_offset_is_aligned() {
     let ctrl_align = core::cmp::max(core::mem::align_of::<[u8; 3]>(), GROUP_WIDTH);
     let ctrl_offset = (bucket_bytes + ctrl_align - 1) & !(ctrl_align - 1);
 
-    assert!(ctrl_offset > bucket_bytes);
+    // The control bytes begin at the smallest `ctrl_align` boundary at or after
+    // the bucket data. With GROUP_WIDTH == 16, [u8; 3] * 8 buckets = 24 rounds up
+    // to 32; with GROUP_WIDTH 8 or 4 (e.g. aarch64), 24 is already aligned, so the
+    // offset is only required to be aligned and minimal -- not strictly greater.
+    assert!(ctrl_offset >= bucket_bytes);
+    assert_eq!(ctrl_offset % ctrl_align, 0);
+    assert!(ctrl_offset - bucket_bytes < ctrl_align);
 
     let set: HashSet<[u8; 3]> = (0..7).map(|x| [x, 0, 0]).collect();
     let item_size = core::mem::size_of::<[u8; 3]>() * set.len();
