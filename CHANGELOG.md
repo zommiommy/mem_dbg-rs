@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `MutexGuard` and `RwLock*Guard` now follow and deduplicate their target
+  like ordinary references under `FOLLOW_REFS`, instead of dropping the
+  target's inline bytes or double-counting repeated guards.
 - `alloc::rc::{Rc, Weak}` and `alloc::sync::{Arc, Weak}` are now
   implemented under `no_std + alloc` (with `Arc` gated on pointer
   atomics), matching the existing `std` shared-pointer support.

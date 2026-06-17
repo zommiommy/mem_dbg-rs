@@ -1115,71 +1115,26 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::OnceLock<T> {
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::MutexGuard<'_, T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        use core::ops::Deref;
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            self.deref()._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| {
+        // The pointer address is used only as an identity key for reference deduplication.
+        core::ops::Deref::deref(s) as *const T as *const () as usize
+    });
 }
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockReadGuard<'_, T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        use core::ops::Deref;
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            self.deref()._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| {
+        // The pointer address is used only as an identity key for reference deduplication.
+        core::ops::Deref::deref(s) as *const T as *const () as usize
+    });
 }
 
 #[cfg(feature = "std")]
 impl<T: MemDbgImpl> MemDbgImpl for std::sync::RwLockWriteGuard<'_, T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        use core::ops::Deref;
-        if flags.contains(DbgFlags::FOLLOW_REFS) {
-            self.deref()._mem_dbg_rec_on(
-                writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            )
-        } else {
-            Ok(())
-        }
-    }
+    impl_mem_dbg_for_deref!(FOLLOW_REFS, |s| {
+        // The pointer address is used only as an identity key for reference deduplication.
+        core::ops::Deref::deref(s) as *const T as *const () as usize
+    });
 }
 
 // Network and time: flat leaf types. The network types and Duration are
