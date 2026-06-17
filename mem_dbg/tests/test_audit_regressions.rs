@@ -245,3 +245,18 @@ fn test_named_enum_fields_do_not_shadow_derive_locals() {
     assert!(out.contains("writer"));
     assert!(out.contains("total_size"));
 }
+
+// ---------------------------------------------------------------------------
+// Bug 5: Zero-variant enum derives emitted `match self {}` over `&Self`,
+// which is non-exhaustive because references are considered inhabited.
+// ---------------------------------------------------------------------------
+
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+enum EmptyAuditEnum {}
+
+#[test]
+fn test_empty_enum_derives_compile() {
+    fn assert_traits<T: MemSize + MemDbg>() {}
+    assert_traits::<EmptyAuditEnum>();
+}

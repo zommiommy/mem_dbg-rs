@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- `#[derive(MemSize, MemDbg)]` now supports zero-variant enums instead of
+  expanding to a non-exhaustive `match self {}` over `&Self`.
 - `#[derive(MemSize, MemDbg)]` for named enums now uses collision-proof
   generated bindings, so fields named `flags`, `refs`, `writer`, and
   similar no longer break the expansion.

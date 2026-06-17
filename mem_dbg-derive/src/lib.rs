@@ -144,6 +144,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             let mut variants = Vec::new();
             let mut variants_size = Vec::new();
             let mut all_field_types = Vec::new();
+            let is_empty_enum = e.variants.is_empty();
 
             for (variant_idx, variant) in e.variants.into_iter().enumerate() {
                 let mut res = variant.ident.to_owned().to_token_stream();
@@ -209,7 +210,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 variants_size.push(var_args_size);
             }
 
-            let const_assert = if !is_flat && !is_rec {
+            let const_assert = if !is_empty_enum && !is_flat && !is_rec {
                 let msg = format!(
                     "Enum {} could be #[mem_size(flat)], but it has not been declared as such; use either the #[mem_size(flat)] or the #[mem_size(rec)] attribute to silence this error",
                     input_ident
@@ -225,6 +226,18 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 quote! {}
             };
 
+            let mem_size_body = if is_empty_enum {
+                quote! { match *self {} }
+            } else {
+                quote! {
+                    match self {
+                        #(
+                           #input_ident::#variants => #variants_size,
+                        )*
+                    }
+                }
+            };
+
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::FlatType for #input_ident #ty_generics #where_clause
@@ -236,11 +249,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 impl #impl_generics ::mem_dbg::MemSize for #input_ident #ty_generics #where_clause {
                     fn mem_size_rec(&self, _memsize_flags: ::mem_dbg::SizeFlags, _memsize_refs: &mut ::mem_dbg::HashMap<usize, usize>) -> usize {
                         #const_assert
-                        match self {
-                            #(
-                               #input_ident::#variants => #variants_size,
-                            )*
-                        }
+                        #mem_size_body
                     }
                 }
             }
@@ -362,6 +371,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
         Data::Enum(e) => {
             let mut variants = Vec::new();
             let mut variants_code = Vec::new();
+            let is_empty_enum = e.variants.is_empty();
 
             for (variant_idx, variant) in e.variants.iter().enumerate() {
                 let mut res = variant.ident.to_owned().to_token_stream();
@@ -562,6 +572,43 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                 }});
             }
 
+            let mem_dbg_body = if is_empty_enum {
+                quote! { match *self {} }
+            } else {
+                quote! {
+                    let mut _memdbg_digits_number = ::mem_dbg::n_of_digits(_memdbg_total_size);
+                    if _memdbg_flags.contains(::mem_dbg::DbgFlags::SEPARATOR) {
+                        _memdbg_digits_number += _memdbg_digits_number / 3;
+                    }
+                    if _memdbg_flags.contains(::mem_dbg::DbgFlags::HUMANIZE) {
+                        _memdbg_digits_number = 6;
+                    }
+
+                    if _memdbg_flags.contains(::mem_dbg::DbgFlags::PERCENTAGE) {
+                        _memdbg_digits_number += 8;
+                    }
+
+                    for _ in 0.._memdbg_digits_number + 3 {
+                        ::core::fmt::Write::write_char(_memdbg_writer, ' ')?;
+                    }
+                    if !_memdbg_prefix.is_empty() {
+                        // Find the byte index of the 3rd character (skip first 2 chars)
+                        // to handle multi-byte UTF-8 characters like "│"
+                        let mut _memdbg_char_indices = _memdbg_prefix.char_indices();
+                        let start_byte = ::core::iter::Iterator::nth(&mut _memdbg_char_indices, 2)
+                            .map(|(idx, _)| idx)
+                            .unwrap_or(_memdbg_prefix.len());
+                        ::core::fmt::Write::write_str(_memdbg_writer, &_memdbg_prefix[start_byte..])?;
+                    }
+                    match self {
+                        #(
+                           #input_ident::#variants => #variants_code,
+                        )*
+                    }
+                    ::core::result::Result::Ok(())
+                }
+            };
+
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemDbgImpl  for #input_ident #ty_generics #where_clause {
@@ -575,36 +622,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                         _memdbg_flags: ::mem_dbg::DbgFlags,
                         _memdbg_refs: &mut ::mem_dbg::HashSet<usize>,
                     ) -> ::core::fmt::Result {
-                        let mut _memdbg_digits_number = ::mem_dbg::n_of_digits(_memdbg_total_size);
-                        if _memdbg_flags.contains(::mem_dbg::DbgFlags::SEPARATOR) {
-                            _memdbg_digits_number += _memdbg_digits_number / 3;
-                        }
-                        if _memdbg_flags.contains(::mem_dbg::DbgFlags::HUMANIZE) {
-                            _memdbg_digits_number = 6;
-                        }
-
-                        if _memdbg_flags.contains(::mem_dbg::DbgFlags::PERCENTAGE) {
-                            _memdbg_digits_number += 8;
-                        }
-
-                        for _ in 0.._memdbg_digits_number + 3 {
-                            ::core::fmt::Write::write_char(_memdbg_writer, ' ')?;
-                        }
-                        if !_memdbg_prefix.is_empty() {
-                            // Find the byte index of the 3rd character (skip first 2 chars)
-                            // to handle multi-byte UTF-8 characters like "│"
-                            let mut _memdbg_char_indices = _memdbg_prefix.char_indices();
-                            let start_byte = ::core::iter::Iterator::nth(&mut _memdbg_char_indices, 2)
-                                .map(|(idx, _)| idx)
-                                .unwrap_or(_memdbg_prefix.len());
-                            ::core::fmt::Write::write_str(_memdbg_writer, &_memdbg_prefix[start_byte..])?;
-                        }
-                        match self {
-                            #(
-                               #input_ident::#variants => #variants_code,
-                            )*
-                        }
-                        ::core::result::Result::Ok(())
+                        #mem_dbg_body
                    }
                 }
             }
