@@ -99,19 +99,30 @@ impl<T: ?Sized> MemSize for PhantomData<T> {
 
 // References: we recurse only if FOLLOW_REFS is set, and use the map for deduplication
 
+/// Records the recursive size behind a reference once when `FOLLOW_REFS` is
+/// set, keyed by pointer address. A zero-size sentinel is inserted before
+/// recursing so that reference cycles terminate instead of recursing forever.
+#[inline(always)]
+fn record_followed_pointer_size<T: ?Sized + MemSize>(
+    value: &T,
+    ptr: usize,
+    flags: SizeFlags,
+    refs: &mut HashMap<usize, usize>,
+) {
+    if flags.contains(SizeFlags::FOLLOW_REFS) && !refs.contains_key(&ptr) {
+        refs.insert(ptr, 0);
+        let inner_size = <T as MemSize>::mem_size_rec(value, flags, refs);
+        refs.insert(ptr, inner_size);
+    }
+}
+
 impl<T: ?Sized + MemSize> FlatType for &'_ T {
     type Flat = False;
 }
 
 impl<T: ?Sized + MemSize> MemSize for &'_ T {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_REFS) {
-            let ptr = *self as *const T as *const () as usize;
-            if !refs.contains_key(&ptr) {
-                let inner_size = <T as MemSize>::mem_size_rec(*self, flags, refs);
-                refs.insert(ptr, inner_size);
-            }
-        }
+        record_followed_pointer_size(*self, *self as *const T as *const () as usize, flags, refs);
         core::mem::size_of::<Self>()
     }
 }
@@ -310,6 +321,26 @@ struct RcInner<T: ?Sized> {
     _data: T,
 }
 
+/// Records the allocation behind an `Rc`/`Arc`-style shared pointer once when
+/// `FOLLOW_RCS` is set, including its control-block header. A zero-size
+/// sentinel is inserted before recursing so that cycles terminate.
+#[cfg(feature = "std")]
+#[inline(always)]
+fn record_followed_shared_size<T: MemSize>(
+    inner: &T,
+    ptr: usize,
+    inner_header_size: usize,
+    flags: SizeFlags,
+    refs: &mut HashMap<usize, usize>,
+) {
+    if flags.contains(SizeFlags::FOLLOW_RCS) && !refs.contains_key(&ptr) {
+        refs.insert(ptr, 0);
+        let inner_size = inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
+            - core::mem::size_of::<T>();
+        refs.insert(ptr, inner_size);
+    }
+}
+
 #[cfg(feature = "std")]
 impl<T> FlatType for std::rc::Rc<T> {
     type Flat = False;
@@ -333,16 +364,13 @@ impl<T> FlatType for std::rc::Rc<T> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::rc::Rc<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_RCS) {
-            let ptr = std::rc::Rc::as_ptr(self) as usize;
-            if !refs.contains_key(&ptr) {
-                // Size of RcInner (header) + inner value's recursive size
-                let inner_size = core::mem::size_of::<RcInner<T>>()
-                    + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
-                    - core::mem::size_of::<T>();
-                refs.insert(ptr, inner_size);
-            }
-        }
+        record_followed_shared_size(
+            self.as_ref(),
+            std::rc::Rc::as_ptr(self) as usize,
+            core::mem::size_of::<RcInner<T>>(),
+            flags,
+            refs,
+        );
         core::mem::size_of::<Self>()
     }
 }
@@ -397,16 +425,13 @@ struct ArcInner<T: ?Sized> {
 #[cfg(feature = "std")]
 impl<T: MemSize> MemSize for std::sync::Arc<T> {
     fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
-        if flags.contains(SizeFlags::FOLLOW_RCS) {
-            let ptr = std::sync::Arc::as_ptr(self) as usize;
-            if !refs.contains_key(&ptr) {
-                // Size of ArcInner (header) + inner value's recursive size
-                let inner_size = core::mem::size_of::<ArcInner<T>>()
-                    + <T as MemSize>::mem_size_rec(self.as_ref(), flags, refs)
-                    - core::mem::size_of::<T>();
-                refs.insert(ptr, inner_size);
-            }
-        }
+        record_followed_shared_size(
+            self.as_ref(),
+            std::sync::Arc::as_ptr(self) as usize,
+            core::mem::size_of::<ArcInner<T>>(),
+            flags,
+            refs,
+        );
         core::mem::size_of::<Self>()
     }
 }

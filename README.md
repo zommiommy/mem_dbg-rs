@@ -83,6 +83,11 @@ In both cases, references will be accounted for (when computing size) and
 followed (when displaying the layout), only at their first instance. Subsequent
 instances will just display an arrow followed by a pointer.
 
+Because each address is recorded the first time it is seen, following a value
+that contains a cycle (for example an `Rc` or reference that, directly or
+indirectly, points back to itself) terminates rather than recursing forever:
+the allocation behind the cycle is still counted exactly once.
+
 ## Padding
 
 The trait [`MemDbg`] is useful to display the layout of a value and understand

@@ -37,6 +37,10 @@
 
 ### Fixed
 
+- Following a reference, `Rc`, or `Arc` cycle under `SizeFlags::FOLLOW_REFS` or
+  `SizeFlags::FOLLOW_RCS` no longer recurses forever. The pointer address is now
+  recorded before recursing, so a cycle is cut on re-entry while the allocation
+  is still counted once.
 - `#[derive(MemDbg)]` now expands to fully hygienic code: it no longer
   references `Vec`, `vec!`, `String`, `Some`, `Ok`, `unreachable!`, or
   prelude trait methods without full qualification, so it works in
