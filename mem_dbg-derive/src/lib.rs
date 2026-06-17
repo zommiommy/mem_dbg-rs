@@ -18,7 +18,7 @@ use syn::{
 /// type.
 ///
 /// For each field it produces `const { <<Ty as FlatType>::Flat as
-/// Boolean>::FLAT_CHECK; }`, an unused value of `Boolean::FlatCheck`: `()` for a
+/// Boolean>::FLAT_CHECK };`, an unused value of `Boolean::FlatCheck`: `()` for a
 /// flat field (no warning) or the `#[must_use]` `NonFlatField` for a non-flat
 /// field, which raises an `unused_must_use` warning. The token stream is spanned
 /// at the field, so the warning points at it. The check is accurate (it consults
@@ -26,10 +26,14 @@ use syn::{
 /// time. It is silent for generic fields, whose flatness is unknown before
 /// monomorphization; the authoritative guarantee remains the `FlatType`
 /// machinery. This warning will become a hard error in a future release.
+///
+/// The value is the `const` block's tail expression, with the `;` *outside* the
+/// block: a `<…>::FLAT_CHECK;` statement *inside* the block would be a bare path
+/// statement and trip the `path_statements` lint for flat fields.
 fn flat_field_check(field: &syn::Field) -> proc_macro2::TokenStream {
     let field_ty = &field.ty;
     quote_spanned! {field.span()=>
-        const { <<#field_ty as ::mem_dbg::FlatType>::Flat as ::mem_dbg::Boolean>::FLAT_CHECK; }
+        const { <<#field_ty as ::mem_dbg::FlatType>::Flat as ::mem_dbg::Boolean>::FLAT_CHECK };
     }
 }
 
