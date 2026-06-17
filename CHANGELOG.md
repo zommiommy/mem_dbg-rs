@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- `FOLLOW_REFS` and `FOLLOW_RCS` no longer lose the `Rc`/`Arc` control
+  block when a plain reference reaches the same allocation first.
 - `HashSet`/`HashMap` sizing now mirrors hashbrown 0.16 `RawTable`
   allocation rules, including small-table bucket counts, control-byte
   alignment, and padded `(K, V)` bucket layout.

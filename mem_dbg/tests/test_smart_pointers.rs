@@ -160,6 +160,54 @@ fn test_arc_deduplication() {
 }
 
 #[test]
+fn test_reference_then_rc_counts_rc_allocation() {
+    #[derive(MemSize)]
+    #[mem_size(rec)]
+    struct Test<'a> {
+        borrowed: &'a String,
+        shared: Rc<String>,
+    }
+
+    let shared = Rc::new(String::from("hello"));
+    let s = Test {
+        borrowed: shared.as_ref(),
+        shared: Rc::clone(&shared),
+    };
+    let flags = SizeFlags::FOLLOW_REFS | SizeFlags::FOLLOW_RCS;
+    let shared_allocation =
+        Rc::clone(&shared).mem_size(SizeFlags::FOLLOW_RCS) - core::mem::size_of::<Rc<String>>();
+
+    assert_eq!(
+        s.mem_size(flags),
+        core::mem::size_of_val(&s) + shared_allocation
+    );
+}
+
+#[test]
+fn test_reference_then_arc_counts_arc_allocation() {
+    #[derive(MemSize)]
+    #[mem_size(rec)]
+    struct Test<'a> {
+        borrowed: &'a String,
+        shared: Arc<String>,
+    }
+
+    let shared = Arc::new(String::from("hello"));
+    let s = Test {
+        borrowed: shared.as_ref(),
+        shared: Arc::clone(&shared),
+    };
+    let flags = SizeFlags::FOLLOW_REFS | SizeFlags::FOLLOW_RCS;
+    let shared_allocation =
+        Arc::clone(&shared).mem_size(SizeFlags::FOLLOW_RCS) - core::mem::size_of::<Arc<String>>();
+
+    assert_eq!(
+        s.mem_size(flags),
+        core::mem::size_of_val(&s) + shared_allocation
+    );
+}
+
+#[test]
 fn test_reference_deduplication() {
     #[derive(MemSize)]
     struct Test<'a> {

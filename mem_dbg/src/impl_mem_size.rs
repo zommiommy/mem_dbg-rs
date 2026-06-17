@@ -323,7 +323,9 @@ struct RcInner<T: ?Sized> {
 
 /// Records the allocation behind an `Rc`/`Arc`-style shared pointer once when
 /// `FOLLOW_RCS` is set, including its control-block header. A zero-size
-/// sentinel is inserted before recursing so that cycles terminate.
+/// sentinel is inserted before recursing so that cycles terminate. If the same
+/// data address was already seen through `FOLLOW_REFS`, upgrade the recorded
+/// size so the shared-pointer header is not lost.
 #[cfg(feature = "std")]
 #[inline(always)]
 fn record_followed_shared_size<T: MemSize>(
@@ -333,12 +335,25 @@ fn record_followed_shared_size<T: MemSize>(
     flags: SizeFlags,
     refs: &mut HashMap<usize, usize>,
 ) {
-    if flags.contains(SizeFlags::FOLLOW_RCS) && !refs.contains_key(&ptr) {
-        refs.insert(ptr, 0);
-        let inner_size = inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
-            - core::mem::size_of::<T>();
-        refs.insert(ptr, inner_size);
+    if !flags.contains(SizeFlags::FOLLOW_RCS) {
+        return;
     }
+
+    if let Some(size) = refs.get(&ptr).copied() {
+        if size != 0 {
+            let inner_size = inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
+                - core::mem::size_of::<T>();
+            if let Some(size) = refs.get_mut(&ptr) {
+                *size = core::cmp::max(*size, inner_size);
+            }
+        }
+        return;
+    }
+
+    refs.insert(ptr, 0);
+    let inner_size = inner_header_size + <T as MemSize>::mem_size_rec(inner, flags, refs)
+        - core::mem::size_of::<T>();
+    refs.insert(ptr, inner_size);
 }
 
 #[cfg(feature = "std")]
