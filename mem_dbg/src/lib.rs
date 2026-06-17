@@ -79,7 +79,7 @@ pub trait Boolean {
 /// `#[mem_size(flat)]` type. It is `#[must_use]`, so a non-flat field (whose
 /// [`FlatType::Flat`] is [`False`], mapping to this type) raises an
 /// `unused_must_use` warning at the field. Not part of the public API.
-#[must_use = "this field is not flat, so the enclosing `#[mem_size(flat)]` type under-counts its size inside arrays, vectors, and other containers; use `#[mem_size(rec)]`, or implement `FlatType` by hand. This will become a hard error in a future release"]
+#[must_use = "this field is not flat, so the enclosing `#[mem_size(flat)]` type under-counts its size: use `#[mem_size(rec)]`, or implement `FlatType` by hand. This will become a hard error in a future release."]
 #[doc(hidden)]
 #[derive(Clone, Copy)]
 pub struct NonFlatField;
