@@ -128,3 +128,39 @@ fn test_ranges_with_memdbg() {
         assert!(result.is_ok());
     }
 }
+
+fn render<T: MemDbg>(value: &T) -> String {
+    let mut out = String::new();
+    value
+        .mem_dbg_on(&mut out, DbgFlags::default())
+        .expect("mem_dbg_on");
+    out
+}
+
+#[test]
+fn test_range_labels_start_and_end() {
+    let r: Range<u32> = 1..100;
+    let out = render(&r);
+    assert!(out.contains("├╴start"), "missing labeled start:\n{out}");
+    assert!(out.contains("╰╴end"), "missing labeled end:\n{out}");
+}
+
+#[test]
+fn test_range_inclusive_labels_start_and_end() {
+    let r: RangeInclusive<u32> = 1..=100;
+    let out = render(&r);
+    assert!(out.contains("├╴start"), "missing labeled start:\n{out}");
+    assert!(out.contains("╰╴end"), "missing labeled end:\n{out}");
+}
+
+#[test]
+fn test_one_sided_ranges_label_their_only_field() {
+    let from: RangeFrom<u32> = 5..;
+    assert!(render(&from).contains("╰╴start"));
+
+    let to: RangeTo<u32> = ..10;
+    assert!(render(&to).contains("╰╴end"));
+
+    let to_inclusive: RangeToInclusive<u32> = ..=10;
+    assert!(render(&to_inclusive).contains("╰╴end"));
+}

@@ -131,3 +131,46 @@ fn test_rwlock_mem_dbg_while_write_locked_marks_locked() {
 
     assert!(output.contains("<locked>"));
 }
+
+#[cfg(feature = "derive")]
+#[derive(MemSize, MemDbg)]
+struct Inner {
+    heavy: Vec<u8>,
+}
+
+#[cfg(feature = "derive")]
+fn render<T: MemDbg>(value: &T) -> String {
+    let mut out = String::new();
+    value
+        .mem_dbg_on(&mut out, DbgFlags::default())
+        .expect("mem_dbg_on");
+    out
+}
+
+#[cfg(feature = "derive")]
+#[test]
+fn test_mutex_renders_inner_children_under_default_flags() {
+    let m = Mutex::new(Inner {
+        heavy: vec![0u8; 64],
+    });
+    let out = render(&m);
+    assert!(out.contains("Mutex"));
+    assert!(
+        out.contains("heavy"),
+        "Mutex did not recurse into Inner under default flags:\n{out}"
+    );
+}
+
+#[cfg(feature = "derive")]
+#[test]
+fn test_rwlock_renders_inner_children_under_default_flags() {
+    let r = RwLock::new(Inner {
+        heavy: vec![0u8; 64],
+    });
+    let out = render(&r);
+    assert!(out.contains("RwLock"));
+    assert!(
+        out.contains("heavy"),
+        "RwLock did not recurse into Inner under default flags:\n{out}"
+    );
+}

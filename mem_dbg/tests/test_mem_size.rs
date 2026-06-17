@@ -839,3 +839,72 @@ test_size!(
     ),
     (Unit, 0, 0)
 );
+
+// Named enum fields must not be emitted with the prefixed user field names
+// (`_memsize_flags`, `_memdbg_writer`, ...), which could shadow generated
+// method parameters.
+#[allow(dead_code)]
+#[derive(MemSize)]
+#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
+#[mem_size(rec)]
+enum ShadowedDeriveNames {
+    MemSizeNames {
+        flags: Vec<u8>,
+        refs: String,
+    },
+    MemDbgNames {
+        writer: Vec<u8>,
+        total_size: String,
+        max_depth: usize,
+        prefix: u8,
+        is_last: bool,
+    },
+}
+
+#[test]
+fn test_named_enum_fields_do_not_shadow_derive_locals() {
+    let size_names = ShadowedDeriveNames::MemSizeNames {
+        flags: vec![1, 2, 3],
+        refs: String::from("abc"),
+    };
+    assert_eq!(
+        size_names.mem_size(SizeFlags::default()),
+        core::mem::size_of::<ShadowedDeriveNames>() + 3 + 3
+    );
+
+    #[cfg(feature = "std")]
+    {
+        let dbg_names = ShadowedDeriveNames::MemDbgNames {
+            writer: vec![1, 2, 3],
+            total_size: String::from("abc"),
+            max_depth: 1,
+            prefix: 2,
+            is_last: false,
+        };
+        let mut out = String::new();
+        dbg_names
+            .mem_dbg_on(&mut out, DbgFlags::default())
+            .expect("mem_dbg_on");
+        assert!(out.contains("writer"));
+        assert!(out.contains("total_size"));
+    }
+}
+
+// Zero-variant enum derives must not emit `match self {}` over `&Self`, which
+// is non-exhaustive because references are considered inhabited.
+#[derive(MemSize)]
+#[cfg_attr(all(feature = "std", feature = "derive"), derive(MemDbg))]
+#[mem_size(rec)]
+enum EmptyAuditEnum {}
+
+#[test]
+fn test_empty_enum_derives_compile() {
+    fn assert_mem_size<T: MemSize>() {}
+    assert_mem_size::<EmptyAuditEnum>();
+
+    #[cfg(feature = "std")]
+    {
+        fn assert_mem_dbg<T: MemDbg>() {}
+        assert_mem_dbg::<EmptyAuditEnum>();
+    }
+}

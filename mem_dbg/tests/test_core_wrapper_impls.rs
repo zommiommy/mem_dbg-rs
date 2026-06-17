@@ -221,3 +221,54 @@ fn test_niche_optimized_wrappers() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+fn render<T: MemDbg>(value: &T) -> String {
+    let mut out = String::new();
+    value
+        .mem_dbg_on(&mut out, DbgFlags::default())
+        .expect("mem_dbg_on");
+    out
+}
+
+#[test]
+fn test_reverse_labels_inner_field() {
+    let value = core::cmp::Reverse(Box::new(7u32));
+    let out = render(&value);
+    assert!(out.contains("Reverse"));
+    assert!(out.contains("╰╴0"), "missing tuple-style 0 label:\n{out}");
+}
+
+#[test]
+fn test_bound_variants_label_payload() {
+    let included: core::ops::Bound<Box<u32>> = core::ops::Bound::Included(Box::new(1));
+    let excluded: core::ops::Bound<Box<u32>> = core::ops::Bound::Excluded(Box::new(2));
+    let unbounded: core::ops::Bound<Box<u32>> = core::ops::Bound::Unbounded;
+
+    assert!(render(&included).contains("╰╴Included"));
+    assert!(render(&excluded).contains("╰╴Excluded"));
+    let out_unbounded = render(&unbounded);
+    assert!(out_unbounded.contains("Bound"));
+    assert!(!out_unbounded.contains("Included"));
+    assert!(!out_unbounded.contains("Excluded"));
+}
+
+#[test]
+fn test_poll_variants_label_payload() {
+    let ready: core::task::Poll<Box<u32>> = core::task::Poll::Ready(Box::new(1));
+    let pending: core::task::Poll<Box<u32>> = core::task::Poll::Pending;
+
+    assert!(render(&ready).contains("╰╴Ready"));
+    let out_pending = render(&pending);
+    assert!(!out_pending.contains("Ready"));
+}
+
+#[test]
+fn test_control_flow_variants_label_payload() {
+    let brk: core::ops::ControlFlow<Box<u32>, Box<u32>> =
+        core::ops::ControlFlow::Break(Box::new(1));
+    let cont: core::ops::ControlFlow<Box<u32>, Box<u32>> =
+        core::ops::ControlFlow::Continue(Box::new(2));
+
+    assert!(render(&brk).contains("╰╴Break"));
+    assert!(render(&cont).contains("╰╴Continue"));
+}

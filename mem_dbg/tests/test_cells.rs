@@ -423,3 +423,66 @@ fn test_refcell_mem_dbg_during_borrow_mut() {
         insta::assert_snapshot!("refcell_mutably_borrowed", output);
     });
 }
+
+#[derive(MemSize, MemDbg)]
+struct Inner {
+    heavy: Vec<u8>,
+}
+
+fn render<T: MemDbg>(value: &T) -> String {
+    let mut out = String::new();
+    value
+        .mem_dbg_on(&mut out, DbgFlags::default())
+        .expect("mem_dbg_on");
+    out
+}
+
+#[test]
+fn test_oncecell_renders_inner_children() {
+    let cell: OnceCell<Inner> = OnceCell::new();
+    cell.set(Inner {
+        heavy: vec![0u8; 64],
+    })
+    .ok()
+    .expect("oncecell set");
+
+    let out = render(&cell);
+    assert!(out.contains("OnceCell"), "missing OnceCell line:\n{out}");
+    assert!(
+        out.contains("heavy"),
+        "OnceCell did not recurse into Inner:\n{out}"
+    );
+}
+
+#[test]
+fn test_oncecell_empty_renders_only_self() {
+    let cell: OnceCell<Inner> = OnceCell::new();
+    let out = render(&cell);
+    assert!(out.contains("OnceCell"));
+    assert!(!out.contains("heavy"));
+}
+
+#[test]
+fn test_oncelock_renders_inner_children() {
+    let cell: OnceLock<Inner> = OnceLock::new();
+    cell.set(Inner {
+        heavy: vec![0u8; 64],
+    })
+    .ok()
+    .expect("oncelock set");
+
+    let out = render(&cell);
+    assert!(out.contains("OnceLock"), "missing OnceLock line:\n{out}");
+    assert!(
+        out.contains("heavy"),
+        "OnceLock did not recurse into Inner:\n{out}"
+    );
+}
+
+#[test]
+fn test_oncelock_empty_renders_only_self() {
+    let cell: OnceLock<Inner> = OnceLock::new();
+    let out = render(&cell);
+    assert!(out.contains("OnceLock"));
+    assert!(!out.contains("heavy"));
+}

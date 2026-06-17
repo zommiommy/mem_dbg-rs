@@ -342,3 +342,29 @@ fn test_arc_to_struct_with_fields() {
         assert_snapshot!("arc_struct_with_follow", output);
     });
 }
+
+// A followed reference hidden by depth gating must not be inserted into the
+// display dedup set before it is shown, or a later visible alias would render
+// as a back-reference with no visible first-reference marker.
+#[derive(MemSize, MemDbg)]
+#[mem_size(rec)]
+struct DepthHiddenRef<'a> {
+    hidden: Option<&'a u32>,
+    visible: &'a u32,
+}
+
+#[test]
+fn test_hidden_followed_ref_does_not_poison_visible_marker() {
+    let value = 7;
+    let s = DepthHiddenRef {
+        hidden: Some(&value),
+        visible: &value,
+    };
+    let mut out = String::new();
+
+    s.mem_dbg_depth_on(&mut out, 1, DbgFlags::FOLLOW_REFS)
+        .expect("mem_dbg_depth_on");
+
+    assert!(out.contains("visible @ 0x"), "{out}");
+    assert!(!out.contains("visible →"), "{out}");
+}
