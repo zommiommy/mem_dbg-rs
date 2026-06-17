@@ -14,6 +14,23 @@ use syn::{
     Data, DeriveInput, parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned,
 };
 
+/// Remove duplicate predicates from a where clause.
+///
+/// Each field contributes a trait bound on its type, so a type that appears in
+/// several fields (or across enum variants) would otherwise emit the identical
+/// predicate once per occurrence. Deduplicating by token text keeps the
+/// generated `where` clause (and its rustdoc) minimal and stable, keeping the
+/// first occurrence's span.
+fn dedup_predicates(where_clause: &mut syn::WhereClause) {
+    let mut seen = std::collections::HashSet::new();
+    let predicates = std::mem::take(&mut where_clause.predicates);
+    for predicate in predicates {
+        if seen.insert(predicate.to_token_stream().to_string()) {
+            where_clause.predicates.push(predicate);
+        }
+    }
+}
+
 /// Generate a `mem_dbg::MemSize` implementation for custom types.
 ///
 /// Presently we do not support unions.
@@ -120,6 +137,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             } else {
                 quote! {}
             };
+
+            dedup_predicates(&mut where_clause);
 
             quote! {
                 #[automatically_derived]
@@ -238,6 +257,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 }
             };
 
+            dedup_predicates(&mut where_clause);
+
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::FlatType for #input_ident #ty_generics #where_clause
@@ -314,6 +335,7 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
             }
 
             let n_fields = s.fields.len();
+            dedup_predicates(&mut where_clause);
             quote! {
                 #[automatically_derived]
                 impl #impl_generics ::mem_dbg::MemDbgImpl for #input_ident #ty_generics #where_clause {
@@ -608,6 +630,8 @@ pub fn mem_dbg_mem_dbg(input: TokenStream) -> TokenStream {
                     ::core::result::Result::Ok(())
                 }
             };
+
+            dedup_predicates(&mut where_clause);
 
             quote! {
                 #[automatically_derived]
