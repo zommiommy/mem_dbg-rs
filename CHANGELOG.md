@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- `Cow::Borrowed` now participates in `MemDbg` reference markers and
+  deduplication under `FOLLOW_REFS`, matching its `MemSize` behavior.
 - `MutexGuard` and `RwLock*Guard` now follow and deduplicate their target
   like ordinary references under `FOLLOW_REFS`, instead of dropping the
   target's inline bytes or double-counting repeated guards.

@@ -408,9 +408,21 @@ where
         dbg_refs: &mut HashSet<usize>,
     ) -> core::fmt::Result {
         match self {
-            Cow::Borrowed(borrowed) => <&B as MemDbgImpl>::_mem_dbg_rec_on(
-                borrowed, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-            ),
+            Cow::Borrowed(borrowed) if flags.contains(DbgFlags::FOLLOW_REFS) => {
+                <&B as MemDbgImpl>::_mem_dbg_depth_on(
+                    borrowed,
+                    writer,
+                    total_size,
+                    max_depth,
+                    prefix,
+                    None,
+                    true,
+                    core::mem::size_of::<&B>(),
+                    flags,
+                    dbg_refs,
+                )
+            }
+            Cow::Borrowed(_) => Ok(()),
             Cow::Owned(owned) => <B::Owned as MemDbgImpl>::_mem_dbg_rec_on(
                 owned, writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
             ),
