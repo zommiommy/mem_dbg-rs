@@ -212,6 +212,10 @@ pub trait MemSize {
     /// occupied by references only once in case any of the flags
     /// [`SizeFlags::FOLLOW_REFS`] or [`SizeFlags::FOLLOW_RCS`] is set.
     ///
+    /// Implementations must return at least `core::mem::size_of_val(self)`.
+    /// Wrapper and derive implementations subtract inline field storage before
+    /// adding recursive contributions, so returning a smaller value can
+    /// underflow in debug builds or wrap in optimized builds.
     /// In case of custom (non-derive) implementations: types that do not
     /// contain references can simply ignore the `refs` parameter; otherwise,
     /// please have a look at the [implementation for

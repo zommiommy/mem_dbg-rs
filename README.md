@@ -292,6 +292,9 @@ capacity: 1207
   derive macros `MemSize`/`MemDbg` will generate implementations for structs and
   enums whose fields implement the associated interface: if this is not the case
   (e.g., because of the orphan rule) one can implement the traits manually.
+  A manual `MemSize::mem_size_rec` implementation must always return at least
+  `core::mem::size_of_val(self)`: wrapper and derive implementations subtract
+  inline field storage before adding recursive contributions.
 
 - [`RefCell`] contents can be followed only if the [`RefCell`] is not mutably
   borrowed; `MemDbg` will show a `<mutably borrowed>` message, but `MemSize`
