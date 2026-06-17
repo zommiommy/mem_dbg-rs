@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `Cell<T>` and `UnsafeCell<T>` are now treated as opaque inline storage for
+  `MemSize`/`MemDbg` instead of borrowing through interior-mutability
+  pointers during traversal.
 - The `MemDbgImpl` implementation for `core::alloc::Layout` was gated
   behind the `std` feature, while its `MemSize` implementation was not:
   under `no_std`, a `Layout` field made `#[derive(MemDbg)]` fail. The

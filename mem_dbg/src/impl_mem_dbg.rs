@@ -918,46 +918,9 @@ impl<T: MemDbgImpl> MemDbgImpl for core::cell::RefCell<T> {
     }
 }
 
-impl<T: MemDbgImpl> MemDbgImpl for core::cell::Cell<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value;
-        // since &self exists, &mut self cannot exist.
-        let borrow = unsafe { &*self.as_ptr() };
-        borrow._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
-    }
-}
+impl<T: ?Sized> MemDbgImpl for core::cell::Cell<T> {}
 
-impl<T: MemDbgImpl> MemDbgImpl for core::cell::UnsafeCell<T> {
-    fn _mem_dbg_rec_on(
-        &self,
-        writer: &mut impl core::fmt::Write,
-        total_size: usize,
-        max_depth: usize,
-        prefix: &mut String,
-        is_last: bool,
-        flags: DbgFlags,
-        dbg_refs: &mut HashSet<usize>,
-    ) -> core::fmt::Result {
-        // SAFETY: we temporarily take a shared reference to the inner value; no
-        // concurrent mutation through UnsafeCell::get() can occur during the
-        // temporary borrow.
-        let borrow = unsafe { &*self.get() };
-        borrow._mem_dbg_rec_on(
-            writer, total_size, max_depth, prefix, is_last, flags, dbg_refs,
-        )
-    }
-}
+impl<T: ?Sized> MemDbgImpl for core::cell::UnsafeCell<T> {}
 
 // Mutexes
 
