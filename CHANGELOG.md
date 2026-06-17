@@ -2,6 +2,16 @@
 
 ## [0.4.3] - unreleased
 
+### Changed
+
+- `#[mem_size(flat)]` on a (non-generic) type with a non-flat field now
+  produces a compile-time `unused_must_use` warning pointing at the offending
+  field: a flat type may contain only flat fields, since the flat fast path
+  computes container sizes as `len * size_of` and otherwise silently
+  under-counts heap. The check consults the field's real `FlatType` impl (not
+  its syntax). This will become a hard error in a future release; use
+  `#[mem_size(rec)]`, or implement `FlatType` by hand.
+
 ### Fixed
 
 - `mem_dbg()`/`mem_dbg_depth()` now hold one `stderr` lock and use

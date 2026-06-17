@@ -9,10 +9,29 @@
 //! Derive procedural macros for the [`mem_dbg`](https://crates.io/crates/mem_dbg) crate.
 
 use proc_macro::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
     Data, DeriveInput, parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned,
 };
+
+/// Generates the per-field flatness check emitted for a `#[mem_size(flat)]`
+/// type.
+///
+/// For each field it produces `const { <<Ty as FlatType>::Flat as
+/// Boolean>::FLAT_CHECK; }`, an unused value of `Boolean::FlatCheck`: `()` for a
+/// flat field (no warning) or the `#[must_use]` `NonFlatField` for a non-flat
+/// field, which raises an `unused_must_use` warning. The token stream is spanned
+/// at the field, so the warning points at it. The check is accurate (it consults
+/// the real `FlatType` impl, not the field's syntax) and costs nothing at run
+/// time. It is silent for generic fields, whose flatness is unknown before
+/// monomorphization; the authoritative guarantee remains the `FlatType`
+/// machinery. This warning will become a hard error in a future release.
+fn flat_field_check(field: &syn::Field) -> proc_macro2::TokenStream {
+    let field_ty = &field.ty;
+    quote_spanned! {field.span()=>
+        const { <<#field_ty as ::mem_dbg::FlatType>::Flat as ::mem_dbg::Boolean>::FLAT_CHECK; }
+    }
+}
 
 /// Remove duplicate predicates from a where clause.
 ///
@@ -105,6 +124,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
         Data::Struct(s) => {
             let mut fields_ident = vec![];
             let mut fields_ty = vec![];
+            let mut flat_checks = vec![];
 
             for (field_idx, field) in s.fields.iter().enumerate() {
                 fields_ident.push(
@@ -120,6 +140,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                 where_clause
                     .predicates
                     .push(parse_quote_spanned!(field.span()=> #field_ty: ::mem_dbg::MemSize + ::mem_dbg::FlatType));
+                if is_flat {
+                    flat_checks.push(flat_field_check(field));
+                }
             }
 
             let const_assert = if !is_flat && !is_rec {
@@ -134,6 +157,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         #msg
                     ); }
                 }
+            } else if is_flat {
+                quote! { #(#flat_checks)* }
             } else {
                 quote! {}
             };
@@ -163,6 +188,7 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
             let mut variants = Vec::new();
             let mut variants_size = Vec::new();
             let mut all_field_types = Vec::new();
+            let mut flat_checks = Vec::new();
             let is_empty_enum = e.variants.is_empty();
 
             for (variant_idx, variant) in e.variants.into_iter().enumerate() {
@@ -179,6 +205,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                                 .push(parse_quote_spanned!(field.span() => #field_ty: ::mem_dbg::MemSize + ::mem_dbg::FlatType));
                             if !is_flat && !is_rec {
                                 all_field_types.push(field.ty.to_token_stream());
+                            }
+                            if is_flat {
+                                flat_checks.push(flat_field_check(field));
                             }
                             let field_ident = field.ident.as_ref().unwrap();
                             let binding_ident = syn::Ident::new(
@@ -218,6 +247,9 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                             if !is_flat && !is_rec {
                                 all_field_types.push(field.ty.to_token_stream());
                             }
+                            if is_flat {
+                                flat_checks.push(flat_field_check(field));
+                            }
                         }
                         // extend res with the args surrounded by parentheses
                         res.extend(quote! {
@@ -241,6 +273,8 @@ pub fn mem_dbg_mem_size(input: TokenStream) -> TokenStream {
                         #msg
                     ); }
                 }
+            } else if is_flat {
+                quote! { #(#flat_checks)* }
             } else {
                 quote! {}
             };

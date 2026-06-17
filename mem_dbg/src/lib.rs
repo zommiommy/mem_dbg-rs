@@ -64,13 +64,33 @@ pub trait Boolean {
     type And<B: Boolean>: Boolean;
     /// The Boolean value of the type.
     const VALUE: bool;
+    /// Per-field flatness check used by the derive macro to warn when a
+    /// `#[mem_size(flat)]` type has a non-flat field: `()` for [`True`] (flat),
+    /// and the `#[must_use]` [`NonFlatField`] for [`False`] (non-flat). Not part
+    /// of the public API.
+    #[doc(hidden)]
+    type FlatCheck: Copy;
+    /// The value of [`Boolean::FlatCheck`].
+    #[doc(hidden)]
+    const FLAT_CHECK: Self::FlatCheck;
 }
+
+/// Marker discarded, one per field, by `#[derive(MemSize)]` on a
+/// `#[mem_size(flat)]` type. It is `#[must_use]`, so a non-flat field (whose
+/// [`FlatType::Flat`] is [`False`], mapping to this type) raises an
+/// `unused_must_use` warning at the field. Not part of the public API.
+#[must_use = "this field is not flat, so the enclosing `#[mem_size(flat)]` type under-counts its size inside arrays, vectors, and other containers; use `#[mem_size(rec)]`, or implement `FlatType` by hand. This will become a hard error in a future release"]
+#[doc(hidden)]
+#[derive(Clone, Copy)]
+pub struct NonFlatField;
 
 /// One of the two possible implementations of [`Boolean`].
 pub struct True {}
 impl Boolean for True {
     type And<B: Boolean> = B;
     const VALUE: bool = true;
+    type FlatCheck = ();
+    const FLAT_CHECK: () = ();
 }
 
 /// One of the two possible implementations of [`Boolean`].
@@ -78,6 +98,8 @@ pub struct False {}
 impl Boolean for False {
     type And<B: Boolean> = False;
     const VALUE: bool = false;
+    type FlatCheck = NonFlatField;
+    const FLAT_CHECK: NonFlatField = NonFlatField;
 }
 
 /// How to display a reference address in [`MemDbgImpl::_mem_dbg_depth_on_impl`].
@@ -114,8 +136,15 @@ pub enum RefDisplay {
 ///
 /// If you use the provided derive macros all this logic will be hidden from
 /// you. You'll just have to add the attribute `#[mem_size(flat)]` to your
-/// structures if they are flat types that do not contain non-`'static`
-/// references (typically [`Copy`] + `'static` types, but this is not enforced).
+/// structures if they are flat types, i.e., types all of whose fields are
+/// themselves `FlatType<Flat = True>` (typically [`Copy`] + `'static` types
+/// with no heap allocation and no references). `#[mem_size(flat)]` on a type
+/// with a non-flat field (e.g., a [`Vec`], [`String`], [`Box`], or a reference,
+/// which are all `Flat = False` because their size is not constant) currently
+/// produces a compile-time `unused_must_use` warning at the offending field
+/// (for non-generic types) and will become a hard error in a future release. If
+/// you need to assert flatness the macro cannot verify, implement [`FlatType`]
+/// by hand.
 ///
 /// When all fields of a struct or enum implement `FlatType<Flat=True>` but the
 /// type itself is not annotated with `#[mem_size(flat)]`, a compile-time error
