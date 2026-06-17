@@ -312,12 +312,11 @@ impl<P: MemSize> MemSize for core::pin::Pin<P> {
 
 // Rc: uses map for deduplication when FOLLOW_RCS is set
 
-// Structure used to measure the size of RcInner in std
-#[cfg(feature = "std")]
+// Structure used to measure the size of RcInner.
 #[repr(C, align(2))]
 struct RcInner<T: ?Sized> {
-    _strong: std::cell::Cell<usize>,
-    _weak: std::cell::Cell<usize>,
+    _strong: core::cell::Cell<usize>,
+    _weak: core::cell::Cell<usize>,
     _data: T,
 }
 
@@ -326,7 +325,6 @@ struct RcInner<T: ?Sized> {
 /// sentinel is inserted before recursing so that cycles terminate. If the same
 /// data address was already seen through `FOLLOW_REFS`, upgrade the recorded
 /// size so the shared-pointer header is not lost.
-#[cfg(feature = "std")]
 #[inline(always)]
 fn record_followed_shared_size<T: MemSize>(
     inner: &T,
@@ -390,6 +388,27 @@ impl<T: MemSize> MemSize for std::rc::Rc<T> {
     }
 }
 
+#[cfg(not(feature = "std"))]
+impl<T> FlatType for alloc::rc::Rc<T> {
+    type Flat = False;
+}
+
+#[cfg(not(feature = "std"))]
+impl<T: MemSize> MemSize for alloc::rc::Rc<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        // The pointer address is used only as an identity key for deduplication.
+        let ptr = alloc::rc::Rc::as_ptr(self) as usize;
+        record_followed_shared_size(
+            self.as_ref(),
+            ptr,
+            core::mem::size_of::<RcInner<T>>(),
+            flags,
+            refs,
+        );
+        core::mem::size_of::<Self>()
+    }
+}
+
 // Weak pointers are handles only. Upgrading them would observe mutable shared
 // state and would not establish ownership of the allocation.
 
@@ -405,6 +424,18 @@ impl<T: ?Sized> MemSize for std::rc::Weak<T> {
     }
 }
 
+#[cfg(not(feature = "std"))]
+impl<T: ?Sized> FlatType for alloc::rc::Weak<T> {
+    type Flat = True;
+}
+
+#[cfg(not(feature = "std"))]
+impl<T: ?Sized> MemSize for alloc::rc::Weak<T> {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
 // Arc: uses map for deduplication when FOLLOW_RCS is set
 
 #[cfg(feature = "std")]
@@ -412,8 +443,7 @@ impl<T> FlatType for std::sync::Arc<T> {
     type Flat = False;
 }
 
-// Structure used to measure the size of ArcInner in std
-#[cfg(feature = "std")]
+// Structure used to measure the size of ArcInner.
 #[repr(C, align(2))]
 struct ArcInner<T: ?Sized> {
     _strong: core::sync::atomic::AtomicUsize,
@@ -451,6 +481,27 @@ impl<T: MemSize> MemSize for std::sync::Arc<T> {
     }
 }
 
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T> FlatType for alloc::sync::Arc<T> {
+    type Flat = False;
+}
+
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: MemSize> MemSize for alloc::sync::Arc<T> {
+    fn mem_size_rec(&self, flags: SizeFlags, refs: &mut HashMap<usize, usize>) -> usize {
+        // The pointer address is used only as an identity key for deduplication.
+        let ptr = alloc::sync::Arc::as_ptr(self) as usize;
+        record_followed_shared_size(
+            self.as_ref(),
+            ptr,
+            core::mem::size_of::<ArcInner<T>>(),
+            flags,
+            refs,
+        );
+        core::mem::size_of::<Self>()
+    }
+}
+
 // Weak pointers are handles only; see the `Rc::Weak` implementation.
 
 #[cfg(feature = "std")]
@@ -460,6 +511,18 @@ impl<T: ?Sized> FlatType for std::sync::Weak<T> {
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemSize for std::sync::Weak<T> {
+    fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: ?Sized> FlatType for alloc::sync::Weak<T> {
+    type Flat = True;
+}
+
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: ?Sized> MemSize for alloc::sync::Weak<T> {
     fn mem_size_rec(&self, _flags: SizeFlags, _refs: &mut HashMap<usize, usize>) -> usize {
         core::mem::size_of::<Self>()
     }

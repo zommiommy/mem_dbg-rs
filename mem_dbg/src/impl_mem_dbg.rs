@@ -479,10 +479,21 @@ impl<T: MemDbgImpl> MemDbgImpl for std::rc::Rc<T> {
     impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::rc::Rc::as_ptr(s) as usize);
 }
 
+#[cfg(not(feature = "std"))]
+impl<T: MemDbgImpl> MemDbgImpl for alloc::rc::Rc<T> {
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| {
+        // The pointer address is used only as an identity key for deduplication.
+        alloc::rc::Rc::as_ptr(s) as usize
+    });
+}
+
 // Weak pointers are displayed as handles only.
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemDbgImpl for std::rc::Weak<T> {}
+
+#[cfg(not(feature = "std"))]
+impl<T: ?Sized> MemDbgImpl for alloc::rc::Weak<T> {}
 
 // Arc
 
@@ -493,10 +504,21 @@ impl<T: MemDbgImpl> MemDbgImpl for std::sync::Arc<T> {
     impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| std::sync::Arc::as_ptr(s) as usize);
 }
 
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: MemDbgImpl> MemDbgImpl for alloc::sync::Arc<T> {
+    impl_mem_dbg_for_deref!(FOLLOW_RCS, |s| {
+        // The pointer address is used only as an identity key for deduplication.
+        alloc::sync::Arc::as_ptr(s) as usize
+    });
+}
+
 // Weak pointers are displayed as handles only.
 
 #[cfg(feature = "std")]
 impl<T: ?Sized> MemDbgImpl for std::sync::Weak<T> {}
+
+#[cfg(all(not(feature = "std"), target_has_atomic = "ptr"))]
+impl<T: ?Sized> MemDbgImpl for alloc::sync::Weak<T> {}
 
 // Slices
 
@@ -888,12 +910,15 @@ impl MemDbgImpl for MutablyBorrowed {
 }
 
 /// Zero-sized placeholder displayed when a lock is already held.
+#[cfg(feature = "std")]
 struct Locked;
 
+#[cfg(feature = "std")]
 impl crate::FlatType for Locked {
     type Flat = crate::True;
 }
 
+#[cfg(feature = "std")]
 impl crate::MemSize for Locked {
     fn mem_size_rec(
         &self,
@@ -904,6 +929,7 @@ impl crate::MemSize for Locked {
     }
 }
 
+#[cfg(feature = "std")]
 impl MemDbgImpl for Locked {
     fn _mem_dbg_depth_on(
         &self,

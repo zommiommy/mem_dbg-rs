@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `alloc::rc::{Rc, Weak}` and `alloc::sync::{Arc, Weak}` are now
+  implemented under `no_std + alloc` (with `Arc` gated on pointer
+  atomics), matching the existing `std` shared-pointer support.
 - `#[derive(MemSize, MemDbg)]` now supports zero-variant enums instead of
   expanding to a non-exhaustive `match self {}` over `&Self`.
 - `#[derive(MemSize, MemDbg)]` for named enums now uses collision-proof
