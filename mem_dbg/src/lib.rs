@@ -149,6 +149,11 @@ bitflags::bitflags! {
         /// region will be added only once). Reference cycles are handled by
         /// this same once-per-address accounting, so following a cyclic value
         /// terminates instead of recursing forever.
+        ///
+        /// A limitation of the current approach is that each reference is just
+        /// a thin pointer (i.e., a memory address). Thus, we cannot tell, for
+        /// example, that an inner reference to a referenced structure is being
+        /// counted twice, as the referenced structure has no associated size.
         const FOLLOW_REFS = 1 << 0;
         /// Return capacity instead of size.
         ///

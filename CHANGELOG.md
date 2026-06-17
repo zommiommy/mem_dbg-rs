@@ -8,6 +8,7 @@
   behind the `std` feature, while its `MemSize` implementation was not:
   under `no_std`, a `Layout` field made `#[derive(MemDbg)]` fail. The
   implementation is now available unconditionally, like the type.
+
 - The tuple `MemDbg` implementation now breaks field-offset ties by size,
   so zero-sized fields sharing an offset with a non-zero-sized field are
   not attributed spurious padding. This mirrors the tie-breaking already
@@ -25,6 +26,16 @@
   `ControlFlow`, `Poll`, `Bound`, and `Reverse`. Previously they rendered
   no children at all, even though `MemSize` counts the payload.
 
+- Following a reference, `Rc`, or `Arc` cycle under `SizeFlags::FOLLOW_REFS` or
+  `SizeFlags::FOLLOW_RCS` no longer recurses forever. The pointer address is now
+  recorded before recursing, so a cycle is cut on re-entry while the allocation
+  is still counted once.
+
+- `#[derive(MemDbg)]` now expands to fully hygienic code: it no longer
+  references `Vec`, `vec!`, `String`, `Some`, `Ok`, `unreachable!`, or
+  prelude trait methods without full qualification, so it works in
+  `no_std` crates (and in any module without the standard prelude).
+
 ### Changed
 
 - Container size computation no longer dispatches through the hidden
@@ -34,18 +45,6 @@
   branches on the constant `FlatType` flag, which the optimizer folds away, so
   reported sizes and generated code are unchanged. A `mem_size` benchmark guards
   the flat and per-element size paths.
-
-### Fixed
-
-- Following a reference, `Rc`, or `Arc` cycle under `SizeFlags::FOLLOW_REFS` or
-  `SizeFlags::FOLLOW_RCS` no longer recurses forever. The pointer address is now
-  recorded before recursing, so a cycle is cut on re-entry while the allocation
-  is still counted once.
-- `#[derive(MemDbg)]` now expands to fully hygienic code: it no longer
-  references `Vec`, `vec!`, `String`, `Some`, `Ok`, `unreachable!`, or
-  prelude trait methods without full qualification, so it works in
-  `no_std` crates (and in any module without the standard prelude). A
-  `no_implicit_prelude` test guards against regressions.
 
 ### Improved
 

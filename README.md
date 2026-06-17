@@ -81,7 +81,8 @@ make it possible to follow [`Rc`]/[`Arc`] smart pointers.
 
 In both cases, references will be accounted for (when computing size) and
 followed (when displaying the layout), only at their first instance. Subsequent
-instances will just display an arrow followed by a pointer.
+instances will just display an arrow followed by a pointer (see the
+[`SizeFlags::FOLLOW_REFS`] documentation for the limitations of our approach).
 
 Because each address is recorded the first time it is seen, following a value
 that contains a cycle (for example an `Rc` or reference that, directly or
