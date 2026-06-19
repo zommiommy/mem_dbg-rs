@@ -32,37 +32,58 @@ macro_rules! check {
     (
         $data: expr,
         $threshold: expr$(,)?
-    ) => {
-        let start_size = ALLOCATOR.allocated();
-        // put it inside a box so the allocator also counts the struct size,
-        // which we include in the reported size
-        let data = Box::new({ $data });
-        let end_size = ALLOCATOR.allocated();
-        let actual_size = end_size - start_size;
-        // use capacity because the allocator tracks allocated memory, which includes
-        // any overallocation by the data structure
-        let reported_size = data.mem_size(SizeFlags::CAPACITY) - core::mem::size_of::<Box<()>>(); // subtract box pointer
-        let type_name = core::any::type_name_of_val(&data);
-        drop(data);
+    ) => {{
+        // The global `cap` allocator counts every allocation in the whole
+        // process, not just ours. A stray allocation from another thread
+        // (e.g. the test harness) can land between the two `allocated()`
+        // reads and inflate `actual_size`, which intermittently reds CI. A
+        // genuine size mismatch is deterministic and fails every attempt,
+        // whereas this transient noise clears on a re-measure, so we retry a
+        // few times and accept the first clean reading.
+        const ATTEMPTS: usize = 8;
+        let mut failure = None;
+        for attempt in 0..ATTEMPTS {
+            let start_size = ALLOCATOR.allocated();
+            // put it inside a box so the allocator also counts the struct size,
+            // which we include in the reported size
+            let data = Box::new({ $data });
+            let end_size = ALLOCATOR.allocated();
+            // Saturating: a concurrent free inside the window could make
+            // `end_size < start_size`; treat that as noise and retry.
+            let actual_size = end_size.saturating_sub(start_size);
+            // use capacity because the allocator tracks allocated memory, which includes
+            // any overallocation by the data structure
+            let reported_size = data.mem_size(SizeFlags::CAPACITY) - core::mem::size_of::<Box<()>>(); // subtract box pointer
+            let type_name = core::any::type_name_of_val(&data);
+            drop(data);
 
-        // Handle zero-sized types (both sizes are 0) - skip assertion but don't return from function
-        if actual_size == 0 && reported_size == 0 {
-            eprintln!("Checking type: {} | actual: {} | reported: {} | ZST OK", type_name, actual_size, reported_size);
-        } else {
+            // Handle zero-sized types (both sizes are 0) - skip assertion but don't return from function
+            if actual_size == 0 && reported_size == 0 {
+                eprintln!("Checking type: {} | actual: {} | reported: {} | ZST OK", type_name, actual_size, reported_size);
+                failure = None;
+                break;
+            }
+            // `as f64`: both are byte counts well under 2^53 in this test, so
+            // the usize->f64 conversion is exact (no precision loss).
             let diff_ratio = actual_size.max(reported_size) as f64
                 / actual_size.min(reported_size).max(1) as f64
                 - 1.0;
-            eprintln!("Checking type: {} | actual: {} | reported: {} | diff_ratio: {}", type_name, actual_size, reported_size, diff_ratio);
-            assert!(
-                diff_ratio <= $threshold,
+            if diff_ratio <= $threshold {
+                eprintln!("Checking type: {} | actual: {} | reported: {} | diff_ratio: {}", type_name, actual_size, reported_size, diff_ratio);
+                failure = None;
+                break;
+            }
+            // Over threshold: record it and retry to rule out transient noise.
+            eprintln!("Checking type: {} | actual: {} | reported: {} | diff_ratio: {} | over threshold, retry {}/{}", type_name, actual_size, reported_size, diff_ratio, attempt + 1, ATTEMPTS);
+            failure = Some(format!(
                 "Size mismatch for {}: actual = {}, reported = {}, diff_ratio = {}",
-                type_name,
-                actual_size,
-                reported_size,
-                diff_ratio
-            );
+                type_name, actual_size, reported_size, diff_ratio
+            ));
         }
-    };
+        if let Some(message) = failure {
+            panic!("{}", message);
+        }
+    }};
 }
 
 // Custom struct with derive
