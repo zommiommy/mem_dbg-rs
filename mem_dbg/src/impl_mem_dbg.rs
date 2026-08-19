@@ -1287,6 +1287,24 @@ impl<A: maligned::Alignment, T: MemDbgImpl> MemDbgImpl for maligned::Aligned<A, 
 #[cfg(feature = "half")]
 impl_mem_dbg!(half::f16, half::bf16);
 
+// ordered-float crate
+
+#[cfg(feature = "ordered-float")]
+impl_mem_dbg!(
+    ordered_float::OrderedFloat<f64>,
+    ordered_float::OrderedFloat<f32>,
+    ordered_float::NotNan<f64>,
+    ordered_float::NotNan<f32>
+);
+
+#[cfg(all(feature = "ordered-float", feature = "half"))]
+impl_mem_dbg!(
+    ordered_float::OrderedFloat<half::f16>,
+    ordered_float::OrderedFloat<half::bf16>,
+    ordered_float::NotNan<half::f16>,
+    ordered_float::NotNan<half::bf16>
+);
+
 // aliasable crate
 //
 // Debug traversal mirrors each wrapper's core/alloc twin: AliasableBox forwards

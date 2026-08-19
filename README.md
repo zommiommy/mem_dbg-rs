@@ -118,6 +118,7 @@ which however needs the nightly compiler, as it enables the unstable feature
 - `aliasable`: support for the [`aliasable`] crate (but [`SizeFlags::CAPACITY`]
   is a no-op for `AliasableVec` and `AliasableString`).
 - `maybe-dangling`: support for the [`maybe-dangling`] crate.
+- `ordered-float`: support for the [`ordered-float`] crate.
 
 ## Examples
 
